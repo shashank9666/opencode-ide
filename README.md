@@ -1,3 +1,5 @@
+> **Note:** This is a fork of [OpenCode](https://github.com/anomalyco/opencode) and is **not affiliated with, endorsed by, or maintained by the OpenCode team.**
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
@@ -100,9 +102,33 @@ For more info on how to configure OpenCode, [**head over to our docs**](https://
 
 If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
 
-### Building on OpenCode
+### Description
 
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
+This fork provides a web-based code editing experience where an AI coding agent operates alongside you in the browser. Built with [SolidJS](https://www.solidjs.com/) and [Monaco Editor](https://microsoft.github.io/monaco-editor/), it connects to an OpenCode backend to run agent sessions directly in the browser.
+
+### Running Locally
+
+```bash
+# Install dependencies (from repo root)
+bun install
+
+# Start the backend (from packages/opencode)
+bun run --conditions=browser ./src/index.ts serve --port 4096
+
+# In another terminal, start the frontend dev server (from packages/app)
+bun dev -- --port 4444
+
+# Open http://localhost:4444
+```
+
+### Building for Production
+
+```bash
+# Build the frontend (from packages/app)
+bun run build
+
+# Output is in packages/app/dist - deploy to any static host
+```
 
 ---
 
