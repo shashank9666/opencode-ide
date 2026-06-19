@@ -20,6 +20,9 @@ export const FileQuery = Schema.Struct({
 export const FindTextQuery = Schema.Struct({
   ...WorkspaceRoutingQueryFields,
   pattern: Schema.String,
+  caseSensitive: Schema.optional(Schema.Literals(["true", "false"])),
+  wordMatch: Schema.optional(Schema.Literals(["true", "false"])),
+  useRegex: Schema.optional(Schema.Literals(["true", "false"])),
 })
 
 export const FindFileQuery = Schema.Struct({

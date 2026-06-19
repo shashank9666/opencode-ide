@@ -76,6 +76,9 @@ export interface GrepInput {
   readonly include?: string
   readonly limit: number
   readonly signal?: AbortSignal
+  readonly caseSensitive?: boolean
+  readonly wordMatch?: boolean
+  readonly useRegex?: boolean
 }
 
 export interface Interface {
@@ -230,6 +233,9 @@ export const layer = Layer.effect(
             "--no-messages",
             ...(input.include ? [`--glob=${input.include}`] : []),
             "--glob=!**/.git/**",
+            ...(input.caseSensitive ? ["--case-sensitive"] : ["--ignore-case"]),
+            ...(input.wordMatch ? ["--word-regexp"] : []),
+            ...(input.useRegex === false ? ["--fixed-strings"] : []),
             "--",
             input.pattern,
             input.file ?? ".",

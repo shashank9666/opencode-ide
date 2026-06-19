@@ -324,13 +324,32 @@ export default function FullIde() {
 
   // ── File ops ──
   const handleFileClick = async (node: { path: string; type: string }) => {
+    console.log("handleFileClick", node)
     if (node.type !== "file") return
     closeContextMenu()
-    await file.load(node.path)
-    const state = file.get(node.path)
-    if (state?.content && state.content.type === "text") {
-      editor.openFile(node.path, state.content.content)
+    try {
+      console.log("loading file", node.path)
+      await file.load(node.path)
+      const state = file.get(node.path)
+      console.log("file state after load", state)
+      if (!state) return
+      if (state.error) {
+        showToast({ variant: "error", title: "Failed to open file", description: state.error })
+        return
+      }
+      const content = state.content
+      console.log("file content", content)
+      if (!content) return
+      if (content.type === "binary") {
+        showToast({ title: "Binary file", description: `${getFilename(node.path)} is a binary file and cannot be edited.` })
+        return
+      }
+      console.log("calling editor.openFile", node.path)
+      editor.openFile(node.path, content.content ?? "")
       setDiffMode(false)
+    } catch (e) {
+      console.error("error opening file", e)
+      showToast({ variant: "error", title: "Failed to open file", description: String(e) })
     }
   }
 

@@ -3,7 +3,7 @@ import { createSignal } from "solid-js";
 export type OpenFile = {
   path: string;
   content: string;
-  originalContent?: string;
+  savedContent: string;
   dirty: boolean;
 };
 
@@ -46,8 +46,15 @@ export function createEditorWorkspace() {
   const openFile = (path: string, content: string, groupId: string = activeGroupId()) => {
     setRootNode(prev => updateGroup(prev, groupId, (g) => {
       const existing = g.files.find(f => f.path === path);
-      if (existing) return { ...g, activeFile: path };
-      return { ...g, files: [...g.files, { path, content, dirty: false }], activeFile: path };
+      if (existing) {
+        // Update content if file was reloaded from disk
+        return {
+          ...g,
+          files: g.files.map(f => f.path === path ? { ...f, content, savedContent: content, dirty: false } : f),
+          activeFile: path
+        };
+      }
+      return { ...g, files: [...g.files, { path, content, savedContent: content, dirty: false }], activeFile: path };
     }));
   };
 
@@ -70,13 +77,17 @@ export function createEditorWorkspace() {
 
   const setContent = (path: string, content: string, groupId: string) => {
     setRootNode(prev => updateGroup(prev, groupId, (g) => {
-      return { ...g, files: g.files.map(f => f.path === path ? { ...f, content, dirty: true } : f) };
+      return { ...g, files: g.files.map(f => {
+        if (f.path !== path) return f;
+        const dirty = content !== f.savedContent;
+        return { ...f, content, dirty };
+      }) };
     }));
   };
 
   const markClean = (path: string, groupId: string) => {
     setRootNode(prev => updateGroup(prev, groupId, (g) => {
-      return { ...g, files: g.files.map(f => f.path === path ? { ...f, dirty: false } : f) };
+      return { ...g, files: g.files.map(f => f.path === path ? { ...f, dirty: false, savedContent: f.content } : f) };
     }));
   };
 
@@ -112,6 +123,21 @@ export function createEditorWorkspace() {
     return targetGroup.files.find(f => f.path === path) || null;
   };
 
+  const getDirtyFiles = (): { path: string; content: string; groupId: string }[] => {
+    const result: { path: string; content: string; groupId: string }[] = [];
+    const collect = (node: EditorNode) => {
+      if (node.type === "group") {
+        for (const f of node.group.files) {
+          if (f.dirty) result.push({ path: f.path, content: f.content, groupId: node.group.id });
+        }
+      } else {
+        for (const child of node.children) collect(child);
+      }
+    };
+    collect(rootNode());
+    return result;
+  };
+
   return {
     rootNode,
     activeGroupId,
@@ -123,6 +149,7 @@ export function createEditorWorkspace() {
     setActiveFile,
     splitGroup,
     getFileState,
-    getActiveGroup
+    getActiveGroup,
+    getDirtyFiles
   };
 }

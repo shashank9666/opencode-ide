@@ -24,9 +24,18 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       )
     })
 
-    const findText = Effect.fn("FileHttpApi.findText")(function* (ctx: { query: { pattern: string } }) {
+    const findText = Effect.fn("FileHttpApi.findText")(function* (ctx: {
+      query: { pattern: string; caseSensitive?: "true" | "false"; wordMatch?: "true" | "false"; useRegex?: "true" | "false" }
+    }) {
       return (yield* ripgrep
-        .grep({ cwd: (yield* InstanceState.context).directory, pattern: ctx.query.pattern, limit: 10 })
+        .grep({
+          cwd: (yield* InstanceState.context).directory,
+          pattern: ctx.query.pattern,
+          limit: 10,
+          caseSensitive: ctx.query.caseSensitive === "true",
+          wordMatch: ctx.query.wordMatch === "true",
+          useRegex: ctx.query.useRegex !== "false",
+        })
         .pipe(Effect.orDie)).map((match) => ({
         path: { text: match.entry.path },
         lines: { text: match.text },

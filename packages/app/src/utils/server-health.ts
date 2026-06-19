@@ -143,10 +143,8 @@ export const useServerHealth = (servers: Accessor<ServerConnection.Any[]>, enabl
     }
 
     void refresh()
-    const id = setInterval(() => void refresh(), pollMs)
     onCleanup(() => {
       dead = true
-      clearInterval(id)
     })
   })
 

@@ -72,8 +72,12 @@ export function EditorArea(props: {
                   }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (activeFile && activeFile !== openFile.path && group.files.find(f => f.path === activeFile)?.dirty) {
-                    void props.onSaveFile(activeFile, group.id);
+                  // Auto-save the current file when switching tabs
+                  if (activeFile && activeFile !== openFile.path) {
+                    const current = group.files.find(f => f.path === activeFile);
+                    if (current?.dirty) {
+                      void props.onSaveFile(activeFile, group.id);
+                    }
                   }
                   props.workspace.setActiveFile(openFile.path, group.id);
                 }}
