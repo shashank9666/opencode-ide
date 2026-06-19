@@ -1,127 +1,201 @@
 import { createSignal, For, Show, type JSX } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
+import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { MENUS } from "./MenuBar"
 
 export default function HeaderBar(props: {
   workspaceName?: string
-  branch?: string
-  onSearch: (query: string) => void
+  activeFile?: string
+  onSearch: () => void
   onCommandPalette: () => void
-  onWorkspaceSwitch: () => void
-  compact?: boolean
+  onToggleLeftPanel?: () => void
+  onToggleBottomPanel?: () => void
+  onToggleRightPanel?: () => void
 }) {
-  const [searchQuery, setSearchQuery] = createSignal("")
-  const [searchFocused, setSearchFocused] = createSignal(false)
-  const [showNotifications, setShowNotifications] = createSignal(false)
-  const [showUserMenu, setShowUserMenu] = createSignal(false)
+  const [activeMenu, setActiveMenu] = createSignal<string | null>(null)
 
-  const height = () => props.compact ? "40px" : "48px"
+  const handleMenuClick = (menuLabel: string) => {
+    if (activeMenu() === menuLabel) setActiveMenu(null)
+    else setActiveMenu(menuLabel)
+  }
+
+  const handleMouseLeave = () => setActiveMenu(null)
 
   return (
     <div
-      class="shrink-0 flex items-center gap-3 px-4 border-b border-border-base bg-surface-base select-none [app-region:drag] z-30"
-      style={{ height: height() }}
+      class="shrink-0 flex items-center justify-between px-2 border-b border-border-base bg-[#181818] select-none [app-region:drag] z-30 text-text-weaker relative"
+      style={{ height: "35px" }}
+      onMouseLeave={handleMouseLeave}
     >
-      {/* Left: Logo + Workspace */}
-      <div class="flex items-center gap-2 shrink-0">
-        <div class="size-7 rounded-lg bg-accent-base flex items-center justify-center [app-region:no-drag]">
-          <span class="text-13-bold text-white">OC</span>
+      {/* ── Left: Logo & Menus ── */}
+      <div class="flex items-center h-full [app-region:no-drag]">
+        {/* Logo */}
+        <div class="flex items-center justify-center px-3 h-full cursor-pointer hover:bg-surface-raised-base-hover transition-colors">
+          <Icon name="code" size="large" class="text-accent-base" />
         </div>
-        <div class="flex items-center gap-1.5">
-          <Tooltip value="Switch Workspace" placement="bottom">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors text-left [app-region:no-drag]"
-              onClick={props.onWorkspaceSwitch}
-            >
-              <span class="text-13-medium text-text-strong truncate max-w-32">
-                {props.workspaceName ?? "Untitled"}
-              </span>
-              <Icon name="chevron-down" size="small" class="text-icon-weak" />
-            </button>
-          </Tooltip>
-          <Show when={props.branch}>
-            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded text-11-medium text-accent-base bg-accent-base/10">
-              <Icon name="branch" size="small" class="size-3" />
-              <span>{props.branch}</span>
-            </div>
-          </Show>
-        </div>
-      </div>
 
-      {/* Center: Search bar */}
-      <div class="flex-1 flex justify-center min-w-0 px-4">
-        <div
-          class="relative w-full max-w-lg [app-region:no-drag]"
-          classList={{ "scale-[1.02]": searchFocused() }}
-          style={{ transition: "transform 0.15s ease" }}
-        >
-          <div
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-150"
-            classList={{
-              "bg-background-base border-accent-base shadow-sm shadow-accent-base/10": searchFocused(),
-              "bg-surface-base border-border-base hover:border-border-base-hover": !searchFocused(),
-            }}
-          >
-            <Icon name="magnifying-glass" size="small" class="text-icon-weak shrink-0" />
-            <input
-              type="text"
-              class="flex-1 bg-transparent text-13-regular text-text-strong outline-none placeholder:text-text-weaker"
-              placeholder={props.compact ? "Search..." : "Search files, commands, symbols..."}
-              value={searchQuery()}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              onInput={(e) => { setSearchQuery(e.currentTarget.value); props.onSearch(e.currentTarget.value) }}
-              onKeyDown={(e) => { if (e.key === "Enter") props.onCommandPalette() }}
-            />
-            <Tooltip value="Command Palette (Ctrl+Shift+P)" placement="bottom">
+        {/* Menus */}
+        <div class="flex items-center h-full">
+          <For each={MENUS}>{(menu) => (
+            <div class="relative h-full">
               <button
                 type="button"
-                class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-11-medium text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
-                onClick={props.onCommandPalette}
+                class="px-2.5 h-full text-13-regular hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors cursor-default"
+                classList={{ "bg-surface-raised-base text-text-strong": activeMenu() === menu.label }}
+                onClick={() => handleMenuClick(menu.label)}
+                onMouseEnter={() => { if (activeMenu()) setActiveMenu(menu.label) }}
               >
-                <Icon name="keyboard" size="small" class="size-3" />
+                {menu.label}
               </button>
-            </Tooltip>
-          </div>
+              <Show when={activeMenu() === menu.label && menu.submenu}>
+                <div class="absolute top-full left-0 mt-0 min-w-52 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <For each={menu.submenu}>{(item) => (
+                    <>
+                      <Show when={item.separator}>
+                        <div class="h-px my-1 bg-border-base" />
+                      </Show>
+                      <Show when={!item.separator}>
+                        <button
+                          type="button"
+                          class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular text-text-weak hover:bg-accent-base hover:text-white transition-colors cursor-default"
+                          disabled={item.disabled}
+                          classList={{ "opacity-50 cursor-not-allowed": item.disabled }}
+                          onClick={() => { if (item.action) item.action(); setActiveMenu(null) }}
+                        >
+                          <span>{item.label}</span>
+                          <Show when={item.shortcut}>
+                            <span class="text-11-regular ml-6 opacity-70">{item.shortcut}</span>
+                          </Show>
+                        </button>
+                      </Show>
+                    </>
+                  )}</For>
+                </div>
+              </Show>
+            </div>
+          )}</For>
+          {/* Ellipsis for extra menus */}
+          <button class="px-2.5 h-full flex items-center justify-center hover:bg-surface-raised-base-hover transition-colors">
+            <Icon name="menu" size="small" />
+          </button>
         </div>
       </div>
 
-      {/* Right: Actions */}
-      <div class="flex items-center gap-1 shrink-0 [app-region:no-drag]">
-        {/* Notifications */}
-        <Tooltip value="Notifications" placement="bottom">
-          <button
-            type="button"
-            class="size-7 flex items-center justify-center rounded-md hover:bg-surface-raised-base-hover transition-colors relative"
-            onClick={() => setShowNotifications(!showNotifications())}
-          >
-            <Icon name="status" size="small" class="text-icon-weak" />
-            <span class="absolute -top-0.5 -right-0.5 size-2 bg-text-danger-base rounded-full" />
-          </button>
-        </Tooltip>
-
-        {/* User menu */}
-        <Tooltip value="User Menu" placement="bottom">
-          <button
-            type="button"
-            class="size-7 flex items-center justify-center rounded-md hover:bg-surface-raised-base-hover transition-colors"
-            onClick={() => setShowUserMenu(!showUserMenu())}
-          >
-            <div class="size-6 rounded-full bg-accent-base/20 flex items-center justify-center">
-              <span class="text-11-medium text-accent-base">U</span>
-            </div>
-          </button>
-        </Tooltip>
+      {/* ── Center: Title ── */}
+      <div class="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 flex items-center justify-center pointer-events-none">
+        <span class="text-12-regular text-text-weaker truncate px-4">
+          {props.workspaceName ?? "Untitled"} Opencode-web
+          <Show when={props.activeFile}>
+            {" - " + props.activeFile}
+          </Show>
+        </span>
       </div>
 
-      {/* Dropdown backdrops */}
-      <Show when={showNotifications()}>
-        <div class="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-      </Show>
-      <Show when={showUserMenu()}>
-        <div class="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-      </Show>
+      {/* ── Right: Layout, Search, Settings ── */}
+      <div class="flex items-center h-full [app-region:no-drag]">
+        {/* Panel Toggles */}
+        <div class="flex items-center h-full px-1">
+          <Tooltip value="Toggle Primary Side Bar" placement="bottom">
+            <IconButton
+              icon="layout-left"
+              variant="ghost"
+              size="small"
+              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+              onClick={props.onToggleLeftPanel}
+            />
+          </Tooltip>
+          <Tooltip value="Toggle Bottom Panel" placement="bottom">
+            <IconButton
+              icon="layout-bottom"
+              variant="ghost"
+              size="small"
+              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+              onClick={props.onToggleBottomPanel}
+            />
+          </Tooltip>
+          <Tooltip value="Toggle Secondary Side Bar" placement="bottom">
+            <IconButton
+              icon="layout-right"
+              variant="ghost"
+              size="small"
+              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+              onClick={props.onToggleRightPanel}
+            />
+          </Tooltip>
+          <Tooltip value="Customize Layout" placement="bottom">
+            <IconButton
+              icon="layout-left-partial"
+              variant="ghost"
+              size="small"
+              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+            />
+          </Tooltip>
+        </div>
+
+        <div class="h-4 w-px bg-border-base mx-1" />
+
+        {/* Global Search */}
+        <Tooltip value="Search (Ctrl+Shift+F)" placement="bottom">
+          <IconButton
+            icon="magnifying-glass"
+            variant="ghost"
+            size="small"
+            class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+            onClick={props.onSearch}
+          />
+        </Tooltip>
+
+        <div class="h-4 w-px bg-border-base mx-1" />
+
+        {/* Extensions / Settings */}
+        <Tooltip value="Manage Extension" placement="bottom">
+          <IconButton
+            icon="providers"
+            variant="ghost"
+            size="small"
+            class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+          />
+        </Tooltip>
+        <Tooltip value="Account" placement="bottom">
+          <IconButton
+            icon="github"
+            variant="ghost"
+            size="small"
+            class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+          />
+        </Tooltip>
+        <Tooltip value="Manage" placement="bottom">
+          <IconButton
+            icon="settings-gear"
+            variant="ghost"
+            size="small"
+            class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+          />
+        </Tooltip>
+
+        {/* Window Controls (Native Desktop Emulation) */}
+        <div class="flex items-center h-full ml-1">
+          <IconButton
+            icon="dash"
+            variant="ghost"
+            size="small"
+            class="size-11 text-icon-weak hover:bg-surface-raised-base hover:text-text-strong rounded-none"
+          />
+          <IconButton
+            icon="expand"
+            variant="ghost"
+            size="small"
+            class="size-11 text-icon-weak hover:bg-surface-raised-base hover:text-text-strong rounded-none"
+          />
+          <IconButton
+            icon="close"
+            variant="ghost"
+            size="small"
+            class="size-11 text-icon-weak hover:bg-text-danger-base hover:text-white rounded-none"
+          />
+        </div>
+      </div>
     </div>
   )
 }

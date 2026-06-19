@@ -497,11 +497,12 @@ export default function IdePage() {
       {/* ── Premium Header Bar ── */}
       <HeaderBar
         workspaceName={getFilename(dir()) || "Untitled"}
-        branch="main"
-        compact={headerCompact()}
+        activeFile={getFilename(editor.activeFile() ?? "") || ""}
         onSearch={() => {}}
         onCommandPalette={() => setCommandPaletteOpen(true)}
-        onWorkspaceSwitch={() => setShowPresets(true)}
+        onToggleLeftPanel={() => toggleLeftPanel("explorer")}
+        onToggleBottomPanel={() => toggleBottomPanel("terminal-area")}
+        onToggleRightPanel={() => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") }}
       />
 
       {/* ── Main Content Area ── */}

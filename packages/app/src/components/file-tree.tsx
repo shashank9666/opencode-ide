@@ -152,7 +152,7 @@ const FileTreeNode = (
         [local.class ?? ""]: !!local.class,
         [local.nodeClass ?? ""]: !!local.nodeClass,
       }}
-      style={`padding-left: ${Math.max(0, 8 + local.level * 12 - (local.node.type === "file" ? 24 : 4))}px`}
+      style={`padding-left: ${Math.max(0, local.level * 12 + 4)}px`}
       draggable={local.draggable}
       onDragStart={(event: DragEvent) => {
         if (!local.draggable) return
@@ -415,9 +415,11 @@ export default function FileTree(props: {
                       data-path={node.path}
                       data-type="directory"
                     >
-                      <div class="size-4 flex items-center justify-center text-icon-weak">
+                      <div class="size-4 flex items-center justify-center text-icon-weak shrink-0 transition-transform">
                         <Icon name={expanded() ? "chevron-down" : "chevron-right"} size="small" />
                       </div>
+                      <div class="w-1 shrink-0" />
+                      <FileIcon node={node} expanded={expanded()} class="size-4 filetree-icon filetree-icon--color shrink-0" />
                     </FileTreeNode>
                   </Collapsible.Trigger>
                   <Collapsible.Content class="relative pt-0.5">
@@ -427,7 +429,7 @@ export default function FileTree(props: {
                         "group-hover/filetree:opacity-100": expanded() && deep() === level,
                         "group-hover/filetree:opacity-50": !(expanded() && deep() === level),
                       }}
-                      style={`left: ${Math.max(0, 8 + level * 12 - 4) + 8}px`}
+                      style={`left: ${Math.max(0, level * 12 + 4) + 8}px`}
                     />
                     <Show
                       when={level < MAX_DEPTH && !chain.includes(key(node.path))}
@@ -467,7 +469,7 @@ export default function FileTree(props: {
                   data-type="file"
                   onClick={() => props.onFileClick?.(node)}
                 >
-                  <div class="w-4 shrink-0" />
+                  <div class="w-5 shrink-0" />
                   <Switch>
                     <Match when={node.ignored}>
                       <FileIcon

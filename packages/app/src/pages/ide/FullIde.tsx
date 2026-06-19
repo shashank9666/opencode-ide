@@ -546,17 +546,15 @@ export default function FullIde() {
 
   return (
     <div class="size-full flex flex-col overflow-hidden bg-background-base" onContextMenu={handleContextMenu}>
-      {/* ── VS Code-style Menu Bar ── */}
-      <MenuBar onCommandPalette={() => setCommandPaletteOpen(true)} />
-
       {/* ── Premium Header Bar ── */}
       <HeaderBar
         workspaceName={getFilename(dir()) || "Untitled"}
-        branch="main"
-        compact={headerCompact()}
+        activeFile={getFilename(editor.activeFile() ?? "") || ""}
         onSearch={() => {}}
         onCommandPalette={() => setCommandPaletteOpen(true)}
-        onWorkspaceSwitch={() => setShowPresets(true)}
+        onToggleLeftPanel={() => toggleLeftPanel("explorer")}
+        onToggleRightPanel={() => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") }}
+        onToggleBottomPanel={() => toggleBottomPanel("terminal")}
       />
 
       {/* ── Main Content Area ── */}
@@ -576,20 +574,37 @@ export default function FullIde() {
         <Show when={leftPanel()}>
           <div class="shrink-0 flex flex-col border-r border-border-base bg-surface-base relative" style={{ width: `${sidebarWidth()}px` }}>
             <Show when={leftPanel()?.id === "explorer"}>
-              <div class="flex items-center justify-between px-3 py-1.5 border-b border-border-base shrink-0" style={{ "min-height": "34px" }}>
-                <span class="text-11-medium text-text-weaker uppercase tracking-wider">EXPLORER</span>
-                <div class="flex items-center gap-0.5">
-                  <Tooltip value="Refresh" placement="bottom"><IconButton icon="reset" variant="ghost" size="small" class="size-6 rounded-md" onClick={() => file.tree.refresh("")} /></Tooltip>
-                  <Tooltip value="New File" placement="bottom"><IconButton icon="plus" variant="ghost" size="small" class="size-6 rounded-md" onClick={() => startCreate("file", "")} /></Tooltip>
-                  <Tooltip value="New Folder" placement="bottom"><IconButton icon="folder" variant="ghost" size="small" class="size-6 rounded-md" onClick={() => startCreate("directory", "")} /></Tooltip>
-                  <Tooltip value="Collapse All" placement="bottom"><IconButton icon="collapse" variant="ghost" size="small" class="size-6 rounded-md" onClick={() => {}} /></Tooltip>
-                  <Tooltip value="Close Panel" placement="bottom">
-                    <IconButton icon="close" variant="ghost" size="small" class="size-6 rounded-md" onClick={() => panelManager.hidePanel("explorer")} />
-                  </Tooltip>
-                </div>
+              <div class="flex items-center justify-between px-4 py-2 border-b border-border-base shrink-0">
+                <span class="text-11-regular text-text-weak uppercase">Explorer</span>
+                <button class="hover:bg-surface-raised-base-hover rounded px-1 text-text-weaker hover:text-text-strong">
+                  <Icon name="menu" size="small" />
+                </button>
               </div>
-              <div class="flex-1 overflow-y-auto min-h-0 p-1">
-                <FileTree path="" active={editor.activeFile()} onFileClick={handleFileClick} />
+              <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+                <div class="flex-1 overflow-y-auto min-h-0 relative">
+                  {/* Workspace Root Section */}
+                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer sticky top-0 bg-surface-base z-10 border-b border-border-base/50">
+                    <Icon name="chevron-down" size="small" class="text-text-weaker size-3.5" />
+                    <span class="text-11-bold text-text-strong uppercase truncate">{getFilename(dir()) || "opencode-web"}</span>
+                  </div>
+                  <FileTree path="" active={editor.activeFile()} onFileClick={handleFileClick} />
+                </div>
+                
+                {/* Outline Section */}
+                <div class="border-t border-border-base shrink-0">
+                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer text-text-weaker hover:text-text-strong transition-colors">
+                    <Icon name="chevron-right" size="small" class="size-3.5" />
+                    <span class="text-11-bold uppercase">Outline</span>
+                  </div>
+                </div>
+
+                {/* Timeline Section */}
+                <div class="border-t border-border-base shrink-0">
+                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer text-text-weaker hover:text-text-strong transition-colors">
+                    <Icon name="chevron-right" size="small" class="size-3.5" />
+                    <span class="text-11-bold uppercase">Timeline</span>
+                  </div>
+                </div>
               </div>
             </Show>
 
@@ -630,7 +645,7 @@ export default function FullIde() {
             </Show>
 
             <Show when={leftPanel()?.id === "ai-chat"}>
-              <AIWorkspacePanel sessionId={activeSessionId()} onNewSession={handleNewSession} onClose={() => panelManager.hidePanel("ai-chat")} />
+              <AIWorkspacePanel onClose={() => panelManager.hidePanel("ai-chat")} />
             </Show>
 
             <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleSidebarResizeStart} />

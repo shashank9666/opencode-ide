@@ -77,7 +77,7 @@ export default function ActivityBar(props: {
             onClick={() => props.onTabClick("run-debug")}
             aria-label="Run and Debug"
           >
-            <Icon name="bug" size="large" />
+            <Icon name="window-cursor" size="large" />
           </button>
         </Tooltip>
 
@@ -122,7 +122,7 @@ export default function ActivityBar(props: {
             onClick={() => props.onTabClick("database")}
             aria-label="Database"
           >
-            <Icon name="database" size="large" />
+            <Icon name="server" size="large" />
           </button>
         </Tooltip>
 
@@ -137,7 +137,7 @@ export default function ActivityBar(props: {
             onClick={() => props.onTabClick("remote")}
             aria-label="Remote Explorer"
           >
-            <Icon name="remote" size="large" />
+            <Icon name="arrow-right" size="large" />
           </button>
         </Tooltip>
 
@@ -152,7 +152,7 @@ export default function ActivityBar(props: {
             onClick={() => props.onTabClick("testing")}
             aria-label="Testing"
           >
-            <Icon name="beaker" size="large" />
+            <Icon name="check" size="large" />
           </button>
         </Tooltip>
       </div>

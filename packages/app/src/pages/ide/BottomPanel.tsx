@@ -39,26 +39,45 @@ export default function BottomPanel(props: {
             {(tab) => (
               <button
                 type="button"
-                class="flex items-center gap-1.5 px-3 h-full text-12-regular whitespace-nowrap transition-colors relative"
+                class="flex items-center gap-1.5 px-3 h-full text-11-medium whitespace-nowrap transition-colors relative tracking-wide uppercase"
                 classList={{
-                  "text-text-strong bg-background-base border-t-2 border-t-accent-base": props.activeTab === tab.id,
-                  "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": props.activeTab !== tab.id,
+                  "text-text-strong border-t border-t-accent-base": props.activeTab === tab.id,
+                  "text-text-weaker hover:text-text-strong border-t border-transparent": props.activeTab !== tab.id,
                 }}
+                style={props.activeTab === tab.id ? { "margin-top": "-1px" } : {}}
                 onClick={() => props.onTabChange(tab.id)}
               >
-                <Icon name={tab.icon as any} size="small" />
+                <Show when={tab.icon !== "terminal" && tab.icon !== "circle-x" && tab.icon !== "console" && tab.icon !== "window-cursor" && tab.icon !== "brain"}>
+                  <Icon name={tab.icon as any} size="small" />
+                </Show>
                 <span>{tab.label}</span>
               </button>
             )}
           </For>
         </div>
-        <div class="flex items-center gap-1 pr-2">
+        <div class="flex items-center gap-1 pr-2 text-text-weaker">
+          <Show when={props.activeTab === "terminal"}>
+            <Tooltip value="New Terminal" placement="top">
+              <IconButton icon="plus" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" />
+            </Tooltip>
+            <div class="w-px h-4 bg-border-base mx-0.5" />
+            <Tooltip value="Split Terminal" placement="top">
+              <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" />
+            </Tooltip>
+            <Tooltip value="Kill Terminal" placement="top">
+              <IconButton icon="trash" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" />
+            </Tooltip>
+            <div class="w-px h-4 bg-border-base mx-0.5" />
+          </Show>
+          <Tooltip value="Maximize Panel Size" placement="top">
+            <IconButton icon="arrow-up" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" />
+          </Tooltip>
           <Tooltip value="Close Panel" placement="top">
             <IconButton
               icon="close"
               variant="ghost"
               size="small"
-              class="size-6 rounded"
+              class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong"
               onClick={props.onClose}
               aria-label="Close Panel"
             />
