@@ -733,6 +733,12 @@ export default function IdePage() {
               <AIWorkspacePanel
                 onClose={() => panelManager.hidePanel("ai-workspace")}
                 onFloat={() => panelManager.floatPanel("ai-workspace")}
+                activeSessionId={activeSessionId()}
+                recentSessions={recentSessions()}
+                handleNewSession={handleNewSession}
+                confirmDeleteSession={confirmDeleteSession}
+                setActiveSessionId={setActiveSessionId}
+                dir={dir()}
               />
             </Show>
             <Show when={rightPanel()?.id === "ai-chat"}>

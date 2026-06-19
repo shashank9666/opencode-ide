@@ -645,7 +645,15 @@ export default function FullIde() {
             </Show>
 
             <Show when={leftPanel()?.id === "ai-chat"}>
-              <AIWorkspacePanel onClose={() => panelManager.hidePanel("ai-chat")} />
+              <AIWorkspacePanel
+                onClose={() => panelManager.hidePanel("ai-chat")}
+                activeSessionId={activeSessionId()}
+                recentSessions={recentSessions()}
+                handleNewSession={handleNewSession}
+                confirmDeleteSession={confirmDeleteSession}
+                setActiveSessionId={setActiveSessionId}
+                dir={dir()}
+              />
             </Show>
 
             <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleSidebarResizeStart} />
