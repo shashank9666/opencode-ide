@@ -323,6 +323,16 @@ function HomeDesign() {
     navigateOnServer(conn, `/${base64Encode(session.directory)}/session/${session.id}`)
   }
 
+  function deleteSession(session: Session) {
+    const conn = focusedServer()
+    if (!conn) return
+    const ctx = global.createServerCtx(conn)
+
+    ctx.sdk.client.session.delete({ sessionID: session.id }).catch((err) => {
+      console.error(err)
+    })
+  }
+
   function chooseProject(conn: ServerConnection.Any) {
     function resolve(result: string | string[] | null) {
       addProjects(conn, homeProjectDirectories(result))
@@ -387,6 +397,7 @@ function HomeDesign() {
           selectedServer={selectedServer()}
           selectedDirectory={selectedDirectory()}
           openSettings={openSettings}
+          openDocs={() => platform.openLink("https://opencode.ai/docs")}
           openHelp={() => platform.openLink("https://opencode.ai/desktop-feedback")}
           language={language}
         />
@@ -411,6 +422,7 @@ function HomeDesign() {
             onFocus={() => setState("searchFocused", true)}
             onClose={closeSearch}
             onSelect={selectSearchSession}
+            onDelete={deleteSession}
           />
           <ScrollView class="mt-3 min-h-0 flex-1">
             <div class="pt-3 flex flex-col gap-6">
@@ -444,6 +456,7 @@ function HomeDesign() {
                                 server={state.selection.server}
                                 activeServer={state.selection.server === server.key}
                                 openSession={openSession}
+                                deleteSession={deleteSession}
                               />
                             )}
                           </For>
@@ -476,6 +489,7 @@ function HomeProjectColumn(props: {
   selectedServer?: ServerConnection.Any
   selectedDirectory?: string
   openSettings: () => void
+  openDocs: () => void
   openHelp: () => void
   language: ReturnType<typeof useLanguage>
 }) {
@@ -548,6 +562,14 @@ function HomeProjectColumn(props: {
             <span class={HOME_PROJECT_NAV_LABEL}>IDE</span>
           </button>
         </Show>
+        <button
+          type="button"
+          class={`${HOME_PROJECT_NAV_ROW} text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted`}
+          onClick={props.openDocs}
+        >
+          <IconV2 name="file" size="small" />
+          <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.documentation")}</span>
+        </button>
         <button
           type="button"
           class={`${HOME_PROJECT_NAV_ROW} text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted`}
@@ -798,6 +820,7 @@ function HomeSessionSearch(props: {
   onFocus: () => void
   onClose: () => void
   onSelect: (session: Session) => void
+  onDelete?: (session: Session) => void
 }) {
   const language = useLanguage()
   const [store, setStore] = createStore({ active: "" })
@@ -911,6 +934,7 @@ function HomeSessionSearch(props: {
                               selected={store.active === homeSessionSearchKey(record)}
                               onHighlight={() => setStore("active", homeSessionSearchKey(record))}
                               onSelect={(session) => props.onSelect(session)}
+                              onDelete={props.onDelete}
                             />
                           )}
                         </For>
@@ -997,43 +1021,58 @@ function HomeSessionSearchResultRow(props: {
   selected: boolean
   onHighlight: () => void
   onSelect: (session: Session) => void
+  onDelete?: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
 
   const key = () => homeSessionSearchKey(props.record)
 
   return (
-    <button
-      type="button"
-      id={`home-session-search-option-${key()}`}
-      data-key={key()}
-      data-component="home-session-search-row"
-      role="option"
-      aria-selected={props.selected}
-      classList={{
-        [HOME_SEARCH_RESULT_ROW]: true,
-        "bg-v2-overlay-simple-overlay-hover": props.selected,
-      }}
-      onMouseEnter={() => props.onHighlight()}
-      onClick={() => props.onSelect(props.record.session)}
-    >
-      <HomeSessionLeading
-        project={props.record.project}
-        session={props.record.session}
-        server={props.server}
-        activeServer={props.activeServer}
-      />
-      <div class="flex min-w-0 flex-1 items-center gap-1.5">
-        <span
-          class={`${HOME_SEARCH_RESULT_TITLE} ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
-        >
-          {title()}
-        </span>
-        <Show when={props.record.projectName}>
-          <span class={HOME_SEARCH_RESULT_META}>{props.record.projectName}</span>
-        </Show>
-      </div>
-    </button>
+    <div class="group/session relative flex min-w-0 w-full items-center">
+      <button
+        type="button"
+        id={`home-session-search-option-${key()}`}
+        data-key={key()}
+        data-component="home-session-search-row"
+        role="option"
+        aria-selected={props.selected}
+        classList={{
+          [HOME_SEARCH_RESULT_ROW]: true,
+          "pr-12": !!props.onDelete,
+          "bg-v2-overlay-simple-overlay-hover": props.selected,
+        }}
+        onMouseEnter={() => props.onHighlight()}
+        onClick={() => props.onSelect(props.record.session)}
+      >
+        <HomeSessionLeading
+          project={props.record.project}
+          session={props.record.session}
+          server={props.server}
+          activeServer={props.activeServer}
+        />
+        <div class="flex min-w-0 flex-1 items-center gap-1.5">
+          <span
+            class={`${HOME_SEARCH_RESULT_TITLE} ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+          >
+            {title()}
+          </span>
+          <Show when={props.record.projectName}>
+            <span class={HOME_SEARCH_RESULT_META}>{props.record.projectName}</span>
+          </Show>
+        </div>
+      </button>
+      <Show when={props.onDelete}>
+        <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/session:opacity-100 focus-within:opacity-100">
+          <IconButtonV2
+            variant="ghost-muted"
+            size="small"
+            icon={<Icon name="trash" />}
+            aria-label="Delete session"
+            onClick={(e) => { e.stopPropagation(); props.onDelete!(props.record.session) }}
+          />
+        </div>
+      </Show>
+    </div>
   )
 }
 
@@ -1065,33 +1104,48 @@ function HomeSessionRow(props: {
   server: ServerConnection.Key
   activeServer: boolean
   openSession: (session: Session) => void
+  deleteSession?: (session: Session) => void
 }) {
   const title = createMemo(() => sessionTitle(props.record.session.title) || props.record.session.id)
 
   return (
-    <button
-      type="button"
-      data-component="home-session-row"
-      class={`${HOME_ROW} h-10 gap-2 px-6 py-3 pl-4`}
-      onClick={() => props.openSession(props.record.session)}
-    >
-      <HomeSessionLeading
-        project={props.record.project}
-        session={props.record.session}
-        server={props.server}
-        activeServer={props.activeServer}
-      />
-      <span
-        class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+    <div class="group/session relative flex min-w-0 w-full items-center rounded-[6px]">
+      <button
+        type="button"
+        data-component="home-session-row"
+        class={`${HOME_ROW} h-10 gap-2 px-6 py-3 pl-4 w-full`}
+        classList={{ "pr-12": !!props.deleteSession }}
+        onClick={() => props.openSession(props.record.session)}
       >
-        {title()}
-      </span>
-      <Show when={props.record.projectName}>
-        <span class="min-w-0 flex-[1_1_auto] overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-muted [font-weight:440]">
-          {props.record.projectName}
+        <HomeSessionLeading
+          project={props.record.project}
+          session={props.record.session}
+          server={props.server}
+          activeServer={props.activeServer}
+        />
+        <span
+          class={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-base [font-weight:530] ${props.record.projectName ? "max-w-[min(70%,480px)] flex-[0_1_auto]" : "flex-[1_1_auto]"}`}
+        >
+          {title()}
         </span>
+        <Show when={props.record.projectName}>
+          <span class="min-w-0 flex-[1_1_auto] overflow-hidden text-ellipsis whitespace-nowrap text-v2-text-text-muted [font-weight:440]">
+            {props.record.projectName}
+          </span>
+        </Show>
+      </button>
+      <Show when={props.deleteSession}>
+        <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/session:opacity-100 focus-within:opacity-100">
+          <IconButtonV2
+            variant="ghost-muted"
+            size="small"
+            icon={<Icon name="trash" />}
+            aria-label="Delete session"
+            onClick={(e) => { e.stopPropagation(); props.deleteSession!(props.record.session) }}
+          />
+        </div>
       </Show>
-    </button>
+    </div>
   )
 }
 
