@@ -94,10 +94,6 @@ export default function HeaderBar(props: {
               </Show>
             </div>
           )}</For>
-          {/* Ellipsis for extra menus */}
-          <button class="px-2.5 h-full flex items-center justify-center hover:bg-surface-raised-base-hover transition-colors">
-            <Icon name="menu" size="small" />
-          </button>
         </div>
       </div>
 

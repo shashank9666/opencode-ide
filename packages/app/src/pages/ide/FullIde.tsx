@@ -38,6 +38,8 @@ import { useTerminal } from "@/context/terminal"
 import { sessionPermissionRequest } from "@/pages/session/composer/session-request-tree"
 import { usePermission } from "@/context/permission"
 import { useSync } from "@/context/sync"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { ImagePreview } from "@opencode-ai/ui/image-preview"
 
 // Reuse existing panels + extend
 import HeaderBar from "./HeaderBar"
@@ -114,6 +116,7 @@ export default function FullIde() {
   const terminal = useTerminal()
   const permission = usePermission()
   const sync = useSync()
+  const dialog = useDialog()
 
   // ── Layout state ──
   const savedLayout = (() => {
@@ -363,15 +366,50 @@ export default function FullIde() {
   const toggleSettings = () => setShowSettings((v) => !v)
   const toggleKeybindings = () => setShowKeybindings((v) => !v)
 
+  // ── Image preview helper ──
+  const openImagePreview = (path: string) => {
+    void (async () => {
+      await file.load(path)
+      const state = file.get(path)
+      if (!state?.content) return
+      const content = state.content
+      if (content.type === "binary" && content.mediaType?.startsWith("image/")) {
+        const url = URL.createObjectURL(new Blob([content.buffer], { type: content.mediaType }))
+        dialog.show(() => <ImagePreview src={url} alt={getFilename(path)} />)
+      } else if (content.type === "text") {
+        // For SVG files that are stored as text
+        const blob = new Blob([content.content], { type: "image/svg+xml" })
+        const url = URL.createObjectURL(blob)
+        dialog.show(() => <ImagePreview src={url} alt={getFilename(path)} />)
+      }
+    })()
+  }
+
+  const isImagePath = (path: string) => {
+    const ext = path.toLowerCase().slice(path.lastIndexOf("."))
+    return [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".svg"].includes(ext)
+  }
+
+  const isPreviewablePath = (path: string) => {
+    const ext = path.toLowerCase().slice(path.lastIndexOf("."))
+    return [".md", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".svg"].includes(ext)
+  }
+
   // ── File ops ──
   const handleFileClick = async (node: { path: string; type: string }) => {
     console.log("handleFileClick", node)
     if (node.type !== "file") return
     closeContextMenu()
     try {
-      console.log("loading file", node.path)
-      await file.load(node.path)
-      const state = file.get(node.path)
+      const path = node.path
+      // If it's an image, open in preview dialog
+      if (isImagePath(path)) {
+        await openImagePreview(path)
+        return
+      }
+      console.log("loading file", path)
+      await file.load(path)
+      const state = file.get(path)
       console.log("file state after load", state)
       if (!state) return
       if (state.error) {
@@ -382,11 +420,17 @@ export default function FullIde() {
       console.log("file content", content)
       if (!content) return
       if (content.type === "binary") {
-        showToast({ title: "Binary file", description: `${getFilename(node.path)} is a binary file and cannot be edited.` })
+        // If it's an image detected by MIME type, preview it
+        if (content.mediaType?.startsWith("image/")) {
+          const url = URL.createObjectURL(new Blob([content.buffer], { type: content.mediaType }))
+          dialog.show(() => <ImagePreview src={url} alt={getFilename(path)} />)
+          return
+        }
+        showToast({ title: "Binary file", description: `${getFilename(path)} is a binary file and cannot be edited.` })
         return
       }
-      console.log("calling editor.openFile", node.path)
-      editor.openFile(node.path, content.content ?? "")
+      console.log("calling editor.openFile", path)
+      editor.openFile(path, content.content ?? "")
       setDiffMode(false)
     } catch (e) {
       console.error("error opening file", e)
