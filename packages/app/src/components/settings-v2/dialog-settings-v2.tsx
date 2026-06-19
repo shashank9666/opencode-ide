@@ -10,6 +10,10 @@ import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
+import { SettingsMcpV2 } from "./mcp"
+import { SettingsPluginsV2 } from "./plugins"
+import { SettingsToolsV2 } from "./tools"
+import { SettingsSkillsV2 } from "./skills"
 
 export const DialogSettings: Component = () => {
   const language = useLanguage()
@@ -43,6 +47,22 @@ export const DialogSettings: Component = () => {
                       <Icon name="server" />
                       {language.t("status.popover.tab.servers")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="mcp">
+                      <Icon name="mcp" />
+                      MCP Servers
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="plugins">
+                      <Icon name="archive" />
+                      Plugins
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="tools">
+                      <Icon name="terminal" />
+                      Tools
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="skills">
+                      <Icon name="brain" />
+                      Skills
+                    </TabsV2.Trigger>
                     <TabsV2.Trigger value="providers">
                       <Icon name="providers" />
                       {language.t("settings.providers.title")}
@@ -75,6 +95,18 @@ export const DialogSettings: Component = () => {
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="mcp" class="settings-v2-panel">
+          <SettingsMcpV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="plugins" class="settings-v2-panel">
+          <SettingsPluginsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="tools" class="settings-v2-panel">
+          <SettingsToolsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="skills" class="settings-v2-panel">
+          <SettingsSkillsV2 />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

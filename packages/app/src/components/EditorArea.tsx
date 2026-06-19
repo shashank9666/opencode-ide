@@ -31,13 +31,14 @@ export function EditorArea(props: {
     );
   }
 
-  const group = props.node.group;
-  const activeFile = group.activeFile;
-  const isActiveGroup = props.activeGroupId === group.id;
+  const group = () => (props.node as Extract<EditorNode, { type: "group" }>).group;
+  const activeFile = () => group().activeFile;
+  const isActiveGroup = () => props.activeGroupId === group().id;
 
   const activeFileState = createMemo(() => {
-    if (!activeFile) return null;
-    return group.files.find(f => f.path === activeFile) || null;
+    const currentActiveFile = activeFile();
+    if (!currentActiveFile) return null;
+    return group().files.find(f => f.path === currentActiveFile) || null;
   });
 
   const [editorInstance, setEditorInstance] = createSignal<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
@@ -45,8 +46,9 @@ export function EditorArea(props: {
   const [editorColumn, setEditorColumn] = createSignal(1);
 
   const activeFileLanguage = createMemo(() => {
-    if (!activeFile) return "plaintext";
-    const ext = activeFile.slice(activeFile.lastIndexOf("."));
+    const currentActiveFile = activeFile();
+    if (!currentActiveFile) return "plaintext";
+    const ext = currentActiveFile.slice(currentActiveFile.lastIndexOf("."));
     return new Map([
       [".ts", "TypeScript"], [".tsx", "TypeScript"], [".js", "JavaScript"], [".jsx", "JavaScript"],
       [".json", "JSON"], [".md", "Markdown"], [".css", "CSS"], [".html", "HTML"],
@@ -60,46 +62,47 @@ export function EditorArea(props: {
   });
 
   return (
-    <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative" onClick={() => props.workspace.setActiveGroupId(group.id)}>
-      <Show when={group.files.length > 0}>
+    <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative" onClick={() => props.workspace.setActiveGroupId(group().id)}>
+      <Show when={group().files.length > 0}>
         <div class="flex items-center border-b border-border-base bg-surface-base overflow-x-auto shrink-0 select-none" style={{ "min-height": "36px" }}>
-          <For each={group.files}>
+          <For each={group().files}>
             {(openFile: OpenFile) => (
               <button
-                class={`flex items-center gap-1.5 px-3 py-1.5 text-13-regular border-r border-border-base whitespace-nowrap shrink-0 transition-colors ${openFile.path === activeFile
-                  ? (isActiveGroup ? "bg-background-base text-text-strong border-b-2 border-b-accent-base" : "bg-background-base text-text-strong opacity-80")
+                class={`flex items-center gap-1.5 px-3 py-1.5 text-13-regular border-r border-border-base whitespace-nowrap shrink-0 transition-colors ${openFile.path === activeFile()
+                  ? (isActiveGroup() ? "bg-background-base text-text-strong border-b-2 border-b-accent-base" : "bg-background-base text-text-strong opacity-80")
                   : "text-text-weak hover:bg-surface-raised-base-hover"
                   }`}
                 onClick={(e) => {
                   e.stopPropagation();
                   // Auto-save the current file when switching tabs
-                  if (activeFile && activeFile !== openFile.path) {
-                    const current = group.files.find(f => f.path === activeFile);
+                  const currentActiveFile = activeFile();
+                  if (currentActiveFile && currentActiveFile !== openFile.path) {
+                    const current = group().files.find(f => f.path === currentActiveFile);
                     if (current?.dirty) {
-                      void props.onSaveFile(activeFile, group.id);
+                      void props.onSaveFile(currentActiveFile, group().id);
                     }
                   }
-                  props.workspace.setActiveFile(openFile.path, group.id);
+                  props.workspace.setActiveFile(openFile.path, group().id);
                 }}
               >
                 <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
                 <span class="truncate max-w-32">{getFilename(openFile.path)}</span>
                 <Show when={openFile.dirty}><span class="text-12-medium text-text-warning-base">●</span></Show>
-                <IconButton icon="close" variant="ghost" size="small" class="size-4 rounded ml-0.5 opacity-60 hover:opacity-100" onClick={(e: MouseEvent) => { e.stopPropagation(); props.workspace.closeFile(openFile.path, group.id); }} />
+                <IconButton icon="close" variant="ghost" size="small" class="size-4 rounded ml-0.5 opacity-60 hover:opacity-100" onClick={(e: MouseEvent) => { e.stopPropagation(); props.workspace.closeFile(openFile.path, group().id); }} />
               </button>
             )}
           </For>
           <div class="flex-1 flex justify-end gap-1 px-1">
-            <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded" title="Split Right" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group.id, "horizontal"); }} />
-            <IconButton icon="layout-bottom" variant="ghost" size="small" class="size-6 rounded" title="Split Down" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group.id, "vertical"); }} />
+            <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded" title="Split Right" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group().id, "horizontal"); }} />
+            <IconButton icon="layout-bottom" variant="ghost" size="small" class="size-6 rounded" title="Split Down" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group().id, "vertical"); }} />
           </div>
         </div>
       </Show>
 
       {/* Breadcrumbs */}
-      <Show when={activeFile}>
+      <Show when={activeFile()}>
         <div class="flex items-center gap-1 px-3 py-0.5 text-12-regular text-text-weak bg-surface-base border-b border-border-base shrink-0 overflow-x-auto">
-          {activeFile?.split("/").map((crumb, i, arr) => (
+          {activeFile()?.split("/").map((crumb, i, arr) => (
             <>
               <Show when={i > 0}><span class="text-text-weaker">/</span></Show>
               <span class="hover:text-text-strong cursor-pointer truncate">{getFilename(arr.slice(0, i + 1).join("/"))}</span>
@@ -139,7 +142,7 @@ export function EditorArea(props: {
               <IdeEditor
                 path={state().path}
                 content={state().content}
-                onChange={(v) => props.workspace.setContent(state().path, v, group.id)}
+                onChange={(v) => props.workspace.setContent(state().path, v, group().id)}
                 onCursorChange={(line, col) => { setEditorLine(line); setEditorColumn(col); }}
                 onEditorReady={(e) => setEditorInstance(e)}
                 formatTrigger={props.formatTrigger}

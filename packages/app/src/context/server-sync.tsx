@@ -508,9 +508,19 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
 
 export function createServerSyncContext(serverSDK: ServerSDK) {
   const inner = createServerSyncContextInner(serverSDK)
+  const dirSyncCache = new Map<string, ReturnType<typeof createDirSyncContext>>()
+
   return Object.assign(inner, {
     createDirSyncContext: createRefCountMap(
-      (dir) => createDirSyncContext(dir, inner, serverSDK),
+      (dir) => {
+        const key = directoryKey(dir)
+        let sync = dirSyncCache.get(key)
+        if (!sync) {
+          sync = createDirSyncContext(dir, inner, serverSDK)
+          dirSyncCache.set(key, sync)
+        }
+        return sync
+      },
       (dir) => inner.disableMcp(dir),
       directoryKey,
     ),

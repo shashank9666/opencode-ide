@@ -85,7 +85,7 @@ const SessionRoute = Object.assign(
 
     return (
       <SessionProviders>
-        <Session />
+        <Session sessionId={params.id} dir={params.dir} />
       </SessionProviders>
     )
   },

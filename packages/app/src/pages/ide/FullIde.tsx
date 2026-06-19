@@ -710,9 +710,6 @@ export default function FullIde() {
             <Show when={leftPanel()?.id === "explorer"}>
               <div class="flex items-center justify-between px-4 py-2 border-b border-border-base shrink-0">
                 <span class="text-11-regular text-text-weak uppercase">Explorer</span>
-                <button class="hover:bg-surface-raised-base-hover rounded px-1 text-text-weaker hover:text-text-strong">
-                  <Icon name="menu" size="small" />
-                </button>
               </div>
               <div class="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="flex-1 overflow-y-auto min-h-0 relative">
@@ -722,22 +719,6 @@ export default function FullIde() {
                     <span class="text-11-bold text-text-strong uppercase truncate">{getFilename(dir()) || "opencode-web"}</span>
                   </div>
                   <FileTree path="" active={editor.activeFile()} onFileClick={handleFileClick} />
-                </div>
-                
-                {/* Outline Section */}
-                <div class="border-t border-border-base shrink-0">
-                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer text-text-weaker hover:text-text-strong transition-colors">
-                    <Icon name="chevron-right" size="small" class="size-3.5" />
-                    <span class="text-11-bold uppercase">Outline</span>
-                  </div>
-                </div>
-
-                {/* Timeline Section */}
-                <div class="border-t border-border-base shrink-0">
-                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer text-text-weaker hover:text-text-strong transition-colors">
-                    <Icon name="chevron-right" size="small" class="size-3.5" />
-                    <span class="text-11-bold uppercase">Timeline</span>
-                  </div>
                 </div>
               </div>
             </Show>

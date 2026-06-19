@@ -84,20 +84,7 @@ export default function ActivityBar(props: {
           </button>
         </Tooltip>
 
-        <Tooltip value="Extensions (Ctrl+Shift+X)" placement="right">
-          <button
-            type="button"
-            class="w-full h-12 flex items-center justify-center transition-colors relative"
-            classList={{
-              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("extensions"),
-              "text-text-weak hover:text-text-strong": !active("extensions"),
-            }}
-            onClick={() => props.onTabClick("extensions")}
-            aria-label="Extensions"
-          >
-            <Icon name="models" size="large" />
-          </button>
-        </Tooltip>
+
 
         <Tooltip value="AI Assistant (Ctrl+Shift+I)" placement="right">
           <button

@@ -5,6 +5,7 @@ export type OpenFile = {
   content: string;
   savedContent: string;
   dirty: boolean;
+  originalContent?: string;
 };
 
 export type EditorGroup = {
