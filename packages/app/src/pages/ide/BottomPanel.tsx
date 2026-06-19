@@ -2,6 +2,7 @@ import { type JSX, For, Show } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import type { BottomPanelTab } from "./ActivityBar"
 
 export { type BottomPanelTab } from "./ActivityBar"
@@ -25,7 +26,7 @@ export default function BottomPanel(props: {
   height: number
   onTabChange: (tab: BottomPanelTab) => void
   onClose: () => void
-  onNewTerminal?: () => void
+  onNewTerminal?: (profile?: string) => void
   onSplitTerminal?: () => void
   onKillTerminal?: () => void
   onMaximize?: () => void
@@ -61,9 +62,39 @@ export default function BottomPanel(props: {
         </div>
         <div class="flex items-center gap-1 pr-2 text-text-weaker">
           <Show when={props.activeTab === "terminal"}>
-            <Tooltip value="New Terminal" placement="top">
-              <IconButton icon="plus" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onNewTerminal} />
-            </Tooltip>
+            <DropdownMenu placement="bottom-end">
+              <Tooltip value="New Terminal" placement="top">
+                <DropdownMenu.Trigger as="div">
+                  <IconButton icon="plus" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" />
+                </DropdownMenu.Trigger>
+              </Tooltip>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content class="min-w-[200px]">
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.()}>
+                    <DropdownMenu.ItemLabel>New Terminal</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => props.onSplitTerminal?.()}>
+                    <DropdownMenu.ItemLabel>Split Terminal</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.("PowerShell")}>
+                    <DropdownMenu.ItemLabel>PowerShell</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.("Command Prompt")}>
+                    <DropdownMenu.ItemLabel>Command Prompt</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.("Git Bash")}>
+                    <DropdownMenu.ItemLabel>Git Bash</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.("WSL")}>
+                    <DropdownMenu.ItemLabel>WSL</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item onSelect={() => props.onNewTerminal?.("JavaScript Debug Terminal")}>
+                    <DropdownMenu.ItemLabel>JavaScript Debug Terminal</DropdownMenu.ItemLabel>
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu>
             <div class="w-px h-4 bg-border-base mx-0.5" />
             <Tooltip value="Split Terminal" placement="top">
               <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onSplitTerminal} />

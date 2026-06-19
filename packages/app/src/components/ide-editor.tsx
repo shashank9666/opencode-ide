@@ -107,6 +107,12 @@ export default function IdeEditor(props: {
   tabSize?: number
   wordWrap?: "off" | "on" | "wordWrapColumn" | "bounded"
   onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor) => void
+  onProvideCompletionItems?: (
+    model: monaco.editor.ITextModel,
+    position: monaco.Position,
+    context: monaco.languages.InlineCompletionContext,
+    token: monaco.CancellationToken
+  ) => monaco.languages.ProviderResult<monaco.languages.InlineCompletions>
 }) {
   let container: HTMLDivElement | undefined
   let editor: monaco.editor.IStandaloneCodeEditor | undefined
@@ -169,6 +175,22 @@ export default function IdeEditor(props: {
     editor.onDidChangeCursorPosition((e) => {
       props.onCursorChange?.(e.position.lineNumber, e.position.column)
     })
+
+    let completionsProvider: monaco.IDisposable | undefined
+    if (props.onProvideCompletionItems) {
+      completionsProvider = monaco.languages.registerInlineCompletionsProvider("*", {
+        provideInlineCompletions: async (model, position, context, token) => {
+          if (editor?.getModel()?.uri !== model.uri) return { items: [] }
+          return props.onProvideCompletionItems!(model, position, context, token)
+        },
+        freeInlineCompletions: () => {}
+      })
+    }
+
+    onCleanup(() => {
+      completionsProvider?.dispose()
+      editor?.dispose()
+    })
   })
 
   createEffect(() => {
@@ -199,7 +221,6 @@ export default function IdeEditor(props: {
     })
   })
 
-  onCleanup(() => editor?.dispose())
 
   return <div ref={container} class={props.class ?? "size-full"} />
 }

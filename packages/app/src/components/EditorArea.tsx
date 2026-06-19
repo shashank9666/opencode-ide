@@ -210,6 +210,20 @@ export function EditorArea(props: {
                 formatTrigger={props.formatTrigger}
                 class="flex-1 min-h-0"
                 fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
+                onProvideCompletionItems={async (model, position) => {
+                  // TODO: Connect to real AI SDK endpoint
+                  // For now, provide a simple mock suggestion when typing "// mock"
+                  const lineContent = model.getLineContent(position.lineNumber)
+                  if (lineContent.trim() === "// mock") {
+                    return {
+                      items: [{
+                        insertText: " this is a mock autocomplete suggestion",
+                        range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column)
+                      }]
+                    }
+                  }
+                  return { items: [] }
+                }}
               />
               <InlineAIToolbar
                 editor={editorInstance()}

@@ -714,9 +714,17 @@ export default function FullIde() {
               <div class="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="flex-1 overflow-y-auto min-h-0 relative">
                   {/* Workspace Root Section */}
-                  <div class="flex items-center gap-1 px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer sticky top-0 bg-surface-base z-10 border-b border-border-base/50">
-                    <Icon name="chevron-down" size="small" class="text-text-weaker size-3.5" />
-                    <span class="text-11-bold text-text-strong uppercase truncate">{getFilename(dir()) || "opencode-web"}</span>
+                  <div class="flex items-center justify-between px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer sticky top-0 bg-surface-base z-10 border-b border-border-base/50 group">
+                    <div class="flex items-center gap-1 min-w-0">
+                      <Icon name="chevron-down" size="small" class="text-text-weaker size-3.5" />
+                      <span class="text-11-bold text-text-strong uppercase truncate">{getFilename(dir()) || "opencode-web"}</span>
+                    </div>
+                    <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <IconButton icon="file-add" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); startCreate("file", "") }} />
+                      <IconButton icon="folder-add" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); startCreate("directory", "") }} />
+                      <IconButton icon="refresh" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); file.tree.refresh("") }} />
+                      <IconButton icon="collapse-all" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); file.tree.collapse("") }} />
+                    </div>
                   </div>
                   <FileTree path="" active={editor.activeFile()} onFileClick={handleFileClick} />
                 </div>
@@ -797,7 +805,17 @@ export default function FullIde() {
               height={bottomPanelHeight()}
               onTabChange={(tab) => toggleBottomPanel(tab)}
               onClose={() => { if (bottomPanel()) panelManager.hidePanel(bottomPanel()!.id) }}
-              onNewTerminal={() => terminal.new()}
+              onNewTerminal={(profile) => {
+                if (!profile) return terminal.new();
+                let command;
+                if (profile === "PowerShell") command = "pwsh";
+                else if (profile === "Command Prompt") command = "cmd";
+                else if (profile === "Git Bash") command = "bash";
+                else if (profile === "WSL") command = "wsl";
+                
+                if (command) terminal.newShell({ command, title: profile });
+                else terminal.new();
+              }}
               onSplitTerminal={() => {
                 const activeId = terminal.active()
                 if (activeId) void terminal.clone(activeId)
