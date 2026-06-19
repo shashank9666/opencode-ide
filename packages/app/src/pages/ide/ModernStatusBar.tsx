@@ -135,21 +135,6 @@ export default function ModernStatusBar(props: {
             <span>{props.language}</span>
           </button>
         </Tooltip>
-
-        {/* AI Provider + Model */}
-        <Show when={props.providerName}>
-          <Tooltip value={`AI: ${props.providerName}${props.modelName ? ` - ${props.modelName}` : ""}`} placement="top">
-            <button
-              type="button"
-              class="flex items-center gap-1 px-2 h-full hover:bg-surface-raised-base-hover transition-colors cursor-pointer"
-            >
-              <Icon name="brain" size="small" class="size-3 text-accent-base" />
-              <span class="truncate max-w-24">
-                {props.modelName ?? props.providerName}
-              </span>
-            </button>
-          </Tooltip>
-        </Show>
       </div>
     </div>
   )
