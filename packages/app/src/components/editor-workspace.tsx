@@ -1,0 +1,128 @@
+import { createSignal } from "solid-js";
+
+export type OpenFile = {
+  path: string;
+  content: string;
+  originalContent?: string;
+  dirty: boolean;
+};
+
+export type EditorGroup = {
+  id: string;
+  files: OpenFile[];
+  activeFile: string | null;
+};
+
+export type SplitDirection = "horizontal" | "vertical";
+
+export type EditorNode = 
+  | { type: "group"; group: EditorGroup }
+  | { type: "split"; direction: SplitDirection; sizes: number[]; children: EditorNode[] };
+
+export function createEditorWorkspace() {
+  const defaultGroup: EditorGroup = { id: "group-1", files: [], activeFile: null };
+  const [rootNode, setRootNode] = createSignal<EditorNode>({ type: "group", group: defaultGroup });
+  const [activeGroupId, setActiveGroupId] = createSignal<string>("group-1");
+
+  let nextGroupId = 2;
+
+  const findGroup = (node: EditorNode, id: string): EditorGroup | null => {
+    if (node.type === "group") return node.group.id === id ? node.group : null;
+    for (const child of node.children) {
+      const found = findGroup(child, id);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  const updateGroup = (node: EditorNode, id: string, updater: (g: EditorGroup) => EditorGroup): EditorNode => {
+    if (node.type === "group") {
+      if (node.group.id === id) return { ...node, group: updater(node.group) };
+      return node;
+    }
+    return { ...node, children: node.children.map(c => updateGroup(c, id, updater)) };
+  };
+
+  const openFile = (path: string, content: string, groupId: string = activeGroupId()) => {
+    setRootNode(prev => updateGroup(prev, groupId, (g) => {
+      const existing = g.files.find(f => f.path === path);
+      if (existing) return { ...g, activeFile: path };
+      return { ...g, files: [...g.files, { path, content, dirty: false }], activeFile: path };
+    }));
+  };
+
+  const closeFile = (path: string, groupId: string) => {
+    setRootNode(prev => updateGroup(prev, groupId, (g) => {
+      const idx = g.files.findIndex(f => f.path === path);
+      if (idx === -1) return g;
+      const remaining = g.files.filter(f => f.path !== path);
+      let nextActive = g.activeFile;
+      if (g.activeFile === path) {
+        if (remaining.length > 0) {
+          nextActive = remaining[Math.min(idx, remaining.length - 1)]!.path;
+        } else {
+          nextActive = null;
+        }
+      }
+      return { ...g, files: remaining, activeFile: nextActive };
+    }));
+  };
+
+  const setContent = (path: string, content: string, groupId: string) => {
+    setRootNode(prev => updateGroup(prev, groupId, (g) => {
+      return { ...g, files: g.files.map(f => f.path === path ? { ...f, content, dirty: true } : f) };
+    }));
+  };
+
+  const markClean = (path: string, groupId: string) => {
+    setRootNode(prev => updateGroup(prev, groupId, (g) => {
+      return { ...g, files: g.files.map(f => f.path === path ? { ...f, dirty: false } : f) };
+    }));
+  };
+
+  const setActiveFile = (path: string, groupId: string) => {
+    setRootNode(prev => updateGroup(prev, groupId, (g) => ({ ...g, activeFile: path })));
+    setActiveGroupId(groupId);
+  };
+
+  const splitGroup = (groupId: string, direction: SplitDirection) => {
+    const splitNodeRec = (node: EditorNode): EditorNode => {
+      if (node.type === "group" && node.group.id === groupId) {
+        const newGroup: EditorGroup = { id: `group-${nextGroupId++}`, files: [], activeFile: null };
+        return {
+          type: "split",
+          direction,
+          sizes: [50, 50],
+          children: [node, { type: "group", group: newGroup }]
+        };
+      }
+      if (node.type === "split") {
+        return { ...node, children: node.children.map(splitNodeRec) };
+      }
+      return node;
+    };
+    setRootNode(prev => splitNodeRec(prev));
+  };
+
+  const getActiveGroup = () => findGroup(rootNode(), activeGroupId()) || findGroup(rootNode(), "group-1");
+
+  const getFileState = (path: string, groupId?: string) => {
+    const targetGroup = groupId ? findGroup(rootNode(), groupId) : getActiveGroup();
+    if (!targetGroup) return null;
+    return targetGroup.files.find(f => f.path === path) || null;
+  };
+
+  return {
+    rootNode,
+    activeGroupId,
+    setActiveGroupId,
+    openFile,
+    closeFile,
+    setContent,
+    markClean,
+    setActiveFile,
+    splitGroup,
+    getFileState,
+    getActiveGroup
+  };
+}

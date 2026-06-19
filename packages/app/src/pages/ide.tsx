@@ -498,13 +498,9 @@ export default function IdePage() {
       <HeaderBar
         workspaceName={getFilename(dir()) || "Untitled"}
         branch="main"
-        activeModel="Claude 4 Sonnet"
-        activeProvider="OpenCode"
-        syncStatus="synced"
         compact={headerCompact()}
         onSearch={() => {}}
         onCommandPalette={() => setCommandPaletteOpen(true)}
-        onSettings={handleOpenFolder}
         onWorkspaceSwitch={() => setShowPresets(true)}
       />
 

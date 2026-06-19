@@ -1,7 +1,7 @@
 import { Icon } from "@opencode-ai/ui/icon"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 
-export type ActivityBarTab = "explorer" | "search" | "source-control" | "extensions" | "ai-chat"
+export type ActivityBarTab = "explorer" | "search" | "source-control" | "run-debug" | "extensions" | "ai-chat" | "database" | "remote" | "testing"
 
 export type BottomPanelTab = "terminal" | "problems" | "output" | "debug-console" | "ai-logs"
 
@@ -18,16 +18,16 @@ export default function ActivityBar(props: {
   const activeBottom = (tab: BottomPanelTab) => props.bottomPanelOpen && props.bottomTab === tab
 
   return (
-    <div class="w-12 shrink-0 flex flex-col items-center py-2 gap-1 border-r border-border-base bg-surface-base select-none [app-region:no-drag]">
+    <div class="w-12 shrink-0 flex flex-col items-center py-0 border-r border-border-base bg-surface-base select-none [app-region:no-drag]">
       {/* Top section - sidebar panels */}
-      <div class="flex flex-col items-center gap-1">
+      <div class="flex flex-col items-center w-full">
         <Tooltip value="Explorer (Ctrl+Shift+E)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": active("explorer"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !active("explorer"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("explorer"),
+              "text-text-weak hover:text-text-strong": !active("explorer"),
             }}
             onClick={() => props.onTabClick("explorer")}
             aria-label="Explorer"
@@ -39,10 +39,10 @@ export default function ActivityBar(props: {
         <Tooltip value="Search (Ctrl+Shift+F)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": active("search"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !active("search"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("search"),
+              "text-text-weak hover:text-text-strong": !active("search"),
             }}
             onClick={() => props.onTabClick("search")}
             aria-label="Search"
@@ -54,10 +54,10 @@ export default function ActivityBar(props: {
         <Tooltip value="Source Control (Ctrl+Shift+G)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": active("source-control"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !active("source-control"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("source-control"),
+              "text-text-weak hover:text-text-strong": !active("source-control"),
             }}
             onClick={() => props.onTabClick("source-control")}
             aria-label="Source Control"
@@ -66,13 +66,28 @@ export default function ActivityBar(props: {
           </button>
         </Tooltip>
 
+        <Tooltip value="Run & Debug (Ctrl+Shift+D)" placement="right">
+          <button
+            type="button"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
+            classList={{
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("run-debug"),
+              "text-text-weak hover:text-text-strong": !active("run-debug"),
+            }}
+            onClick={() => props.onTabClick("run-debug")}
+            aria-label="Run and Debug"
+          >
+            <Icon name="bug" size="large" />
+          </button>
+        </Tooltip>
+
         <Tooltip value="Extensions (Ctrl+Shift+X)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": active("extensions"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !active("extensions"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("extensions"),
+              "text-text-weak hover:text-text-strong": !active("extensions"),
             }}
             onClick={() => props.onTabClick("extensions")}
             aria-label="Extensions"
@@ -81,18 +96,63 @@ export default function ActivityBar(props: {
           </button>
         </Tooltip>
 
-        <Tooltip value="AI Chat (Ctrl+Shift+I)" placement="right">
+        <Tooltip value="AI Assistant (Ctrl+Shift+I)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": active("ai-chat"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !active("ai-chat"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("ai-chat"),
+              "text-text-weak hover:text-text-strong": !active("ai-chat"),
             }}
             onClick={() => props.onTabClick("ai-chat")}
             aria-label="AI Chat"
           >
             <Icon name="brain" size="large" />
+          </button>
+        </Tooltip>
+
+        <Tooltip value="Database Explorer" placement="right">
+          <button
+            type="button"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
+            classList={{
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("database"),
+              "text-text-weak hover:text-text-strong": !active("database"),
+            }}
+            onClick={() => props.onTabClick("database")}
+            aria-label="Database"
+          >
+            <Icon name="database" size="large" />
+          </button>
+        </Tooltip>
+
+        <Tooltip value="Remote Explorer" placement="right">
+          <button
+            type="button"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
+            classList={{
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("remote"),
+              "text-text-weak hover:text-text-strong": !active("remote"),
+            }}
+            onClick={() => props.onTabClick("remote")}
+            aria-label="Remote Explorer"
+          >
+            <Icon name="remote" size="large" />
+          </button>
+        </Tooltip>
+
+        <Tooltip value="Testing" placement="right">
+          <button
+            type="button"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
+            classList={{
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("testing"),
+              "text-text-weak hover:text-text-strong": !active("testing"),
+            }}
+            onClick={() => props.onTabClick("testing")}
+            aria-label="Testing"
+          >
+            <Icon name="beaker" size="large" />
           </button>
         </Tooltip>
       </div>
@@ -101,14 +161,14 @@ export default function ActivityBar(props: {
       <div class="flex-1" />
 
       {/* Bottom section - panel toggles */}
-      <div class="flex flex-col items-center gap-1">
+      <div class="flex flex-col items-center w-full">
         <Tooltip value="Terminal (Ctrl+`)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": activeBottom("terminal"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !activeBottom("terminal"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": activeBottom("terminal"),
+              "text-text-weak hover:text-text-strong": !activeBottom("terminal"),
             }}
             onClick={() => props.onBottomTabClick("terminal")}
             aria-label="Terminal"
@@ -120,10 +180,10 @@ export default function ActivityBar(props: {
         <Tooltip value="Problems (Ctrl+Shift+M)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": activeBottom("problems"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !activeBottom("problems"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": activeBottom("problems"),
+              "text-text-weak hover:text-text-strong": !activeBottom("problems"),
             }}
             onClick={() => props.onBottomTabClick("problems")}
             aria-label="Problems"
@@ -135,10 +195,10 @@ export default function ActivityBar(props: {
         <Tooltip value="Output (Ctrl+Shift+U)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": activeBottom("output"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !activeBottom("output"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": activeBottom("output"),
+              "text-text-weak hover:text-text-strong": !activeBottom("output"),
             }}
             onClick={() => props.onBottomTabClick("output")}
             aria-label="Output"
@@ -150,10 +210,10 @@ export default function ActivityBar(props: {
         <Tooltip value="Debug Console (Ctrl+Shift+Y)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg transition-colors relative"
+            class="w-full h-12 flex items-center justify-center transition-colors relative"
             classList={{
-              "text-text-strong before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-accent-base before:rounded-r-full": activeBottom("debug-console"),
-              "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !activeBottom("debug-console"),
+              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": activeBottom("debug-console"),
+              "text-text-weak hover:text-text-strong": !activeBottom("debug-console"),
             }}
             onClick={() => props.onBottomTabClick("debug-console")}
             aria-label="Debug Console"
@@ -167,7 +227,7 @@ export default function ActivityBar(props: {
         <Tooltip value="Settings (Ctrl+,)" placement="right">
           <button
             type="button"
-            class="size-9 flex items-center justify-center rounded-lg text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors relative"
+            class="w-full h-12 flex items-center justify-center text-text-weak hover:text-text-strong transition-colors relative mb-2"
             onClick={() => props.onOpenFolder()}
             aria-label="Open Folder"
           >

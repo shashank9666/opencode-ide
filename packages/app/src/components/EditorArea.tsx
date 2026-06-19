@@ -1,0 +1,157 @@
+import { createSignal, createMemo, For, Match, Switch, Show } from "solid-js";
+import { Icon } from "@opencode-ai/ui/icon";
+import { IconButton } from "@opencode-ai/ui/icon-button";
+import { getFilename } from "@opencode-ai/core/util/path";
+import IdeEditor, { IdeDiffEditor } from "./ide-editor";
+import InlineAIToolbar from "./inline-ai-toolbar";
+import { SplitPane } from "./SplitPane";
+import type { EditorNode, EditorGroup, OpenFile } from "./editor-workspace";
+import * as monaco from "monaco-editor";
+
+export function EditorArea(props: {
+  node: EditorNode;
+  activeGroupId: string;
+  workspace: ReturnType<typeof import("./editor-workspace").createEditorWorkspace>;
+  onSaveFile: (path: string, groupId: string) => Promise<void>;
+  diffMode: boolean;
+  onToggleDiff: () => void;
+  fontSize: number;
+  tabSize: number;
+  wordWrap: "off" | "on" | "wordWrapColumn" | "bounded";
+  formatTrigger: number;
+  onInlineAIAction: (payload: any, groupId: string) => void;
+}) {
+  if (props.node.type === "split") {
+    return (
+      <SplitPane direction={props.node.direction} initialSizes={props.node.sizes}>
+        {props.node.children.map(child => (
+          <EditorArea {...props} node={child} />
+        ))}
+      </SplitPane>
+    );
+  }
+
+  const group = props.node.group;
+  const activeFile = group.activeFile;
+  const isActiveGroup = props.activeGroupId === group.id;
+
+  const activeFileState = createMemo(() => {
+    if (!activeFile) return null;
+    return group.files.find(f => f.path === activeFile) || null;
+  });
+
+  const [editorInstance, setEditorInstance] = createSignal<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
+  const [editorLine, setEditorLine] = createSignal(1);
+  const [editorColumn, setEditorColumn] = createSignal(1);
+
+  const activeFileLanguage = createMemo(() => {
+    if (!activeFile) return "plaintext";
+    const ext = activeFile.slice(activeFile.lastIndexOf("."));
+    return new Map([
+      [".ts", "TypeScript"], [".tsx", "TypeScript"], [".js", "JavaScript"], [".jsx", "JavaScript"],
+      [".json", "JSON"], [".md", "Markdown"], [".css", "CSS"], [".html", "HTML"],
+      [".rs", "Rust"], [".py", "Python"], [".go", "Go"],
+    ]).get(ext) ?? "Plain Text";
+  });
+
+  const hasDiff = createMemo(() => {
+    const state = activeFileState();
+    return state ? state.originalContent !== undefined : false;
+  });
+
+  return (
+    <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative" onClick={() => props.workspace.setActiveGroupId(group.id)}>
+      <Show when={group.files.length > 0}>
+        <div class="flex items-center border-b border-border-base bg-surface-base overflow-x-auto shrink-0 select-none" style={{ "min-height": "36px" }}>
+          <For each={group.files}>
+            {(openFile: OpenFile) => (
+              <button
+                class={`flex items-center gap-1.5 px-3 py-1.5 text-13-regular border-r border-border-base whitespace-nowrap shrink-0 transition-colors ${openFile.path === activeFile
+                  ? (isActiveGroup ? "bg-background-base text-text-strong border-b-2 border-b-accent-base" : "bg-background-base text-text-strong opacity-80")
+                  : "text-text-weak hover:bg-surface-raised-base-hover"
+                  }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (activeFile && activeFile !== openFile.path && group.files.find(f => f.path === activeFile)?.dirty) {
+                    void props.onSaveFile(activeFile, group.id);
+                  }
+                  props.workspace.setActiveFile(openFile.path, group.id);
+                }}
+              >
+                <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
+                <span class="truncate max-w-32">{getFilename(openFile.path)}</span>
+                <Show when={openFile.dirty}><span class="text-12-medium text-text-warning-base">●</span></Show>
+                <IconButton icon="close" variant="ghost" size="small" class="size-4 rounded ml-0.5 opacity-60 hover:opacity-100" onClick={(e: MouseEvent) => { e.stopPropagation(); props.workspace.closeFile(openFile.path, group.id); }} />
+              </button>
+            )}
+          </For>
+          <div class="flex-1 flex justify-end gap-1 px-1">
+            <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded" title="Split Right" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group.id, "horizontal"); }} />
+            <IconButton icon="layout-bottom" variant="ghost" size="small" class="size-6 rounded" title="Split Down" onClick={(e) => { e.stopPropagation(); props.workspace.splitGroup(group.id, "vertical"); }} />
+          </div>
+        </div>
+      </Show>
+
+      {/* Breadcrumbs */}
+      <Show when={activeFile}>
+        <div class="flex items-center gap-1 px-3 py-0.5 text-12-regular text-text-weak bg-surface-base border-b border-border-base shrink-0 overflow-x-auto">
+          {activeFile?.split("/").map((crumb, i, arr) => (
+            <>
+              <Show when={i > 0}><span class="text-text-weaker">/</span></Show>
+              <span class="hover:text-text-strong cursor-pointer truncate">{getFilename(arr.slice(0, i + 1).join("/"))}</span>
+            </>
+          ))}
+          <div class="flex-1" />
+          <Show when={hasDiff()}>
+            <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": props.diffMode, "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !props.diffMode }} onClick={props.onToggleDiff}>{props.diffMode ? "Exit Diff" : "Show Diff"}</button>
+          </Show>
+        </div>
+      </Show>
+
+      <Show
+        when={activeFileState()}
+        fallback={
+          <div class="flex-1 flex flex-col items-center justify-center text-text-weak gap-3 select-none">
+            <Icon name="open-file" size="large" class="text-icon-weaker opacity-30" style={{ "font-size": "48px" }} />
+            <div class="text-14-regular">Open a file from the Explorer</div>
+            <div class="text-12-regular text-text-weaker">or press <kbd class="px-1.5 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">Ctrl+P</kbd> to search</div>
+          </div>
+        }
+      >
+        {(state) => (
+          <div class="flex-1 relative min-h-0 flex flex-col">
+            <Show
+              when={!props.diffMode || !hasDiff()}
+              fallback={
+                <IdeDiffEditor
+                  path={state().path}
+                  original={state().originalContent ?? ""}
+                  modified={state().content}
+                  class="flex-1 min-h-0"
+                  fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
+                />
+              }
+            >
+              <IdeEditor
+                path={state().path}
+                content={state().content}
+                onChange={(v) => props.workspace.setContent(state().path, v, group.id)}
+                onCursorChange={(line, col) => { setEditorLine(line); setEditorColumn(col); }}
+                onEditorReady={(e) => setEditorInstance(e)}
+                formatTrigger={props.formatTrigger}
+                class="flex-1 min-h-0"
+                fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
+              />
+              <InlineAIToolbar
+                editor={editorInstance()}
+                filePath={state().path}
+                language={activeFileLanguage()}
+                onAction={(payload) => props.onInlineAIAction(payload, group.id)}
+              />
+            </Show>
+          </div>
+        )}
+      </Show>
+    </div>
+  );
+}

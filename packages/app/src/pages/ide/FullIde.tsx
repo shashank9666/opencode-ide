@@ -15,6 +15,8 @@ import FileTree from "@/components/file-tree"
 import IdeEditor, { IdeDiffEditor, createIdeEditor, type OpenFile } from "@/components/ide-editor"
 import { createProblemTracker } from "@/components/problem-tracker"
 import InlineAIToolbar, { type InlineAIActionPayload } from "@/components/inline-ai-toolbar"
+import { createEditorWorkspace } from "@/components/editor-workspace"
+import { EditorArea } from "@/components/EditorArea"
 import { Terminal } from "@/components/terminal"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -63,13 +65,12 @@ const MERGED_DEFAULT: PanelState[] = [
   { id: "explorer", label: "Explorer", icon: "file-tree", position: "left", visible: true, width: 280, order: 0 },
   { id: "search", label: "Search", icon: "magnifying-glass", position: "left", visible: false, width: 280, order: 1 },
   { id: "source-control", label: "Source Control", icon: "branch", position: "left", visible: false, width: 300, order: 2 },
-  { id: "extensions", label: "Extensions", icon: "models", position: "left", visible: false, width: 300, order: 3 },
-  { id: "remote", label: "Remote Explorer", icon: "remote", position: "left", visible: false, width: 280, order: 4 },
-  { id: "ai-chat", label: "AI Chat", icon: "comment", position: "right", visible: false, width: 320, order: 4 },
-  { id: "ai-workspace", label: "AI Workspace", icon: "brain", position: "right", visible: false, width: 360, order: 5 },
-  { id: "debug", label: "Debug", icon: "bug", position: "right", visible: false, width: 300, order: 6 },
-  { id: "testing", label: "Testing", icon: "beaker", position: "right", visible: false, width: 300, order: 7 },
-  { id: "database", label: "Database", icon: "database", position: "right", visible: false, width: 320, order: 8 },
+  { id: "run-debug", label: "Run & Debug", icon: "bug", position: "left", visible: false, width: 300, order: 3 },
+  { id: "extensions", label: "Extensions", icon: "models", position: "left", visible: false, width: 300, order: 4 },
+  { id: "ai-chat", label: "AI Assistant", icon: "brain", position: "left", visible: false, width: 320, order: 5 },
+  { id: "database", label: "Database", icon: "database", position: "left", visible: false, width: 320, order: 6 },
+  { id: "remote", label: "Remote Explorer", icon: "remote", position: "left", visible: false, width: 280, order: 7 },
+  { id: "testing", label: "Testing", icon: "beaker", position: "left", visible: false, width: 300, order: 8 },
   { id: "terminal-area", label: "Terminal", icon: "terminal", position: "bottom", visible: true, height: 220, order: 6 },
   { id: "problems", label: "Problems", icon: "circle-x", position: "bottom", visible: false, height: 220, order: 7 },
   { id: "output", label: "Output", icon: "console", position: "bottom", visible: false, height: 220, order: 8 },
@@ -88,7 +89,15 @@ function getShellInfo(title: string | undefined) {
 
 export default function FullIde() {
   const file = useFile()
-  const editor = createIdeEditor()
+  const workspace = createEditorWorkspace()
+  const editor = {
+    activeFile: () => workspace.getActiveGroup()?.activeFile ?? "",
+    dirty: (path?: string) => workspace.getFileState(path ?? workspace.getActiveGroup()?.activeFile ?? "")?.dirty ?? false,
+    content: (path?: string) => workspace.getFileState(path ?? workspace.getActiveGroup()?.activeFile ?? "")?.content ?? "",
+    markClean: (path: string) => workspace.markClean(path, workspace.getActiveGroup()?.id ?? ""),
+    openFile: (path: string, content: string) => workspace.openFile(path, content, workspace.getActiveGroup()?.id ?? ""),
+    closeFile: (path: string) => workspace.closeFile(path, workspace.getActiveGroup()?.id ?? ""),
+  }
   const problems = createProblemTracker()
   const sdk = useSDK()
   const language = useLanguage()
@@ -608,107 +617,53 @@ export default function FullIde() {
               <RemotePanel />
             </Show>
 
+            <Show when={leftPanel()?.id === "run-debug"}>
+              <DebugPanel onClose={() => panelManager.hidePanel("run-debug")} />
+            </Show>
+
+            <Show when={leftPanel()?.id === "testing"}>
+              <TestingPanel onClose={() => panelManager.hidePanel("testing")} />
+            </Show>
+
+            <Show when={leftPanel()?.id === "database"}>
+              <DatabasePanel />
+            </Show>
+
+            <Show when={leftPanel()?.id === "ai-chat"}>
+              <AIWorkspacePanel sessionId={activeSessionId()} onNewSession={handleNewSession} onClose={() => panelManager.hidePanel("ai-chat")} />
+            </Show>
+
             <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleSidebarResizeStart} />
           </div>
         </Show>
 
-        {/* ── Editor Area ── */}
+        {/* ── Editor Area Container ── */}
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* File tabs */}
-          <Show when={editor.files().length > 0}>
-            <div class="flex items-center border-b border-border-base bg-surface-base overflow-x-auto shrink-0" style={{ "min-height": "36px" }}>
-              <For each={editor.files()}>
-                {(openFile: OpenFile) => (
-                  <button
-                    class={`flex items-center gap-1.5 px-3 py-1.5 text-13-regular border-r border-border-base whitespace-nowrap shrink-0 transition-colors ${openFile.path === editor.activeFile()
-                      ? "bg-background-base text-text-strong border-b-2 border-b-accent-base"
-                      : "text-text-weak hover:bg-surface-raised-base-hover"
-                      }`}
-                    onClick={async () => {
-                      if (editor.activeFile() && editor.activeFile() !== openFile.path && editor.dirty()) {
-                        await saveFile()
-                      }
-                      editor.setActiveFile(openFile.path)
-                    }}
-                  >
-                    <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
-                    <span class="truncate max-w-32">{getFilename(openFile.path)}</span>
-                    <Show when={openFile.dirty}><span class="text-12-medium text-text-warning-base">●</span></Show>
-                    <IconButton icon="close" variant="ghost" size="small" class="size-4 rounded ml-0.5 opacity-60 hover:opacity-100" onClick={(e: MouseEvent) => { e.stopPropagation(); editor.closeFile(openFile.path) }} />
-                  </button>
-                )}
-              </For>
-              <div class="flex-1" />
-            </div>
-          </Show>
+          <EditorArea
+            node={workspace.rootNode()}
+            activeGroupId={workspace.activeGroupId()}
+            workspace={workspace}
+            onSaveFile={async (path, groupId) => {
+              const state = workspace.getFileState(path, groupId);
+              if (!state || !state.dirty) return;
+              try {
+                await sdk().client.v2.fs.write({ path, content: state.content })
+                workspace.markClean(path, groupId)
+                showToast({ variant: "success", title: "File saved", description: getFilename(path) })
+              } catch (e) {
+                showToast({ variant: "error", title: language.t("toast.file.saveFailed.title") ?? "Save failed", description: String(e) })
+              }
+            }}
+            diffMode={diffMode()}
+            onToggleDiff={() => setDiffMode(!diffMode())}
+            fontSize={fontSize()}
+            tabSize={tabSize()}
+            wordWrap={wordWrap()}
+            formatTrigger={formatTrigger()}
+            onInlineAIAction={(payload, groupId) => handleInlineAIAction(payload)}
+          />
 
-          {/* Breadcrumbs */}
-          <Show when={editor.activeFile()}>
-            <div class="flex items-center gap-1 px-3 py-0.5 text-12-regular text-text-weak bg-surface-base border-b border-border-base shrink-0 overflow-x-auto">
-              <For each={breadcrumbs()}>
-                {(crumb, i) => (<><Show when={i() > 0}><span class="text-text-weaker">/</span></Show><span class="hover:text-text-strong cursor-pointer truncate">{getFilename(crumb)}</span></>)}
-              </For>
-              <div class="flex-1" />
-              <Show when={editor.originalContent(editor.activeFile()) !== undefined}>
-                <button
-                  class="text-12-regular px-2 py-0.5 rounded transition-colors"
-                  classList={{
-                    "bg-accent-base text-white": diffMode(),
-                    "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !diffMode(),
-                  }}
-                  onClick={() => setDiffMode(!diffMode())}
-                >
-                  {diffMode() ? "Exit Diff" : "Show Diff"}
-                </button>
-              </Show>
-            </div>
-          </Show>
 
-          {/* Editor */}
-          <Show
-            when={editor.activeFile()}
-            fallback={
-              <div class="flex-1 flex flex-col items-center justify-center text-text-weak gap-3 select-none">
-                <Icon name="open-file" size="large" class="text-icon-weaker opacity-30" style={{ "font-size": "48px" }} />
-                <div class="text-14-regular">Open a file from the Explorer</div>
-                <div class="text-12-regular text-text-weaker">or press <kbd class="px-1.5 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">Ctrl+P</kbd> to search</div>
-              </div>
-            }
-          >
-            <div class="flex-1 relative min-h-0 flex flex-col">
-              <Show
-                when={!diffMode() || !editor.originalContent(editor.activeFile())}
-                fallback={
-                  <IdeDiffEditor
-                    path={editor.activeFile()}
-                    original={editor.originalContent(editor.activeFile()) ?? ""}
-                    modified={editor.content()}
-                    class="flex-1 min-h-0"
-                    fontSize={fontSize()} tabSize={tabSize()} wordWrap={wordWrap()}
-                  />
-                }
-              >
-                <IdeEditor
-                  path={editor.activeFile()}
-                  content={editor.content()}
-                  onChange={(v) => editor.setContent(editor.activeFile(), v)}
-                  onCursorChange={(line, col) => { setEditorLine(line); setEditorColumn(col) }}
-                  onEditorReady={(e) => setEditorInstance(e)}
-                  formatTrigger={formatTrigger()}
-                  class="flex-1 min-h-0"
-                  fontSize={fontSize()}
-                  tabSize={tabSize()}
-                  wordWrap={wordWrap()}
-                />
-                <InlineAIToolbar
-                  editor={editorInstance()}
-                  filePath={editor.activeFile()}
-                  language={activeFileLanguage()}
-                  onAction={handleInlineAIAction}
-                />
-              </Show>
-            </div>
-          </Show>
 
           {/* Bottom Panel */}
           <Show when={bottomPanel()}>
@@ -799,71 +754,13 @@ export default function FullIde() {
           />
         </div>
 
-        {/* ── Right Panel ── */}
         <Show when={rightPanel()}>
-          <div class="shrink-0 border-l border-border-base bg-surface-base relative flex flex-col" style={{ width: `${rightPanelWidth()}px` }}>
-            <Show when={rightPanel()?.id === "ai-chat"}>
-              <div class="size-full flex flex-col">
-                <div class="flex items-center justify-between px-3 py-1.5 border-b border-border-base shrink-0" style={{ "min-height": "34px" }}>
-                  <div class="flex items-center gap-1.5">
-                    <Icon name="comment" size="small" class="text-accent-base shrink-0" />
-                    <span class="text-11-medium text-text-weaker uppercase tracking-wider">AI CHAT</span>
-                  </div>
-                  <IconButton icon="close" variant="ghost" size="small" class="size-5 rounded" onClick={() => panelManager.hidePanel("ai-chat")} />
-                </div>
-                <div class="flex-1 min-h-0 overflow-y-auto">
-                  <Show when={activeSessionId()} fallback={
-                    <div class="p-3 flex flex-col gap-2">
-                      <button type="button" class="w-full py-1.5 px-3 text-13-medium bg-accent-base text-white hover:bg-accent-base-hover rounded-md transition-colors flex items-center justify-center gap-1.5" onClick={handleNewSession}>
-                        <Icon name="plus" size="small" /> New Chat Session
-                      </button>
-                      <div class="text-11-medium text-text-weaker uppercase tracking-wider mt-4 px-1">RECENT</div>
-                      <For each={recentSessions()}>
-                        {(session) => (
-                          <div class="group flex items-center justify-between px-2 py-1 rounded-md hover:bg-surface-raised-base-hover transition-colors cursor-pointer" onClick={() => setActiveSessionId(session.id)}>
-                            <span class="flex-1 text-13-regular truncate text-text-strong">{session.title || "Untitled"}</span>
-                            <IconButton icon="trash" variant="ghost" size="small" class="size-5 rounded opacity-0 group-hover:opacity-100" onClick={(e: MouseEvent) => { e.stopPropagation(); confirmDeleteSession(session.id, session.title || "Untitled") }} />
-                          </div>
-                        )}
-                      </For>
-                    </div>
-                  }>
-                    {(sid) => (
-                      <div class="size-full flex flex-col">
-                        <div class="flex items-center px-2 py-1 border-b border-border-base bg-surface-base shrink-0">
-                          <button type="button" class="text-12-regular text-text-weak hover:text-text-strong flex items-center gap-1 transition-colors" onClick={() => setActiveSessionId(null)}>
-                            <Icon name="chevron-left" size="small" /> Back
-                          </button>
-                        </div>
-                        <div class="flex-1 min-h-0"><Session sessionId={sid()} dir={dir()} embedded={true} /></div>
-                      </div>
-                    )}
-                  </Show>
-                </div>
-              </div>
-            </Show>
-
-            <Show when={rightPanel()?.id === "ai-workspace"}>
-              <AIWorkspacePanel
-                onClose={() => panelManager.hidePanel("ai-workspace")}
-                onFloat={() => panelManager.floatPanel("ai-workspace")}
-              />
-            </Show>
-
-            <Show when={rightPanel()?.id === "debug"}>
-              <DebugPanel onClose={() => panelManager.hidePanel("debug")} />
-            </Show>
-
-            <Show when={rightPanel()?.id === "testing"}>
-              <TestingPanel onClose={() => panelManager.hidePanel("testing")} />
-            </Show>
-
-            <Show when={rightPanel()?.id === "database"}>
-              <DatabasePanel />
-            </Show>
-
-            {/* Resize handle */}
+          <div class="shrink-0 flex flex-col border-l border-border-base bg-surface-base relative" style={{ width: `${rightPanelWidth()}px` }}>
             <div class="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleRightResizeStart} />
+            
+            <div class="flex-1 overflow-y-auto min-h-0 p-3 text-text-weak text-13-regular text-center mt-10">
+              Select a panel to dock here.
+            </div>
           </div>
         </Show>
       </div>
