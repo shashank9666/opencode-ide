@@ -1,6 +1,7 @@
 - To regenerate the JavaScript SDK, run `./packages/sdk/js/script/build.ts`.
 - The default branch in this repo is `dev`.
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
+- Default agent instructions are in `.opencode/rules/ide.md` — loaded automatically by OpenCode config.
 
 ## Branch Names
 

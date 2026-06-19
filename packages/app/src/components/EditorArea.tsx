@@ -67,6 +67,16 @@ export function EditorArea(props: {
     return state ? state.originalContent !== undefined : false;
   });
 
+  // Auto-enable diff mode when content diverges from original (live edits)
+  const autoDiffMode = createMemo(() => {
+    const state = activeFileState();
+    if (!state || state.originalContent === undefined) return false;
+    return state.content !== state.originalContent;
+  });
+
+  // Sync auto-diff into the prop, but respect manual toggle override
+  const effectiveDiffMode = () => props.diffMode || (autoDiffMode() && !props.previewDiff);
+
   return (
     <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative" onClick={() => props.workspace.setActiveGroupId(group().id)}>
       <Show when={group().files.length > 0}>
@@ -176,9 +186,9 @@ export function EditorArea(props: {
             </>
           ))}
           <div class="flex-1" />
-          <Show when={hasDiff()}>
-            <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": props.diffMode, "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !props.diffMode }} onClick={props.onToggleDiff}>{props.diffMode ? "Exit Diff" : "Show Diff"}</button>
-          </Show>
+            <Show when={hasDiff()}>
+              <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": effectiveDiffMode(), "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !effectiveDiffMode() }} onClick={props.onToggleDiff}>{effectiveDiffMode() ? "Exit Diff" : "Show Diff"}</button>
+            </Show>
         </div>
       </Show>
 
@@ -191,7 +201,7 @@ export function EditorArea(props: {
       }>
         {(state) => (
           <div class="flex-1 relative min-h-0 flex flex-col">
-            <Show when={!props.previewDiff && (!props.diffMode || !hasDiff())}>
+            <Show when={!props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
               <>
                 <IdeEditor
                   path={state().path}
@@ -223,7 +233,7 @@ export function EditorArea(props: {
                 />
               </>
             </Show>
-            <Show when={!(!props.previewDiff && (!props.diffMode || !hasDiff()))}>
+            <Show when={!(!props.previewDiff && (!effectiveDiffMode() || !hasDiff()))}>
               <>
                 <IdeDiffEditor
                   path={props.previewDiff?.path ?? state().path}
