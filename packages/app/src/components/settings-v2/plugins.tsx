@@ -4,6 +4,7 @@ import { useServerSync } from "@/context/server-sync"
 import { createStore } from "solid-js/store"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { SettingsListV2 } from "./parts/list"
 
 export const SettingsPluginsV2: Component = () => {
@@ -40,6 +41,40 @@ export const SettingsPluginsV2: Component = () => {
     }
   }
 
+  const isPluginEnabled = (plugin: string | [string, any]) => {
+    if (typeof plugin === "string") return true
+    if (Array.isArray(plugin)) {
+      const opts = plugin[1]
+      if (opts) {
+        if (opts.enabled === false) return false
+        if (opts.disabled === true) return false
+      }
+    }
+    return true
+  }
+
+  const togglePlugin = async (pluginName: string, checked: boolean) => {
+    setState("pending", true)
+    try {
+      const nextPlugins = plugins().map((x) => {
+        if (getPluginName(x) === pluginName) {
+          if (typeof x === "string") {
+            return [x, { enabled: checked }] as [string, any]
+          }
+          if (Array.isArray(x)) {
+            const opts = { ...x[1], enabled: checked } as any
+            delete opts.disabled
+            return [x[0], opts] as [string, any]
+          }
+        }
+        return x
+      })
+      await serverSync().updateConfig({ plugin: nextPlugins })
+    } finally {
+      setState("pending", false)
+    }
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header">
@@ -60,28 +95,38 @@ export const SettingsPluginsV2: Component = () => {
                 <div class="settings-v2-provider-empty">No plugins installed</div>
               }
             >
-              <For each={plugins()}>
-                {(plugin) => {
-                  const pluginName = getPluginName(plugin)
-                  return (
-                    <div class="settings-v2-provider-row group">
-                      <div class="settings-v2-provider-lead">
-                        <div class="settings-v2-provider-main">
-                          <span class="settings-v2-provider-name truncate">{pluginName}</span>
-                        </div>
-                      </div>
-                      <ButtonV2 
-                        size="normal" 
-                        variant="ghost-muted" 
-                        onClick={() => void removePlugin(pluginName)}
-                        disabled={state.pending}
-                      >
-                        Remove
-                      </ButtonV2>
-                    </div>
-                  )
-                }}
-              </For>
+               <For each={plugins()}>
+                 {(plugin) => {
+                   const pluginName = getPluginName(plugin)
+                   return (
+                     <div class="settings-v2-provider-row group">
+                       <div class="settings-v2-provider-lead">
+                         <div class="settings-v2-provider-main">
+                           <span class="settings-v2-provider-name truncate">{pluginName}</span>
+                         </div>
+                       </div>
+                       <div class="flex items-center gap-4">
+                         <div class="flex items-center gap-2">
+                           <span class="text-12-regular text-text-weak">{isPluginEnabled(plugin) ? "Enabled" : "Disabled"}</span>
+                           <Switch
+                             checked={isPluginEnabled(plugin)}
+                             onChange={(checked) => void togglePlugin(pluginName, checked)}
+                             disabled={state.pending}
+                           />
+                         </div>
+                         <ButtonV2 
+                           size="normal" 
+                           variant="ghost-muted" 
+                           onClick={() => void removePlugin(pluginName)}
+                           disabled={state.pending}
+                         >
+                           Remove
+                         </ButtonV2>
+                       </div>
+                     </div>
+                   )
+                 }}
+               </For>
             </Show>
           </SettingsListV2>
         </div>

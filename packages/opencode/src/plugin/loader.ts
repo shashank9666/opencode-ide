@@ -160,6 +160,10 @@ export namespace PluginLoader {
     // Deprecated plugin packages are silently ignored because they are now built in.
     if (plan.deprecated) return { retry: false }
 
+    if (plan.options && (plan.options.enabled === false || plan.options.disabled === true)) {
+      return { retry: false }
+    }
+
     report?.start?.(candidate, retry)
 
     const resolved = await resolve(plan, kind)

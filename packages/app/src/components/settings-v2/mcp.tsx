@@ -5,6 +5,7 @@ import { useSync } from "@/context/sync"
 import { createStore } from "solid-js/store"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
+import { Switch } from "@opencode-ai/ui/v2/switch-v2"
 import { SettingsListV2 } from "./parts/list"
 
 export const SettingsMcpV2: Component = () => {
@@ -65,6 +66,22 @@ export const SettingsMcpV2: Component = () => {
     }
   }
 
+  const toggleMcp = async (name: string, checked: boolean) => {
+    setState("pending", true)
+    try {
+      const nextMcp = { ...mcpServers() }
+      const cfg = nextMcp[name] as any
+      if (cfg && typeof cfg === "object") {
+        nextMcp[name] = { ...cfg, enabled: checked }
+      } else {
+        nextMcp[name] = { enabled: checked }
+      }
+      await serverSync().updateConfig({ mcp: nextMcp })
+    } finally {
+      setState("pending", false)
+    }
+  }
+
   return (
     <>
       <div class="settings-v2-tab-header">
@@ -97,6 +114,12 @@ export const SettingsMcpV2: Component = () => {
                         : "Unknown type"
                     : "Provided by workspace or plugin"
 
+                  const isEnabled = () => {
+                    const cfg = mcpServers()[name] as any
+                    if (cfg && cfg.enabled !== undefined) return cfg.enabled
+                    return true
+                  }
+
                   return (
                     <div class="settings-v2-provider-row group">
                       <div class="settings-v2-provider-lead">
@@ -107,16 +130,26 @@ export const SettingsMcpV2: Component = () => {
                           </span>
                         </div>
                       </div>
-                      <Show when={isUserConfigured}>
-                        <ButtonV2 
-                          size="normal" 
-                          variant="ghost-muted" 
-                          onClick={() => void removeMcp(name)}
-                          disabled={state.pending}
-                        >
-                          Remove
-                        </ButtonV2>
-                      </Show>
+                      <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                          <span class="text-12-regular text-text-weak">{isEnabled() ? "Enabled" : "Disabled"}</span>
+                          <Switch
+                            checked={isEnabled()}
+                            onChange={(checked) => void toggleMcp(name, checked)}
+                            disabled={state.pending}
+                          />
+                        </div>
+                        <Show when={isUserConfigured}>
+                          <ButtonV2 
+                            size="normal" 
+                            variant="ghost-muted" 
+                            onClick={() => void removeMcp(name)}
+                            disabled={state.pending}
+                          >
+                            Remove
+                          </ButtonV2>
+                        </Show>
+                      </div>
                     </div>
                   )
                 }}
