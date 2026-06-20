@@ -71,6 +71,7 @@ import { showToast } from "@/utils/toast"
 import { ImagePreview } from "@opencode-ai/ui/image-preview"
 import { pathKey } from "@/utils/path-key"
 import { displayName } from "@/pages/layout/helpers"
+import { AddContextMenu } from "./prompt-input/add-context-menu"
 
 export type PromptInputState = ReturnType<typeof usePrompt>
 
@@ -1601,24 +1602,26 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               <div class="flex h-11 items-center px-2">
                 <div class="flex min-w-0 flex-1 items-center gap-0">
                   {fileAttachmentInput()}
-                  <TooltipKeybind
-                    placement="top"
-                    title={language.t("prompt.action.attachFile")}
-                    keybind={command.keybind("file.attach")}
-                  >
-                    <IconButton
-                      data-action="prompt-attach"
-                      type="button"
-                      icon="plus"
-                      variant="ghost"
-                      class="size-7 rounded-md p-[6px] text-v2-icon-icon-muted"
-                      style={buttons()}
-                      onClick={pick}
-                      disabled={store.mode !== "normal"}
-                      tabIndex={store.mode === "normal" ? undefined : -1}
-                      aria-label={language.t("prompt.action.attachFile")}
-                    />
-                  </TooltipKeybind>
+                  <AddContextMenu
+                    onMedia={pick}
+                    onMentions={() => {
+                      setStore("popover", "at")
+                      atOnInput("")
+                      editorRef?.focus()
+                    }}
+                    onActions={() => {
+                      setStore("popover", "slash")
+                      slashOnInput("")
+                      editorRef?.focus()
+                    }}
+                    onVoice={() => {
+                      showToast({ title: "Voice Mode", description: "Recording started... (Coming Soon)" })
+                    }}
+                    class="size-7 rounded-md p-[6px] text-v2-icon-icon-muted"
+                    style={buttons()}
+                    disabled={store.mode !== "normal"}
+                    tabIndex={store.mode === "normal" ? undefined : -1}
+                  />
                   <Show when={showAgentControl()}>
                     <ComposerAgentControl state={agentControlState()} />
                   </Show>
@@ -1826,25 +1829,26 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
                   }}
                 >
-                  <TooltipKeybind
-                    placement="top"
-                    title={language.t("prompt.action.attachFile")}
-                    keybind={command.keybind("file.attach")}
-                  >
-                    <Button
-                      data-action="prompt-attach"
-                      type="button"
-                      variant="ghost"
-                      class="size-8 p-0"
-                      style={buttons()}
-                      onClick={pick}
-                      disabled={store.mode !== "normal"}
-                      tabIndex={store.mode === "normal" ? undefined : -1}
-                      aria-label={language.t("prompt.action.attachFile")}
-                    >
-                      <Icon name="plus" class="size-4.5" />
-                    </Button>
-                  </TooltipKeybind>
+                  <AddContextMenu
+                    onMedia={pick}
+                    onMentions={() => {
+                      setStore("popover", "at")
+                      atOnInput("")
+                      editorRef?.focus()
+                    }}
+                    onActions={() => {
+                      setStore("popover", "slash")
+                      slashOnInput("")
+                      editorRef?.focus()
+                    }}
+                    onVoice={() => {
+                      showToast({ title: "Voice Mode", description: "Recording started... (Coming Soon)" })
+                    }}
+                    class="size-8 p-0"
+                    style={buttons()}
+                    disabled={store.mode !== "normal"}
+                    tabIndex={store.mode === "normal" ? undefined : -1}
+                  />
                 </div>
               </div>
             </div>

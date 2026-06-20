@@ -1036,6 +1036,7 @@ export default function FullIde() {
             onCommandPalette={() => setCommandPaletteOpen(true)}
             remoteConnection={remoteConnection() ?? undefined}
             onRemoteClick={() => setRemoteModalOpen(true)}
+            activeSessionId={activeSessionId()}
           />
         </div>
 

@@ -37,7 +37,15 @@ export interface ImageAttachmentPart {
   dataUrl: string
 }
 
-export type ContentPart = TextPart | FileAttachmentPart | AgentPart | ImageAttachmentPart
+export interface AudioAttachmentPart {
+  type: "audio"
+  id: string
+  filename: string
+  mime: string
+  dataUrl: string
+}
+
+export type ContentPart = TextPart | FileAttachmentPart | AgentPart | ImageAttachmentPart | AudioAttachmentPart
 export type Prompt = ContentPart[]
 
 export type FileContextItem = {
@@ -72,6 +80,8 @@ function isPartEqual(partA: ContentPart, partB: ContentPart) {
       return partB.type === "agent" && partA.name === partB.name
     case "image":
       return partB.type === "image" && partA.id === partB.id
+    case "audio":
+      return partB.type === "audio" && partA.id === partB.id
   }
 }
 
@@ -91,6 +101,7 @@ function cloneSelection(selection?: FileSelection) {
 function clonePart(part: ContentPart): ContentPart {
   if (part.type === "text") return { ...part }
   if (part.type === "image") return { ...part }
+  if (part.type === "audio") return { ...part }
   if (part.type === "agent") return { ...part }
   return {
     ...part,

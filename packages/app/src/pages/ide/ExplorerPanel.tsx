@@ -19,7 +19,6 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
       <div class="flex items-center justify-between px-4 py-2 border-b border-border-base shrink-0 group/header">
         <span class="text-11-regular text-text-weak uppercase tracking-wider">Explorer</span>
         <div class="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
-          <IconButton icon="more-horizontal" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" />
         </div>
       </div>
       <div class="flex-1 flex flex-col overflow-hidden min-h-0">

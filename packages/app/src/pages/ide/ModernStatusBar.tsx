@@ -2,6 +2,7 @@ import { Show, createSignal } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import WorkspacePresets from "./WorkspacePresets"
+import { IdeContextUsage } from "@/components/ide-context-usage"
 
 export default function ModernStatusBar(props: {
   line: number
@@ -19,6 +20,7 @@ export default function ModernStatusBar(props: {
   warningsCount?: number
   syncStatus?: "synced" | "syncing" | "error"
   remoteConnection?: string
+  activeSessionId?: string | null
   onLanguageClick?: () => void
   onGitClick?: () => void
   onProblemsClick?: () => void
@@ -106,6 +108,9 @@ export default function ModernStatusBar(props: {
 
       {/* Right section */}
       <div class="flex items-center gap-0 h-full">
+        {/* Context Usage */}
+        <IdeContextUsage activeSessionId={props.activeSessionId ?? null} />
+
         {/* Terminal count */}
         <Show when={props.terminalCount && props.terminalCount > 0}>
           <button
