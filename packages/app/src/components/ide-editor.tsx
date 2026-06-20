@@ -1,4 +1,7 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js"
+import { render } from "solid-js/web"
+import { Icon } from "@opencode-ai/ui/icon"
+import { Button } from "@opencode-ai/ui/button"
 import * as monaco from "monaco-editor"
 
 self.MonacoEnvironment = {
@@ -233,9 +236,12 @@ export function IdeDiffEditor(props: {
   fontSize?: number
   tabSize?: number
   wordWrap?: "off" | "on" | "wordWrapColumn" | "bounded"
+  onAccept?: () => void
+  onReject?: () => void
 }) {
   let container: HTMLDivElement | undefined
   let diffEditor: monaco.editor.IStandaloneDiffEditor | undefined
+  let overlayContainer: HTMLDivElement | undefined
 
   onMount(() => {
     if (!container) return
@@ -275,6 +281,55 @@ export function IdeDiffEditor(props: {
     diffEditor.setModel({
       original: monaco.editor.createModel(props.original, lang),
       modified: monaco.editor.createModel(props.modified, lang),
+    })
+
+    let contentWidget: monaco.editor.IContentWidget | undefined
+
+    diffEditor.onDidUpdateDiff(() => {
+      const changes = diffEditor?.getLineChanges()
+      if (!changes || changes.length === 0) return
+
+      if (contentWidget) {
+        diffEditor?.getModifiedEditor().removeContentWidget(contentWidget)
+        contentWidget = undefined
+      }
+
+      if (props.onAccept || props.onReject) {
+        // Find the last change line
+        const maxLine = Math.max(...changes.map(c => c.modifiedEndLineNumber || c.modifiedStartLineNumber))
+        
+        const widgetNode = document.createElement("div")
+        widgetNode.className = "flex items-center z-50 overflow-hidden rounded-md shadow-lg border border-border-base bg-surface-raised-base p-1 gap-1"
+        
+        render(() => (
+          <>
+            {props.onAccept && (
+              <Button size="small" variant="primary" class="h-6 px-2 text-11-medium" onClick={props.onAccept}>
+                <span class="flex items-center gap-1">
+                  Accept <span class="opacity-70 text-[10px]">Alt+Enter</span>
+                </span>
+              </Button>
+            )}
+            {props.onReject && (
+              <Button size="small" variant="ghost" class="h-6 px-2 text-11-medium text-text-weak hover:text-text-base" onClick={props.onReject}>
+                <span class="flex items-center gap-1">
+                  Reject <span class="opacity-70 text-[10px]">Shift+Alt+⌫</span>
+                </span>
+              </Button>
+            )}
+          </>
+        ), widgetNode)
+
+        contentWidget = {
+          getId: () => "ai-inline-diff-widget",
+          getDomNode: () => widgetNode,
+          getPosition: () => ({
+            position: { lineNumber: maxLine, column: 1 },
+            preference: [monaco.editor.ContentWidgetPositionPreference.BELOW]
+          })
+        }
+        diffEditor?.getModifiedEditor().addContentWidget(contentWidget)
+      }
     })
   })
 

@@ -812,10 +812,15 @@ export default function FullIde() {
         {/* ── Activity Bar ── */}
         <ActivityBar
           activeTab={(leftPanel()?.id as ActivityBarTab) ?? "explorer"}
+          activeRightTab={rightPanel()?.id}
           sidebarOpen={!!leftPanel()}
+          rightPanelOpen={!!rightPanel()}
           bottomPanelOpen={!!bottomPanel()}
           bottomTab={activeBottomTab()}
-          onTabClick={(tab) => toggleLeftPanel(tab)}
+          onTabClick={(tab) => {
+            if (tab === "ai-chat") toggleRightPanel(tab)
+            else toggleLeftPanel(tab)
+          }}
           onBottomTabClick={(tab) => toggleBottomPanel(tab)}
           onOpenFolder={handleOpenFolder}
           onSettingsClick={toggleSettings}

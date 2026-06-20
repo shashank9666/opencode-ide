@@ -29,6 +29,7 @@ import {
   ImageAttachmentPart,
   AgentPart,
   FileAttachmentPart,
+  AudioAttachmentPart,
 } from "@/context/prompt"
 import { useLayout } from "@/context/layout"
 import { useSDK } from "@/context/sdk"
@@ -72,6 +73,7 @@ import { ImagePreview } from "@opencode-ai/ui/image-preview"
 import { pathKey } from "@/utils/path-key"
 import { displayName } from "@/pages/layout/helpers"
 import { AddContextMenu } from "./prompt-input/add-context-menu"
+import { VoiceRecorder } from "./prompt-input/voice-recorder"
 
 export type PromptInputState = ReturnType<typeof usePrompt>
 
@@ -1842,7 +1844,23 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       editorRef?.focus()
                     }}
                     onVoice={() => {
-                      showToast({ title: "Voice Mode", description: "Recording started... (Coming Soon)" })
+                      dialog.show(() => (
+                        <VoiceRecorder 
+                          onRecordingComplete={(blob) => {
+                            const reader = new FileReader()
+                            reader.onload = () => {
+                              prompt.set([...prompt.current(), {
+                                type: "audio",
+                                id: crypto.randomUUID(),
+                                filename: `recording_${new Date().toISOString().replace(/[:.]/g, "-")}.webm`,
+                                mime: blob.type,
+                                dataUrl: reader.result as string
+                              } as AudioAttachmentPart])
+                            }
+                            reader.readAsDataURL(blob)
+                          }} 
+                        />
+                      ))
                     }}
                     class="size-8 p-0"
                     style={buttons()}

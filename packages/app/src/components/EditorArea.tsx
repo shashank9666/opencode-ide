@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect, For, Match, Switch, Show } from "solid-js";
+import { createSignal, createMemo, createEffect, onCleanup, For, Match, Switch, Show } from "solid-js";
 import { Icon } from "@opencode-ai/ui/icon";
 import { IconButton } from "@opencode-ai/ui/icon-button";
 import { ContextMenu } from "@opencode-ai/ui/context-menu";
@@ -94,6 +94,29 @@ export function EditorArea(props: {
 
   // Sync auto-diff into the prop, but respect manual toggle override
   const effectiveDiffMode = () => props.diffMode || (autoDiffMode() && !props.previewDiff);
+
+  createEffect(() => {
+    if (!props.previewDiff) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.altKey) && e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onAcceptDiff?.();
+      } else if (e.ctrlKey && e.key === "Backspace") {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onRejectDiff?.();
+      } else if (e.altKey && e.shiftKey && e.key === "Backspace") {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onRejectDiff?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    onCleanup(() => window.removeEventListener("keydown", handleKeyDown, { capture: true }));
+  });
 
   return (
     <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative" onClick={() => props.workspace.setActiveGroupId(group().id)}>
@@ -259,29 +282,31 @@ export function EditorArea(props: {
                   modified={props.previewDiff?.modified ?? state().content}
                   class="flex-1 min-h-0"
                   fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
+                  onAccept={props.onAcceptDiff}
+                  onReject={props.onRejectDiff}
                 />
                 <Show when={props.previewDiff && (props.onAcceptDiff || props.onRejectDiff)}>
                   <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-raised-base border border-border-base shadow-lg backdrop-blur-sm">
-                    <div class="flex items-center gap-1.5 text-12-regular text-text-weak mr-2">
-                      <Icon name="warning" size="small" class="text-yellow-400" />
-                      <span>AI wants to edit <strong class="text-text-strong">{getFilename(props.previewDiff!.path)}</strong></span>
-                    </div>
-                    <Show when={props.onRejectDiff}>
-                      <Button variant="ghost" size="normal" onClick={props.onRejectDiff}>
-                        <span class="flex items-center gap-1.5">
-                          <Icon name="close" size="small" />
-                          Reject
-                        </span>
-                      </Button>
-                    </Show>
                     <Show when={props.onAcceptDiff}>
                       <Button variant="primary" size="normal" onClick={props.onAcceptDiff}>
                         <span class="flex items-center gap-1.5">
-                          <Icon name="check" size="small" />
-                          Accept Changes
+                          Accept Changes <span class="opacity-70 text-11-regular">Ctrl+Enter</span>
                         </span>
                       </Button>
                     </Show>
+                    <Show when={props.onRejectDiff}>
+                      <Button variant="ghost" size="normal" onClick={props.onRejectDiff}>
+                        <span class="flex items-center gap-1.5">
+                          Reject <span class="opacity-70 text-11-regular">Ctrl+⌫</span>
+                        </span>
+                      </Button>
+                    </Show>
+                    <div class="w-px h-4 bg-border-base mx-1" />
+                    <div class="flex items-center gap-1 text-text-weak text-12-regular">
+                      <Icon name="arrow-up" size="small" />
+                      <Icon name="chevron-down" size="small" />
+                      <span class="opacity-70">Alt+J</span>
+                    </div>
                   </div>
                 </Show>
               </>

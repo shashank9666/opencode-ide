@@ -7,7 +7,9 @@ export type BottomPanelTab = "terminal" | "problems" | "output" | "debug-console
 
 export default function ActivityBar(props: {
   activeTab: ActivityBarTab
+  activeRightTab?: string
   sidebarOpen: boolean
+  rightPanelOpen?: boolean
   bottomPanelOpen: boolean
   bottomTab: BottomPanelTab
   onTabClick: (tab: ActivityBarTab) => void
@@ -17,7 +19,10 @@ export default function ActivityBar(props: {
   onRemoteClick: () => void
   remoteConnection?: string
 }) {
-  const active = (tab: ActivityBarTab) => props.activeTab === tab && props.sidebarOpen
+  const active = (tab: ActivityBarTab) => {
+    if (tab === "ai-chat") return props.activeRightTab === "ai-chat" && props.rightPanelOpen
+    return props.activeTab === tab && props.sidebarOpen
+  }
   const activeBottom = (tab: BottomPanelTab) => props.bottomPanelOpen && props.bottomTab === tab
 
   return (
@@ -96,25 +101,7 @@ export default function ActivityBar(props: {
             }}
             onClick={() => props.onTabClick("ai-chat")}
             aria-label="AI Chat"
-          >
-            <Icon name="brain" size="large" />
-          </button>
-        </Tooltip>
 
-        <Tooltip value="Database Explorer" placement="right">
-          <button
-            type="button"
-            class="w-full h-12 flex items-center justify-center transition-colors relative"
-            classList={{
-              "text-text-strong before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-accent-base": active("database"),
-              "text-text-weak hover:text-text-strong": !active("database"),
-            }}
-            onClick={() => props.onTabClick("database")}
-            aria-label="Database"
-          >
-            <Icon name="server" size="large" />
-          </button>
-        </Tooltip>
 
         <Tooltip value="Remote Explorer" placement="right">
           <button
