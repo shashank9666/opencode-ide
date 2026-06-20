@@ -238,6 +238,7 @@ export function IdeDiffEditor(props: {
   wordWrap?: "off" | "on" | "wordWrapColumn" | "bounded"
   onAccept?: () => void
   onReject?: () => void
+  onChange?: (value: string) => void
 }) {
   let container: HTMLDivElement | undefined
   let diffEditor: monaco.editor.IStandaloneDiffEditor | undefined
@@ -255,7 +256,7 @@ export function IdeDiffEditor(props: {
       renderSideBySide: false,
       scrollBeyondLastLine: true,
       wordWrap: props.wordWrap ?? "off",
-      readOnly: true,
+      readOnly: false,
       lineNumbers: "on",
       renderLineHighlight: "all",
       cursorBlinking: "smooth",
@@ -264,7 +265,7 @@ export function IdeDiffEditor(props: {
       bracketPairColorization: { enabled: true },
       glyphMargin: true,
       folding: true,
-      guides: { indentation: true }, //: true,
+      guides: { indentation: true },
       matchBrackets: "always",
       renderWhitespace: "selection",
       renderControlCharacters: true,
@@ -281,6 +282,10 @@ export function IdeDiffEditor(props: {
     diffEditor.setModel({
       original: monaco.editor.createModel(props.original, lang),
       modified: monaco.editor.createModel(props.modified, lang),
+    })
+
+    diffEditor.getModifiedEditor().onDidChangeModelContent(() => {
+      props.onChange?.(diffEditor?.getModifiedEditor().getValue() ?? "")
     })
 
     let contentWidget: monaco.editor.IContentWidget | undefined

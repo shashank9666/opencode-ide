@@ -284,6 +284,7 @@ export function EditorArea(props: {
                   fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
                   onAccept={props.onAcceptDiff}
                   onReject={props.onRejectDiff}
+                  onChange={(v) => props.workspace.setContent(state().path, v, group().id)}
                 />
                 <Show when={props.previewDiff && (props.onAcceptDiff || props.onRejectDiff)}>
                   <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-raised-base border border-border-base shadow-lg backdrop-blur-sm">
