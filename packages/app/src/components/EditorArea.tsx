@@ -58,7 +58,7 @@ export function EditorArea(props: {
   createEffect(() => {
     for (const openFile of group().files) {
       if (openFile.dirty) continue; // Don't auto-reload if user has unsaved changes
-      
+
       const state = file.get(openFile.path);
       if (state && state.content && state.content.type === "text") {
         const diskContent = state.content.content;
@@ -197,6 +197,28 @@ export function EditorArea(props: {
                     </ContextMenu.Item>
                     <ContextMenu.Separator />
                     <ContextMenu.Item onSelect={() => {
+                      if (openFile.dirty) {
+                        props.workspace.setActiveFile(openFile.path, group().id);
+                        if (!props.diffMode) {
+                          props.onToggleDiff();
+                        }
+                      }
+                    }} disabled={!openFile.dirty}>
+                      <div class="flex items-center justify-between w-full">
+                        <ContextMenu.ItemLabel>Open Changes</ContextMenu.ItemLabel>
+                      </div>
+                    </ContextMenu.Item>
+                    <ContextMenu.Separator />
+                    <ContextMenu.Item onSelect={() => {
+                      // @ts-ignore
+                      window.opencode?.showItemInFolder(openFile.path);
+                    }}>
+                      <div class="flex items-center justify-between w-full">
+                        <ContextMenu.ItemLabel>Reveal in File Explorer</ContextMenu.ItemLabel>
+                        <span class="text-12-regular text-text-weak">Shift+Alt+R</span>
+                      </div>
+                    </ContextMenu.Item>
+                    <ContextMenu.Item onSelect={() => {
                       // Dispatch a custom event that FileTree could theoretically listen to, or just skip it
                       const event = new CustomEvent('reveal-in-explorer', { detail: { path: openFile.path } });
                       window.dispatchEvent(event);
@@ -227,9 +249,9 @@ export function EditorArea(props: {
             </>
           ))}
           <div class="flex-1" />
-            <Show when={hasDiff()}>
-              <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": effectiveDiffMode(), "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !effectiveDiffMode() }} onClick={props.onToggleDiff}>{effectiveDiffMode() ? "Exit Diff" : "Show Diff"}</button>
-            </Show>
+          <Show when={hasDiff()}>
+            <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": effectiveDiffMode(), "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !effectiveDiffMode() }} onClick={props.onToggleDiff}>{effectiveDiffMode() ? "Exit Diff" : "Show Diff"}</button>
+          </Show>
         </div>
       </Show>
 
@@ -278,7 +300,7 @@ export function EditorArea(props: {
               <>
                 <IdeDiffEditor
                   path={props.previewDiff?.path ?? state().path}
-                  original={props.previewDiff?.original ?? state().originalContent ?? ""}
+                  original={props.previewDiff?.original ?? state().originalContent ?? state().savedContent ?? ""}
                   modified={props.previewDiff?.modified ?? state().content}
                   class="flex-1 min-h-0"
                   fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
