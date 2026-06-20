@@ -24,6 +24,9 @@ export default defineConfig({
   esbuild: {
     jsx: "automatic",
   },
+  optimizeDeps: {
+    include: ["debug"],
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: true,

@@ -194,6 +194,9 @@ export default function FullIde() {
   const [theme, setTheme] = createSignal<"vs-dark" | "vs-light">("vs-dark")
   const [minimap, setMinimap] = createSignal(true)
   const [wordWrapCol, setWordWrapCol] = createSignal(80)
+  const [terminalSplit, setTerminalSplit] = createSignal<false | "horizontal" | "vertical">(false)
+  const [terminalSplitId, setTerminalSplitId] = createSignal<string | null>(null)
+  let terminalSplitCounter = 0
 
   const [keybindings, setKeybindings] = createSignal<{ id: string; key: string; command: string }[]>([
     { id: "save", key: "Ctrl+S", command: "workbench.action.files.save" },
@@ -203,6 +206,11 @@ export default function FullIde() {
     { id: "find", key: "Ctrl+F", command: "actions.find" },
     { id: "replace", key: "Ctrl+H", command: "editor.action.startFindReplaceAction" },
   ])
+
+  // ── Colorful icons toggle ──
+  createEffect(() => {
+    document.documentElement.dataset.colorfulIcons = settings.appearance.colorfulIcons() ? "true" : "false"
+  })
 
   // ── Panel visibility ──
   const leftPanel = () => panelManager.panels().find((p) => p.position === "left" && p.visible)
@@ -987,7 +995,15 @@ export default function FullIde() {
               }}
               onSplitTerminal={() => {
                 const activeId = terminal.active()
-                if (activeId) void terminal.clone(activeId)
+                if (!activeId) return
+                if (terminalSplit()) {
+                  setTerminalSplit(false)
+                  setTerminalSplitId(null)
+                  return
+                }
+                const id = `${activeId}-split-${++terminalSplitCounter}`
+                setTerminalSplitId(activeId)
+                setTerminalSplit("vertical")
               }}
               onKillTerminal={() => {
                 const activeId = terminal.active()
@@ -1001,25 +1017,48 @@ export default function FullIde() {
                 <Switch>
                   <Match when={tab === "terminal"}>
                     <div class="size-full relative flex">
-                      <div class="flex-1 min-w-0 relative">
-                        <For each={terminal.all()}>
-                          {(pty) => (
-                            <div class="absolute inset-0" style={{ display: terminal.active() === pty.id ? "block" : "none" }}>
-                              <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                      <Show when={terminalSplit() === "vertical" && terminalSplitId() && terminal.all().length >= 1} fallback={
+                        <div class="flex-1 min-w-0 relative">
+                          <For each={terminal.all()}>
+                            {(pty) => (
+                              <div class="absolute inset-0" style={{ display: terminal.active() === pty.id ? "block" : "none" }}>
+                                <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                              </div>
+                            )}
+                          </For>
+                          <Show when={terminal.all().length === 0}>
+                            <div class="size-full flex items-center justify-center text-text-weak text-13-regular">
+                              <div class="flex flex-col items-center gap-3">
+                                <Icon name="terminal" size="large" class="text-icon-weaker opacity-40" />
+                                <button class="flex items-center gap-2 px-4 py-2 rounded-md border border-border-base hover:bg-surface-raised-base-hover transition-colors text-13-regular" onClick={() => terminal.new()}>
+                                  <Icon name="plus" size="small" /> New Terminal
+                                </button>
+                              </div>
                             </div>
-                          )}
-                        </For>
-                        <Show when={terminal.all().length === 0}>
-                          <div class="size-full flex items-center justify-center text-text-weak text-13-regular">
-                            <div class="flex flex-col items-center gap-3">
-                              <Icon name="terminal" size="large" class="text-icon-weaker opacity-40" />
-                              <button class="flex items-center gap-2 px-4 py-2 rounded-md border border-border-base hover:bg-surface-raised-base-hover transition-colors text-13-regular" onClick={() => terminal.new()}>
-                                <Icon name="plus" size="small" /> New Terminal
-                              </button>
-                            </div>
+                          </Show>
+                        </div>
+                      }>
+                        <div class="flex-1 min-w-0 flex flex-row">
+                          <div class="flex-1 min-w-0 relative border-r border-border-base">
+                            <For each={terminal.all()}>
+                              {(pty) => (
+                                <div class="absolute inset-0" style={{ display: terminalSplitId() === pty.id ? "block" : "none" }}>
+                                  <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                                </div>
+                              )}
+                            </For>
                           </div>
-                        </Show>
-                      </div>
+                          <div class="flex-1 min-w-0 relative">
+                            <For each={terminal.all()}>
+                              {(pty) => (
+                                <div class="absolute inset-0" style={{ display: terminalSplitId() !== pty.id && terminal.active() === pty.id ? "block" : "none" }}>
+                                  <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                                </div>
+                              )}
+                            </For>
+                          </div>
+                        </div>
+                      </Show>
                       <div class="w-40 shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto">
                         <For each={terminal.all()}>
                           {(pty) => {
@@ -1031,7 +1070,10 @@ export default function FullIde() {
                                   "bg-background-base border-l-2 border-l-accent-base": terminal.active() === pty.id,
                                   "hover:bg-surface-raised-base-hover": terminal.active() !== pty.id,
                                 }}
-                                onClick={() => terminal.open(pty.id)}
+                                onClick={() => {
+                                  terminal.open(pty.id)
+                                  if (terminalSplit()) setTerminalSplitId(pty.id === terminalSplitId() ? terminal.all().find((t) => t.id !== pty.id)?.id ?? pty.id : pty.id)
+                                }}
                               >
                                 <span class="text-13-regular mr-2 shrink-0" style={{ "font-family": "monospace" }}>{shellInfo().icon}</span>
                                 <div class="flex-1 min-w-0">
@@ -1270,7 +1312,7 @@ export default function FullIde() {
               fontSize={fontSize()} setFontSize={setFontSize}
               tabSize={tabSize()} setTabSize={setTabSize}
               wordWrap={wordWrap()} setWordWrap={setWordWrap}
-              theme={theme()} setTheme={setTheme}
+              monacoTheme={theme()} setMonacoTheme={setTheme}
               minimap={minimap()} setMinimap={setMinimap}
               wordWrapCol={wordWrapCol()} setWordWrapCol={setWordWrapCol}
               onCloseKeybindings={() => { }}

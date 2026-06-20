@@ -2,10 +2,10 @@
 
 ## 1. UI & Theming
 - [x] 1. Colorful material icons (always-on color file icons in explorer; 37 themes available including material).
-- [ ] 2. Custom icons option, theme, etc., to allow users to customize anything.
+- [x] 2. Custom icons & theme: Theme tab now uses real app theme system (35 themes) with color scheme toggle (light/dark/system). Colorful file icons toggle (persisted, site-wide). Monaco editor theme selector (vs-dark/vs-light/hc-black).
 - [x] 3. Customize the command palette: pin/unpin commands via toggle button, pinned commands appear in a "Pinned" section at the top, state persisted in localStorage.
 - [x] 16. In view menu: removed extensions option. All menu panels (File, Edit, View, Go, Run, Terminal) properly working.
-- [x] 17. Sidebar (ActivityBar) overflow dropdown - buttons that exceed container height move into a `...` dropdown menu.
+- [x] 17. Sidebar (ActivityBar) overflow dropdown - buttons that exceed container height move into a `...` dropdown menu. Fixed: now measures outer container height (subtracting bottom section), not the self-sizing top section.
 - [x] 20. Central search bar in the header (VS Code style), triggered by search icon button in header right section.
 
 ## 2. Editor & Layout
@@ -30,7 +30,7 @@
 
 ## 5. Terminal & Debugging
 - [ ] 8. Run and debug: customizable `launch.json` file to run/debug projects, and support for debug URLs (like VS Code).
-- [x] 11. Fix split terminal (clone now appends instead of replacing; sidebar tab list).
+- [x] 11. Fix split terminal (clone now appends instead of replacing; sidebar tab list). Added vertical split mode: toggle split button renders two terminals side by side in the terminal panel.
 - [x] 14. Testing panel: dynamically configurable test search keywords, framework selector, test file discovery via SDK file search, scan/run buttons, config persistence in localStorage.
 
 ## 6. Built-in Extensions & Remote

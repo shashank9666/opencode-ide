@@ -1,7 +1,11 @@
-import { For, Show, createSignal } from "solid-js"
+import { For, Show, createSignal, createMemo } from "solid-js"
 import { Button } from "@opencode-ai/ui/button"
+import { useTheme } from "@opencode-ai/ui/theme/context"
+import { useSettings } from "@/context/settings"
 
 export type SettingsTab = "general" | "editor" | "theme" | "keybinds" | "config"
+
+const SCHEME_LABELS: Record<string, string> = { light: "Light", dark: "Dark", system: "System" }
 
 export default function SettingsPanel(props: {
   fontSize: number
@@ -10,8 +14,8 @@ export default function SettingsPanel(props: {
   setTabSize: (v: number) => void
   wordWrap: string
   setWordWrap: (v: string) => void
-  theme: string
-  setTheme: (v: string) => void
+  monacoTheme: string
+  setMonacoTheme: (v: string) => void
   minimap: boolean
   setMinimap: (v: boolean) => void
   wordWrapCol: number
@@ -19,7 +23,13 @@ export default function SettingsPanel(props: {
   onCloseKeybindings: () => void
   onOpenConfig?: () => void
 }) {
+  const theme = useTheme()
+  const settings = useSettings()
   const [tab, setTab] = createSignal<SettingsTab>("general")
+
+  const themeList = createMemo(() =>
+    Object.entries(theme.themes()).map(([id, t]) => ({ id, name: t.name }))
+  )
 
   return (
     <div class="flex-1 min-h-0 flex flex-col">
@@ -42,6 +52,10 @@ export default function SettingsPanel(props: {
       <div class="flex-1 overflow-y-auto p-4">
         <Show when={tab() === "general"}>
           <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="colorfulIcons" checked={settings.appearance.colorfulIcons()} onChange={(e) => settings.appearance.setColorfulIcons(e.currentTarget.checked)} class="accent-accent-base" />
+              <label for="colorfulIcons" class="text-13-regular text-text-strong">Colorful File Icons</label>
+            </div>
             <div class="flex flex-col gap-1.5">
               <label class="text-13-regular text-text-strong">Save files automatically</label>
               <input type="checkbox" checked class="accent-accent-base" />
@@ -99,16 +113,59 @@ export default function SettingsPanel(props: {
         </Show>
 
         <Show when={tab() === "theme"}>
-          <div class="flex flex-col gap-3">
-            <For each={["vs-dark", "vs-light", "hc-black"]}>{(t) => (
-              <button
-                class={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${props.theme === t ? "border-accent-base bg-surface-raised-base-hover" : "border-border-base hover:border-accent-base/50"}`}
-                onClick={() => props.setTheme(t)}
-              >
-                <div class={`w-8 h-8 rounded ${t === "vs-dark" ? "bg-[#1e1e1e]" : t === "vs-light" ? "bg-white" : "bg-black"}`} />
-                <span class="text-13-regular text-text-strong">{t === "vs-dark" ? "Dark" : t === "vs-light" ? "Light" : "High Contrast"}</span>
-              </button>
-            )}</For>
+          <div class="flex flex-col gap-4">
+            {/* Color scheme */}
+            <div>
+              <label class="text-12-medium text-text-weaker uppercase tracking-wider block mb-2">Color Scheme</label>
+              <div class="flex items-center gap-2">
+                {(["light", "dark", "system"] as const).map((s) => (
+                  <button
+                    class={`flex-1 px-3 py-1.5 rounded-lg border text-13-regular transition-colors ${theme.colorScheme() === s ? "border-accent-base bg-surface-raised-base-hover text-text-strong" : "border-border-base text-text-weak hover:text-text-strong hover:border-accent-base/50"}`}
+                    onClick={() => theme.setColorScheme(s)}
+                  >
+                    {SCHEME_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* App themes */}
+            <div>
+              <label class="text-12-medium text-text-weaker uppercase tracking-wider block mb-2">App Theme</label>
+              <div class="grid grid-cols-3 gap-2">
+                <For each={themeList()}>
+                  {(t) => (
+                    <button
+                      class={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border transition-colors ${theme.themeId() === t.id ? "border-accent-base bg-surface-raised-base-hover" : "border-border-base hover:border-accent-base/50"}`}
+                      onClick={() => theme.setTheme(t.id)}
+                    >
+                      <div class="w-full h-10 rounded bg-surface-base flex items-center justify-center overflow-hidden border border-border-base">
+                        <div class="flex gap-px w-full h-full">
+                          <div class="flex-1 bg-[var(--v2-background-bg-deep,var(--background-base))]" />
+                          <div class="flex-1 bg-[var(--v2-background-bg,var(--surface-base))]" />
+                        </div>
+                      </div>
+                      <span class="text-11-regular text-text-strong truncate w-full text-center">{t.name}</span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </div>
+
+            {/* Monaco editor theme */}
+            <div class="pt-2 border-t border-border-base">
+              <label class="text-12-medium text-text-weaker uppercase tracking-wider block mb-2">Editor Theme</label>
+              <div class="flex items-center gap-2">
+                {(["vs-dark", "vs-light", "hc-black"] as const).map((t) => (
+                  <button
+                    class={`flex-1 px-3 py-1.5 rounded-lg border text-13-regular transition-colors ${props.monacoTheme === t ? "border-accent-base bg-surface-raised-base-hover text-text-strong" : "border-border-base text-text-weak hover:text-text-strong hover:border-accent-base/50"}`}
+                    onClick={() => props.setMonacoTheme(t)}
+                  >
+                    {t === "vs-dark" ? "Dark" : t === "vs-light" ? "Light" : "High Contrast"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </Show>
 

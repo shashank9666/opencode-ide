@@ -337,6 +337,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         setTerminalFont(value: string) {
           setStore("appearance", "terminal", value.trim() ? value : "")
         },
+        colorfulIcons: withFallback(() => store.appearance?.colorfulIcons, defaultSettings.appearance.colorfulIcons),
+        setColorfulIcons(value: boolean) {
+          setStore("appearance", "colorfulIcons", value)
+        },
       },
       keybinds: {
         get: (action: string) => store.keybinds?.[action],

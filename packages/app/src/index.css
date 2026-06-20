@@ -203,6 +203,12 @@
     background: rgb(255, 200, 60);
   }
 
+  /* Colorful icons override */
+  [data-colorful-icons="true"] [data-slot="tabs-trigger"] {
+    .tab-fileicon-mono { display: none !important; }
+    .tab-fileicon-color { display: block !important; }
+  }
+
   /* Rainbow CSV */
   .rainbow-csv-col0 { color: #E06C75; }
   .rainbow-csv-col1 { color: #56B6C2; }

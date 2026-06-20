@@ -37,14 +37,17 @@ export default function ActivityBar(props: {
   }
   const activeBottom = (tab: BottomPanelTab) => props.bottomPanelOpen && props.bottomTab === tab
 
+  let outerRef!: HTMLDivElement
   let topContainerRef!: HTMLDivElement
   const [visibleCount, setVisibleCount] = createSignal(SIDEBAR_TABS.length)
 
-  createResizeObserver(() => topContainerRef, () => {
+  createResizeObserver(() => outerRef, () => {
     if (!topContainerRef) return
-    const containerHeight = topContainerRef.clientHeight
+    const containerHeight = outerRef.clientHeight
+    const bottomHeight = topContainerRef.nextElementSibling?.nextElementSibling?.clientHeight ?? 180
+    const availableHeight = containerHeight - bottomHeight - 8
     const buttonHeight = 48
-    const maxButtons = Math.floor(containerHeight / buttonHeight)
+    const maxButtons = Math.floor(availableHeight / buttonHeight)
     setVisibleCount(Math.max(1, Math.min(maxButtons, SIDEBAR_TABS.length)))
   })
 
@@ -52,7 +55,7 @@ export default function ActivityBar(props: {
   const overflowTabs = () => SIDEBAR_TABS.slice(visibleCount())
 
   return (
-    <div class="w-12 shrink-0 flex flex-col items-center py-0 border-r border-border-base bg-surface-base select-none [app-region:no-drag]">
+    <div class="w-12 shrink-0 flex flex-col items-center py-0 border-r border-border-base bg-surface-base select-none [app-region:no-drag] size-full" ref={outerRef}>
       {/* Top section - sidebar panels */}
       <div class="flex flex-col items-center w-full" ref={topContainerRef}>
         <For each={visibleTabs()}>
