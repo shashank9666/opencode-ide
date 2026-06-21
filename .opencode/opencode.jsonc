@@ -13,6 +13,18 @@
   // and inject via env at runtime (ANTHROPIC_API_KEY, OPENAI_API_KEY etc.)
   "provider": {},
 
+  // ─── Permissions: Delegate to IDE UI ───────────────────────
+  // By setting these to "ask", the backend will pause and let the 
+  // IDE's dynamic Auto-Approve settings decide whether to allow or block.
+  "permission": {
+    "*": "allow",
+    "read": "ask",
+    "edit": "ask",
+    "bash": "ask",
+    "browser": "ask",
+    "mcp": "ask"
+  },
+
 
   // ─── MCP servers ───────────────────────────────────────────
   "mcp": {

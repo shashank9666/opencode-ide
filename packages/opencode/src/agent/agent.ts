@@ -115,7 +115,7 @@ export const layer = Layer.effect(
         } satisfies Record<string, "allow" | "ask" | "deny">
 
         const defaults = Permission.fromConfig({
-          "*": "allow",
+          "*": "ask",
           doom_loop: "ask",
           external_directory: {
             "*": "ask",
@@ -126,7 +126,7 @@ export const layer = Layer.effect(
           plan_exit: "deny",
           // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
           read: {
-            "*": "allow",
+            "*": "ask",
             "*.env": "ask",
             "*.env.*": "ask",
             "*.env.example": "allow",

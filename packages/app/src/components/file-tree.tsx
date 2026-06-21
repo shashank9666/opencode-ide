@@ -198,9 +198,10 @@ export default function FileTree(props: {
   level?: number
   allowed?: readonly string[]
   modified?: readonly string[]
+  onFileClick?: (node: FileNode) => void
+  onContextMenu?: (e: MouseEvent, node: FileNode) => void
   kinds?: ReadonlyMap<string, Kind>
   draggable?: boolean
-  onFileClick?: (file: FileNode) => void
 
   _filter?: Filter
   _marks?: Set<string>
@@ -414,6 +415,7 @@ export default function FileTree(props: {
                       marks={marks()}
                       data-path={node.path}
                       data-type="directory"
+                      onContextMenu={(e: MouseEvent) => props.onContextMenu?.(e, node)}
                     >
                       <div class="size-4 flex items-center justify-center text-icon-weak shrink-0 transition-transform">
                         <Icon name={expanded() ? "chevron-down" : "chevron-right"} size="small" />
@@ -444,6 +446,7 @@ export default function FileTree(props: {
                         active={props.active}
                         draggable={props.draggable}
                         onFileClick={props.onFileClick}
+                        onContextMenu={props.onContextMenu}
                         _filter={filter()}
                         _marks={marks()}
                         _deeps={deeps()}
@@ -468,6 +471,7 @@ export default function FileTree(props: {
                   data-path={node.path}
                   data-type="file"
                   onClick={() => props.onFileClick?.(node)}
+                  onContextMenu={(e: MouseEvent) => props.onContextMenu?.(e, node)}
                 >
                   <div class="w-5 shrink-0" />
                   <Switch>
