@@ -178,7 +178,9 @@ export function createEditorWorkspace() {
   const splitGroup = (groupId: string, direction: SplitDirection) => {
     const splitNodeRec = (node: EditorNode): EditorNode => {
       if (node.type === "group" && node.group.id === groupId) {
-        const newGroup: EditorGroup = { id: `group-${nextGroupId++}`, files: [], activeFile: null };
+        const activeFileState = node.group.activeFile ? node.group.files.find(f => f.path === node.group.activeFile) : null;
+        const newGroupFiles = activeFileState ? [{ ...activeFileState }] : [];
+        const newGroup: EditorGroup = { id: `group-${nextGroupId++}`, files: newGroupFiles, activeFile: activeFileState ? activeFileState.path : null };
         return {
           type: "split",
           direction,

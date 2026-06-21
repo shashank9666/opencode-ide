@@ -71,6 +71,7 @@ export interface IdeActions {
   newTerminal?: () => void
   splitTerminal?: () => void
   runTask?: () => void
+  selectDefaultShell?: () => void
 }
 
 export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
@@ -86,12 +87,6 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
       { label: "Save", shortcut: "Ctrl+S", action: actions.save },
       { label: "Save As...", shortcut: "Ctrl+Shift+S", action: actions.saveAs },
       { label: "Save All", shortcut: "Ctrl+K S", action: actions.saveAll },
-      { separator: true },
-      { label: "Auto Save", submenu: [
-        { label: "Off", action: () => {} },
-        { label: "After Delay", action: () => {} },
-        { label: "On Focus Change", action: () => {} },
-      ]},
       { separator: true },
       { label: "Close Editor", shortcut: "Ctrl+F4", action: actions.closeEditor },
       { label: "Close Folder", action: actions.closeFolder },
@@ -124,41 +119,12 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
   const VIEW_MENU: MenuItem = {
     label: "View",
     submenu: [
-      { label: "Explorer", shortcut: "Ctrl+Shift+E", action: actions.toggleExplorer, submenu: [
-        { label: "Toggle Explorer", shortcut: "Ctrl+B", action: actions.toggleExplorer },
-        { label: "Show Hidden Files", action: () => {} },
-      ]},
-      { label: "Search", shortcut: "Ctrl+Shift+F", action: actions.toggleSearch, submenu: [
-        { label: "Toggle Search", action: actions.toggleSearch },
-        { label: "Replace in Files", shortcut: "Ctrl+H", action: actions.replace },
-      ]},
-      { label: "Source Control", shortcut: "Ctrl+Shift+G", action: actions.toggleSourceControl, submenu: [
-        { label: "Toggle Source Control", action: actions.toggleSourceControl },
-        { label: "Focus on Source Control", action: () => {} },
-      ]},
-      { label: "Run and Debug", shortcut: "Ctrl+Shift+D", action: actions.startDebugging },
-      { separator: true },
       { label: "Command Palette...", shortcut: "Ctrl+Shift+P", action: actions.commandPalette },
       { separator: true },
-      { label: "Appearance", submenu: [
-        { label: "Zoom In", shortcut: "Ctrl++", action: actions.zoomIn },
-        { label: "Zoom Out", shortcut: "Ctrl+-", action: actions.zoomOut },
-        { label: "Reset Zoom", shortcut: "Ctrl+0", action: actions.resetZoom },
-        { separator: true },
-        { label: "Toggle Full Screen", shortcut: "F11", action: actions.toggleFullScreen },
-        { label: "Toggle Zen Mode", shortcut: "Ctrl+K Z", action: actions.toggleZenMode },
-        { separator: true },
-        { label: "Toggle Panel", shortcut: "Ctrl+J", action: actions.togglePanel },
-        { label: "Toggle Secondary Side Bar", shortcut: "Ctrl+Alt+B", action: actions.toggleSecondarySideBar },
-        { label: "Toggle Status Bar", action: () => {} },
-      ]},
-      { separator: true },
-      { label: "Navigator", submenu: [
-        { label: "Quick Open", shortcut: "Ctrl+P", action: actions.goToFile },
-        { label: "Go to File...", shortcut: "Ctrl+P", action: actions.goToFile },
-        { label: "Go to Symbol...", shortcut: "Ctrl+Shift+O", action: actions.goToSymbolEditor },
-        { label: "Go to Line...", shortcut: "Ctrl+G", action: actions.goToLine },
-      ]},
+      { label: "Explorer", shortcut: "Ctrl+Shift+E", action: actions.toggleExplorer },
+      { label: "Search", shortcut: "Ctrl+Shift+F", action: actions.toggleSearch },
+      { label: "Source Control", shortcut: "Ctrl+Shift+G", action: actions.toggleSourceControl },
+      { label: "Run and Debug", shortcut: "Ctrl+Shift+D", action: actions.startDebugging },
     ],
   }
 
@@ -186,12 +152,7 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
       { label: "Run Without Debugging", shortcut: "Ctrl+F5", action: actions.runWithoutDebugging },
       { label: "Start Debugging", shortcut: "F5", action: actions.startDebugging },
       { separator: true },
-      { label: "Add Configuration...", action: () => {} },
-      { separator: true },
-      { label: "Run Task", submenu: [
-        { label: "Run Build Task", shortcut: "Ctrl+Shift+B", action: actions.runTask },
-        { label: "Run Test Task", action: () => {} },
-      ]},
+      { label: "Run Task", shortcut: "Ctrl+Shift+B", action: actions.runTask },
     ],
   }
 
@@ -202,10 +163,8 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
       { label: "Split Terminal", action: actions.splitTerminal },
       { separator: true },
       { label: "Run Task", shortcut: "Ctrl+Shift+B", action: actions.runTask },
-      { label: "Run Build Task...", action: () => {} },
-      { label: "Run Active File", action: () => {} },
       { separator: true },
-      { label: "Select Default Shell", action: () => {} },
+      { label: "Select Default Shell", action: actions.selectDefaultShell },
     ],
   }
 

@@ -421,7 +421,12 @@ if (dt) {
         {(state) => (
           <div class="flex-1 relative min-h-0 flex" classList={{ "flex-row": showPreview() && isMarkdownFile(), "flex-col": !(showPreview() && isMarkdownFile()) }}>
             <div class="flex-1 flex flex-col min-h-0">
-              <Show when={!props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
+              <Show when={/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path)}>
+                <div class="flex-1 flex items-center justify-center p-8 bg-surface-base overflow-auto">
+                  <img src={state().content} alt={getFilename(state().path)} class="max-w-full max-h-full object-contain drop-shadow-md" />
+                </div>
+              </Show>
+              <Show when={!/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path) && !props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
                 <>
                   <IdeEditor
                     path={state().path}
@@ -539,7 +544,7 @@ Completion:`;
                   />
                 </>
               </Show>
-              <Show when={!(!props.previewDiff && (!effectiveDiffMode() || !hasDiff()))}>
+              <Show when={!/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path) && !(!props.previewDiff && (!effectiveDiffMode() || !hasDiff()))}>
                 <>
                   <IdeDiffEditor
                     path={props.previewDiff?.path ?? state().path}
@@ -588,5 +593,21 @@ Completion:`;
   );
 }
 
-// Alias for backward compatibility - FullIde imports { EditorArea }
-export { EditorAreaGroup as EditorArea }
+export function EditorArea(props: any) {
+  return (
+    <Show when={props.node.type === "split"} fallback={<EditorAreaGroup {...props} />}>
+      <SplitPane
+        direction={props.node.type === "split" ? props.node.direction : "horizontal"}
+        sizes={props.node.type === "split" ? props.node.sizes : [100]}
+        onResize={() => {}}
+      >
+        <For each={props.node.type === "split" ? props.node.children : []}>
+          {(child) => (
+            <EditorArea {...props} node={child} />
+          )}
+        </For>
+      </SplitPane>
+    </Show>
+  );
+}
+

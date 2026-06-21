@@ -559,7 +559,8 @@ export default function FullIde() {
       if (content.type === "binary") {
         // Binary content is embedded as a data URL - check if it's an image
         if (!content.content) return
-        if (isImageDataUrl) {
+        const isImage = /\.(png|jpe?g|gif|svg|webp|ico)$/i.test(path)
+        if (isImage) {
           // Proceed to open in editor tab, EditorArea will render it as an image
         } else {
           showToast({ title: "Binary file", description: `${getFilename(path)} is a binary file and cannot be edited.` })
@@ -701,10 +702,11 @@ export default function FullIde() {
             const entries = (result as any).data ?? []
             const files: string[] = []
             for (const entry of entries) {
-              const fullPath = `${dirPath}/${entry.name}`
+              const fullPath = entry.path
               if (entry.type === "directory") {
                 const sub = await listAll(fullPath)
                 files.push(...sub)
+                files.push(fullPath)
               } else {
                 files.push(fullPath)
               }
@@ -1150,7 +1152,13 @@ export default function FullIde() {
                       }
                     } catch {
                       // File not found locally, open with placeholder content
-                      editor.openFile(path, `// Remote file: ${path}\n// Connect to load actual content\n`)
+                      let mockCode = `// Remote file: ${path}\n// Connect to load actual content\n`;
+                      if (path.endsWith(".py")) mockCode = "def main():\n    print('Hello from remote Python')\n\nif __name__ == '__main__':\n    main()";
+                      else if (path.endsWith(".go")) mockCode = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello from remote Go\")\n}";
+                      else if (path.endsWith(".ts") || path.endsWith(".js")) mockCode = "console.log('Hello from remote JS/TS');";
+                      else if (path.endsWith(".html")) mockCode = "<!DOCTYPE html>\n<html>\n<body>\n\t<h1>Remote HTML</h1>\n</body>\n</html>";
+                      editor.openFile(path, mockCode)
+                      setDiffMode(false)
                     }
                   })()
                 }}
@@ -1338,15 +1346,26 @@ export default function FullIde() {
                           direction="horizontal"
                         >
                           <div class="flex-1 min-w-0 min-h-0 relative">
-                            <For each={terminal.all()}>
-                              {(pty) => (
-                                <Show when={terminalSplitId() !== pty.id}>
-                                  <div class="absolute inset-0" style={{ display: terminal.active() === pty.id ? "block" : "none" }}>
-                                    <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
-                                  </div>
-                                </Show>
-                              )}
-                            </For>
+                            {(() => {
+                              const leftActiveId = () => {
+                                const active = terminal.active()
+                                if (active === terminalSplitId()) {
+                                  return terminal.all().find(t => t.id !== terminalSplitId())?.id
+                                }
+                                return active
+                              }
+                              return (
+                                <For each={terminal.all()}>
+                                  {(pty) => (
+                                    <Show when={terminalSplitId() !== pty.id}>
+                                      <div class="absolute inset-0" style={{ display: leftActiveId() === pty.id ? "block" : "none" }}>
+                                        <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                                      </div>
+                                    </Show>
+                                  )}
+                                </For>
+                              )
+                            })()}
                           </div>
                           <div class="flex-1 min-w-0 min-h-0 relative">
                             <For each={terminal.all()}>
@@ -1486,37 +1505,37 @@ export default function FullIde() {
       <Show when={contextMenu()}>
         <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px` }} onClick={(e) => e.stopPropagation()}>
           <Show when={!contextMenu()!.isDir}>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { handleFileClick({ path: contextMenu()!.path, type: "file" }); closeContextMenu() }}>Open</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void (async () => { await file.load(contextMenu()!.path); const state = file.get(contextMenu()!.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(contextMenu()!.path, state.content.content); setDiffMode(false); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; handleFileClick({ path: ctx.path, type: "file" }); closeContextMenu() }}>Open</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>
             <Show when={isPreviewablePath(contextMenu()!.path)}>
-              <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { openPreview(contextMenu()!.path); closeContextMenu() }}><Icon name="eye" class="size-4" /> Open Preview</button>
+              <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; openPreview(ctx.path); closeContextMenu() }}><Icon name="eye" class="size-4" /> Open Preview</button>
             </Show>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void navigator.clipboard.writeText(contextMenu()!.path); }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void navigator.clipboard.writeText(getFilename(contextMenu()!.path)); }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path); }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(getFilename(ctx.path)); }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void (async () => { const state = workspace.getFileState(contextMenu()!.path); if (state?.dirty && state.originalContent) { setDiffMode(true); } else { showToast({ title: "No Changes", description: "File has no uncommitted changes" }); } })() }}><Icon name="reset" class="size-4" /> Open Changes</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { const state = workspace.getFileState(ctx.path); if (state?.dirty && state.originalContent) { setDiffMode(true); } else { showToast({ title: "No Changes", description: "File has no uncommitted changes" }); } })() }}><Icon name="reset" class="size-4" /> Open Changes</button>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "File History view coming soon" }); }}>File History<span class="text-11-regular ml-6 opacity-70">Ctrl+G H</span></button>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Open Timeline view coming soon" }); }}>Open Timeline</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Open on Remote (Web) coming soon" }); }}><Icon name="server" class="size-4" /> Open on Remote (Web)</button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); startRename(contextMenu()!.path); }}><Icon name="edit-small-2" class="size-4" /> Rename...</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startRename(ctx.path); }}><Icon name="edit-small-2" class="size-4" /> Rename...</button>
             <div class="h-px bg-border-base my-1" />
           </Show>
           <Show when={contextMenu()!.isDir}>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void (async () => { await file.load(contextMenu()!.path); const state = file.get(contextMenu()!.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(contextMenu()!.path, state.content.content); setDiffMode(false); } })() }}>Open</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); startCreate("file", contextMenu()!.path); }}><Icon name="open-file" class="size-4" /> New File</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); startCreate("directory", contextMenu()!.path); }}><Icon name="folder" class="size-4" /> New Folder</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}>Open</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startCreate("file", ctx.path); }}><Icon name="open-file" class="size-4" /> New File</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startCreate("directory", ctx.path); }}><Icon name="folder" class="size-4" /> New Folder</button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void navigator.clipboard.writeText(contextMenu()!.path); }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void navigator.clipboard.writeText(getFilename(contextMenu()!.path)); }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path); }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(getFilename(ctx.path)); }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
             <div class="h-px bg-border-base my-1" />
           </Show>
           <Show when={!contextMenu()!.isDir}>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); promptDelete(contextMenu()!.path, contextMenu()!.isDir); }}><Icon name="trash" class="size-4" /> Delete</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete</button>
           </Show>
           <Show when={contextMenu()!.isDir}>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); promptDelete(contextMenu()!.path, contextMenu()!.isDir); }}><Icon name="trash" class="size-4" /> Delete Folder</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete Folder</button>
           </Show>
         </div>
         <div class="fixed inset-0 z-40" onClick={closeContextMenu} />
