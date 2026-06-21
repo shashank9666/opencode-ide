@@ -1,3 +1,5 @@
+import { readFileSync, existsSync } from "fs"
+import { join } from "path"
 import { sentryVitePlugin } from "@sentry/vite-plugin"
 import { defineConfig } from "vite"
 import desktopPlugin from "./vite"
@@ -58,10 +60,43 @@ export default debug;\n`,
   }
 }
 
+function extendCjsFixPlugin(): any {
+  const proxyId = "\0extend-proxy"
+  let extendCode: string | null = null
+  return {
+    name: "extend-cjs-fix",
+    enforce: "pre",
+    resolveId(id: string) {
+      if (id === "extend") return proxyId
+      return null
+    },
+    load(id: string) {
+      if (id === proxyId) {
+        if (!extendCode) {
+          const paths = [
+            join(process.cwd(), "node_modules", ".bun", "extend@3.0.2", "node_modules", "extend", "index.js"),
+            join(process.cwd(), "node_modules", "extend", "index.js"),
+          ]
+          for (const p of paths) {
+            if (existsSync(p)) {
+              extendCode = readFileSync(p, "utf-8")
+              break
+            }
+          }
+          if (!extendCode) throw new Error("Could not find extend module")
+          extendCode = extendCode.replace("module.exports = function extend", "function extend") + "\n\nexport default extend"
+        }
+        return { code: extendCode }
+      }
+      return null
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [desktopPlugin, sentry, debugCjsFixPlugin()] as any,
+  plugins: [desktopPlugin, sentry, debugCjsFixPlugin(), extendCjsFixPlugin()] as any,
   optimizeDeps: {
-    include: ["debug", "extend"],
+    include: ["debug"],
   },
   esbuild: {
     jsx: "automatic",
