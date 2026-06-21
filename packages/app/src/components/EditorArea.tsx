@@ -37,8 +37,10 @@ export function EditorAreaGroup(props: {
   onRejectDiff?: () => void;
   onCursorChange?: (line: number, column: number) => void;
 }) {
-  const emptyGroup = { id: "", activeFile: undefined as string | undefined, files: [] as OpenFile[] };
-const group = () => ((props.node as any)?.group) ?? emptyGroup;
+  const group = createMemo(() => {
+    const node = props.node as EditorGroup;
+    return { ...node, files: node.files || [] };
+  });
   const activeFile = () => group()?.activeFile;
   const isActiveGroup = () => props.activeGroupId === group().id;
 
@@ -429,7 +431,16 @@ if (dt) {
               <div class="flex-1 flex flex-col min-h-0">
                 <Show when={/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path)}>
                   <div class="flex-1 flex items-center justify-center p-8 bg-surface-base overflow-auto">
-                    <img src={state()?.content?.encoding === "base64" ? `data:${state()?.content?.mimeType || 'image/png'};base64,${state()?.content?.content}` : state()?.content?.content} alt={getFilename(state()?.path || '')} class="max-w-full max-h-full object-contain drop-shadow-md" />
+                    <img src={(() => {
+                      const c = file.get(state().path)?.content;
+                      if (!c) return "";
+                      if (c.type === "binary" && c.content) return `data:${(c as any).mimeType || 'image/png'};base64,${c.content}`;
+                      if (c.type === "text" && c.content) {
+                        const isSvg = state().path.toLowerCase().endsWith(".svg");
+                        if (isSvg) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(c.content)}`;
+                      }
+                      return "";
+                    })()} alt={getFilename(state().path)} class="max-w-full max-h-full object-contain drop-shadow-md" />
                   </div>
                 </Show>
                 <Show when={!/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path) && !props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
@@ -604,9 +615,13 @@ export function EditorArea(props: any) {
   return (
     <Show when={props.node.type === "split"} fallback={<EditorAreaGroup {...props} />}>
       <SplitPane
-        direction={props.node.type === "split" ? props.node.direction : "horizontal"}
-        sizes={props.node.type === "split" ? props.node.sizes : [100]}
-        onResize={() => {}}
+        direction={props.node.direction!}
+        initialSizes={props.node.sizes}
+        onResize={(sizes) => {
+          if (props.workspace.resizeGroup) {
+            props.workspace.resizeGroup(props.node.id, sizes);
+          }
+        }}
       >
         <For each={props.node.type === "split" ? props.node.children : []}>
           {(child) => (
