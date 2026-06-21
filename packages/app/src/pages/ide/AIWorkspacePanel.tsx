@@ -150,6 +150,17 @@ export default function AIWorkspacePanel(props: {
                   {props.recentSessions.find((s) => s.id === sid())?.title || "New session"}
                 </span>
               </div>
+              
+              <IconButton 
+                icon="plus" 
+                variant="ghost" 
+                size="small" 
+                class="size-5 rounded shrink-0" 
+                onClick={props.handleNewSession} 
+                title="New session" 
+                aria-label="New session" 
+              />
+
               <Show when={props.onCompact}>
                 <IconButton icon="collapse" variant="ghost" size="small" class="size-5 rounded shrink-0" onClick={props.onCompact} disabled={!props.canCompact} title="Compact Session" aria-label="Compact Session" />
               </Show>
