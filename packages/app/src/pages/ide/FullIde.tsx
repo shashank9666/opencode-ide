@@ -184,8 +184,12 @@ export default function FullIde() {
         title: "Connected",
         description: `Successfully connected to ${type} host: ${target}!`,
       })
+      // Auto-open the remote explorer panel to show the file browser
+      panelManager.panels().filter((p) => p.position === "left").forEach((p) => panelManager.hidePanel(p.id))
+      panelManager.showPanel("remote")
     }, 1500)
   }
+
 
   // ── Settings / keybinding state (mock) ──
   const [settingsOpen, setSettingsOpen] = createSignal(false)
@@ -595,11 +599,19 @@ export default function FullIde() {
     })()
   }
 
-  const handleSearchPanelResult = (result: { path: string; line: number }) => {
+  const handleSearchPanelResult = (result: { path: string; line: number; column?: number }) => {
     void (async () => {
       await file.load(result.path)
       const state = file.get(result.path)
-      if (state?.content && state.content.type === "text") editor.openFile(result.path, state.content.content)
+      if (state?.content && state.content.type === "text") {
+        editor.openFile(result.path, state.content.content)
+        // After a short delay so the editor mounts, jump to the target line+column
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("navigate-to-line", {
+            detail: { path: result.path, line: result.line, column: result.column ?? 1 }
+          }))
+        }, 80)
+      }
     })()
   }
 
@@ -873,8 +885,8 @@ export default function FullIde() {
     // File
     newFile: () => startCreate("file", dir()),
     newWindow: () => window.open(window.location.href, "_blank"),
-    openFile: () => pickDirectory({} as any),
-    openFolder: () => pickDirectory({} as any),
+    openFile: () => handleOpenFolder(),
+    openFolder: () => handleOpenFolder(),
     save: async () => {
       const activeFile = editor.activeFile()
       if (activeFile) {
@@ -995,7 +1007,7 @@ export default function FullIde() {
       <HeaderBar
         workspaceName={getFilename(dir()) || "Untitled"}
         activeFile={getFilename(editor.activeFile() ?? "") || ""}
-        onSearch={() => { }}
+        onSearch={() => toggleLeftPanel("search")}
         onCommandPalette={() => setCommandPaletteOpen(true)}
         onToggleLeftPanel={() => toggleLeftPanel("explorer")}
         onToggleRightPanel={() => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") }}
@@ -1055,7 +1067,12 @@ export default function FullIde() {
 
 
             <Show when={leftPanel()?.id === "remote"}>
-              <RemotePanel />
+              <RemotePanel
+                connection={remoteConnection()}
+                onFileClick={(path) => {
+                  showToast({ title: "Remote file", description: `Opening ${path} from remote` })
+                }}
+              />
             </Show>
 
             <Show when={leftPanel()?.id === "run-debug"}>

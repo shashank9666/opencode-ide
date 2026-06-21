@@ -149,15 +149,14 @@ export default function HeaderBar(props: {
       {/* ── Right: Status and Settings ── */}
       <div class="flex items-center h-full [app-region:no-drag] px-2 gap-2">
         <div class="flex items-center h-full">
-          <Tooltip value="Search Files" placement="bottom">
+          <Tooltip value="Search Files (Ctrl+Shift+F)" placement="bottom">
             <IconButton
               icon="magnifying-glass"
               variant="ghost"
               size="small"
               class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
               onClick={() => {
-                setSearchOpen(true)
-                setTimeout(() => searchInputRef?.focus(), 50)
+                props.onSearch()
               }}
             />
           </Tooltip>

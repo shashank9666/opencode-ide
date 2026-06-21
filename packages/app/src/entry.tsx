@@ -117,8 +117,67 @@ const clearAuthToken = () => {
   history.replaceState(null, "", location.pathname + (params.size ? `?${params}` : "") + location.hash)
 }
 
+const getOS = () => {
+  const ua = navigator.userAgent.toLowerCase()
+  if (ua.includes("mac")) return "macos" as const
+  if (ua.includes("win")) return "windows" as const
+  return "linux" as const
+}
+
+const isTauri = typeof window !== "undefined" && "__TAURI__" in window
+const isElectron = typeof window !== "undefined" && "api" in window
+const platformName = (isTauri || isElectron) ? "desktop" as const : "web" as const
+
+const openDirectoryPickerDialog = async (opts?: { title?: string; multiple?: boolean }) => {
+  if (isTauri) {
+    try {
+      const tauri = (window as any).__TAURI__
+      if (tauri?.dialog?.open) {
+        return await tauri.dialog.open({
+          directory: true,
+          multiple: opts?.multiple ?? false,
+          title: opts?.title,
+        })
+      }
+      if (tauri?.core?.invoke) {
+        return await tauri.core.invoke("plugin:dialog|open", {
+          directory: true,
+          multiple: opts?.multiple ?? false,
+          title: opts?.title,
+        })
+      }
+      if (tauri?.invoke) {
+        return await tauri.invoke("tauri", {
+          __tauriModule: "Dialog",
+          message: {
+            cmd: "openDialog",
+            options: {
+              directory: true,
+              multiple: opts?.multiple ?? false,
+              title: opts?.title,
+            }
+          }
+        })
+      }
+    } catch (e) {
+      console.error("Tauri native directory picker failed:", e)
+    }
+  }
+  if (isElectron) {
+    try {
+      const api = (window as any).api
+      if (api?.openDirectory) {
+        return await api.openDirectory(opts)
+      }
+    } catch (e) {
+      console.error("Electron native directory picker failed:", e)
+    }
+  }
+  return null
+}
+
 const platform: Platform = {
-  platform: "web",
+  platform: platformName,
   version: pkg.version,
   openLink,
   back,
@@ -130,7 +189,12 @@ const platform: Platform = {
     return stored ? ServerConnection.Key.make(stored) : null
   },
   setDefaultServer: writeDefaultServerUrl,
-}
+  ...(platformName === "desktop" ? {
+    os: getOS(),
+    openDirectoryPickerDialog,
+  } : {}),
+} as Platform
+
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({

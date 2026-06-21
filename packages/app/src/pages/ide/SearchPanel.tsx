@@ -1,19 +1,68 @@
-import { createSignal, For, Show } from "solid-js"
+import { createSignal, For, Show, createMemo } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+
+interface SubMatch {
+  match: { text: string }
+  start: number
+  end: number
+}
 
 interface SearchResultItem {
   path: { text: string }
   lines: { text: string }
   line_number: number
   absolute_offset: number
-  submatches: Array<{ match: { text: string }; start: number; end: number }>
+  submatches: SubMatch[]
+}
+
+function HighlightedLine(props: { text: string; submatches: SubMatch[] }) {
+  const line = props.text
+  const matches = props.submatches ?? []
+
+  if (matches.length === 0) {
+    return <span class="text-text-strong">{line.trim()}</span>
+  }
+
+  // Build segments
+  const segments: { text: string; highlight: boolean }[] = []
+  // Compute trim offset
+  const trimmed = line.trimStart()
+  const trimOffset = line.length - trimmed.length
+
+  let lastEnd = 0
+  for (const m of matches) {
+    const start = m.start - trimOffset
+    const end = m.end - trimOffset
+    if (start > lastEnd) {
+      segments.push({ text: trimmed.slice(lastEnd, start), highlight: false })
+    }
+    segments.push({ text: trimmed.slice(Math.max(0, start), Math.max(0, end)), highlight: true })
+    lastEnd = Math.max(0, end)
+  }
+  if (lastEnd < trimmed.length) {
+    segments.push({ text: trimmed.slice(lastEnd), highlight: false })
+  }
+
+  return (
+    <span class="text-text-strong font-mono truncate">
+      <For each={segments}>
+        {(seg) =>
+          seg.highlight ? (
+            <mark class="bg-[#f9c74f]/30 text-[#f9c74f] rounded-[2px] px-[1px]">{seg.text}</mark>
+          ) : (
+            <span>{seg.text}</span>
+          )
+        }
+      </For>
+    </span>
+  )
 }
 
 export default function SearchPanel(props: {
   onSearch: (pattern: string) => Promise<SearchResultItem[]>
-  onResultClick: (result: { path: string; line: number }) => void
+  onResultClick: (result: { path: string; line: number; column?: number }) => void
   onReplace?: (pattern: string, replacement: string) => Promise<void>
   onReplaceAll?: (pattern: string, replacement: string) => Promise<void>
 }) {
@@ -28,10 +77,11 @@ export default function SearchPanel(props: {
   const [includePattern, setIncludePattern] = createSignal("")
   const [excludePattern, setExcludePattern] = createSignal("")
   const [showFilters, setShowFilters] = createSignal(false)
-  const [collapsed, setCollapsed] = createSignal(false)
+  const [collapsedAll, setCollapsedAll] = createSignal(false)
+  const [collapsedFiles, setCollapsedFiles] = createSignal<Set<string>>(new Set())
   const [viewAsTree, setViewAsTree] = createSignal(false)
 
-  const groupedResults = () => {
+  const groupedResults = createMemo(() => {
     const groups = new Map<string, SearchResultItem[]>()
     for (const r of results()) {
       const existing = groups.get(r.path.text) ?? []
@@ -39,15 +89,37 @@ export default function SearchPanel(props: {
       groups.set(r.path.text, existing)
     }
     return [...groups.entries()]
-  }
+  })
 
   const totalMatches = () => results().length
   const totalFiles = () => groupedResults().length
+
+  const isFileCollapsed = (path: string) => {
+    if (collapsedAll()) return true
+    return collapsedFiles().has(path)
+  }
+
+  const toggleFileCollapse = (path: string) => {
+    setCollapsedFiles(prev => {
+      const next = new Set<string>(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  const toggleCollapseAll = () => {
+    const next = !collapsedAll()
+    setCollapsedAll(next)
+    if (!next) setCollapsedFiles(new Set<string>())
+  }
 
   const performSearch = async () => {
     const q = searchQuery()
     if (!q) return
     setSearching(true)
+    setCollapsedAll(false)
+    setCollapsedFiles(new Set())
     try {
       const result = await props.onSearch(q)
       setResults(result ?? [])
@@ -67,6 +139,8 @@ export default function SearchPanel(props: {
     setResults([])
   }
 
+  const getFilename = (path: string) => path.split("/").pop() ?? path
+
   return (
     <div class="size-full flex flex-col">
       {/* Header */}
@@ -84,13 +158,14 @@ export default function SearchPanel(props: {
                 aria-label="Refresh search results"
               />
             </Tooltip>
-            <Tooltip value="Collapse All" placement="bottom">
+            <Tooltip value={collapsedAll() ? "Expand All" : "Collapse All"} placement="bottom">
               <IconButton
                 icon="collapse"
                 variant="ghost"
                 size="small"
                 class="size-6 rounded-md"
-                onClick={() => setCollapsed(!collapsed())}
+                classList={{ "text-accent-base": collapsedAll() }}
+                onClick={toggleCollapseAll}
                 aria-label="Collapse All"
               />
             </Tooltip>
@@ -166,6 +241,22 @@ export default function SearchPanel(props: {
               onInput={(e) => setReplaceText(e.currentTarget.value)}
               onKeyDown={(e) => { if (e.key === "Enter") performSearch() }}
             />
+            <button
+              type="button"
+              class="px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors shrink-0"
+              onClick={() => props.onReplace?.(searchQuery(), replaceText())}
+              title="Replace"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              class="px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors shrink-0"
+              onClick={() => props.onReplaceAll?.(searchQuery(), replaceText())}
+              title="Replace All"
+            >
+              All
+            </button>
           </div>
         </Show>
 
@@ -199,6 +290,7 @@ export default function SearchPanel(props: {
               "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !caseSensitive(),
             }}
             onClick={() => setCaseSensitive(!caseSensitive())}
+            title="Case Sensitive"
           >
             Aa
           </button>
@@ -210,6 +302,7 @@ export default function SearchPanel(props: {
               "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !matchWholeWord(),
             }}
             onClick={() => setMatchWholeWord(!matchWholeWord())}
+            title="Match Whole Word"
           >
             ab
           </button>
@@ -221,6 +314,7 @@ export default function SearchPanel(props: {
               "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !useRegex(),
             }}
             onClick={() => setUseRegex(!useRegex())}
+            title="Use Regular Expression"
           >
             .*
           </button>
@@ -229,11 +323,15 @@ export default function SearchPanel(props: {
             class="text-11-medium px-1.5 py-0.5 rounded text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
             classList={{ "text-accent-base": showFilters() }}
             onClick={() => setShowFilters(!showFilters())}
+            title="Toggle Filters"
           >
             ...
           </button>
           <div class="flex-1" />
           <Show when={results().length > 0}>
+            <span class="text-11-regular text-text-weaker">
+              {totalMatches()} in {totalFiles()} file{totalFiles() !== 1 ? "s" : ""}
+            </span>
             <button
               type="button"
               class="text-11-medium px-1.5 py-0.5 rounded text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
@@ -253,42 +351,63 @@ export default function SearchPanel(props: {
           </div>
         </Show>
         <Show when={!searching() && results().length > 0}>
-          <div class="px-3 py-1.5 text-12-medium text-text-weak border-b border-border-base">
-            {totalMatches()} results in {totalFiles()} file{totalFiles() !== 1 ? "s" : ""}
-          </div>
           <For each={groupedResults()}>
             {([path, fileResults]) => (
-              <div class="py-1">
-                <div class="flex items-center gap-1 px-3 py-0.5 text-12-medium text-text-strong hover:bg-surface-raised-base-hover cursor-pointer transition-colors">
+              <div class="border-b border-border-base/30 last:border-0">
+                {/* File header row */}
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-1.5 px-2 py-1 text-12-medium text-text-strong hover:bg-surface-raised-base-hover cursor-pointer transition-colors group"
+                  onClick={() => toggleFileCollapse(path)}
+                >
+                  <Icon
+                    name={isFileCollapsed(path) ? "chevron-right" : "chevron-down"}
+                    size="small"
+                    class="text-icon-weaker shrink-0 transition-transform"
+                  />
                   <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
-                  <span class="truncate">{path}</span>
-                </div>
-                <For each={fileResults}>
-                  {(result) => (
-                    <button
-                      type="button"
-                      class="w-full flex items-start gap-2 px-6 py-0.5 text-12-regular hover:bg-surface-raised-base-hover cursor-pointer text-left transition-colors"
-                      onClick={() => props.onResultClick({ path: result.path.text, line: result.line_number })}
-                    >
-                      <span class="text-text-weaker shrink-0 w-8 text-right tabular-nums">{result.line_number}</span>
-                      <span class="text-text-strong truncate">{result.lines.text.trim()}</span>
-                    </button>
-                  )}
-                </For>
+                  <span class="truncate flex-1 text-left" title={path}>{getFilename(path)}</span>
+                  <span class="shrink-0 text-11-medium px-1.5 py-0.5 rounded-full bg-accent-base/15 text-accent-base tabular-nums">
+                    {fileResults.length}
+                  </span>
+                </button>
+                {/* Match rows */}
+                <Show when={!isFileCollapsed(path)}>
+                  <For each={fileResults}>
+                    {(result) => {
+                      const col = result.submatches?.[0]?.start ?? 0
+                      return (
+                        <button
+                          type="button"
+                          class="w-full flex items-start gap-2 px-4 py-0.5 text-12-regular hover:bg-surface-raised-base-hover cursor-pointer text-left transition-colors group"
+                          onClick={() => props.onResultClick({
+                            path: result.path.text,
+                            line: result.line_number,
+                            column: col + 1,
+                          })}
+                        >
+                          <span class="text-text-weaker shrink-0 w-8 text-right tabular-nums text-11-regular mt-0.5">{result.line_number}</span>
+                          <div class="flex-1 min-w-0 overflow-hidden">
+                            <HighlightedLine text={result.lines.text} submatches={result.submatches} />
+                          </div>
+                        </button>
+                      )
+                    }}
+                  </For>
+                </Show>
               </div>
             )}
           </For>
         </Show>
         <Show when={!searching() && searchQuery() && results().length === 0}>
           <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2">
-
             <Icon name="circle-x" size="large" class="text-icon-weaker opacity-40" />
             <span>No results found</span>
+            <span class="text-12-regular">for "{searchQuery()}"</span>
           </div>
         </Show>
         <Show when={!searching() && !searchQuery()}>
           <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2 px-4 text-center">
-
             <Icon name="magnifying-glass" size="large" class="text-icon-weaker opacity-40" />
             <span>Search across your project files</span>
             <span class="text-12-regular">Type a search term and press Enter</span>

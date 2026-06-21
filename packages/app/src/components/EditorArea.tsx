@@ -17,57 +17,7 @@ import { MarkdownPreviewPanel } from "./MarkdownPreviewPanel";
 
 let draggedTab: { path: string; sourceGroupId: string } | null = null
 
-export function EditorArea(props: {
-  node: EditorNode;
-  activeGroupId: string;
-  workspace: ReturnType<typeof import("./editor-workspace").createEditorWorkspace>;
-  onSaveFile: (path: string, groupId: string) => Promise<void>;
-  diffMode: boolean;
-  onToggleDiff: () => void;
-  fontSize: number;
-  tabSize: number;
-  wordWrap: "off" | "on" | "wordWrapColumn" | "bounded";
-  formatTrigger: number;
-  onInlineAIAction: (payload: any, groupId: string) => void;
-  previewDiff?: { path: string; modified: string; original?: string };
-  onAcceptDiff?: () => void;
-  onRejectDiff?: () => void;
-  onCursorChange?: (line: number, column: number) => void;
-}) {
-  const isSplit = () => props.node.type === "split"
 
-  return (
-    <Switch>
-      <Match when={isSplit() ? (props.node as Extract<EditorNode, { type: "split" }>) : null}>
-        {(splitNode) => (
-          <div class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden">
-            <div class="flex items-center justify-end px-2 py-0.5 border-b border-border-base bg-surface-base shrink-0 gap-1">
-              <span class="text-12-regular text-text-weak mr-auto">
-                Editor Groups ({splitNode().children.length})
-              </span>
-              <IconButton
-                icon="close"
-                variant="ghost"
-                size="small"
-                class="size-5 rounded"
-                title="Unsplit (Merge All Panels)"
-                onClick={() => props.workspace.mergeAllPanels()}
-              />
-            </div>
-            <SplitPane class="flex-1 min-h-0 min-w-0" direction={splitNode().direction} initialSizes={splitNode().sizes}>
-              <For each={splitNode().children}>
-                {(child) => <EditorArea {...props} node={child} />}
-              </For>
-            </SplitPane>
-          </div>
-        )}
-      </Match>
-      <Match when={props.node.type === "group"}>
-        <EditorAreaGroup {...props} />
-      </Match>
-    </Switch>
-  );
-}
 
 export function EditorAreaGroup(props: {
   node: EditorNode;
@@ -474,7 +424,19 @@ export function EditorAreaGroup(props: {
                         props.onCursorChange?.(line, col);
                       }
                     }}
-                    onEditorReady={(e) => setEditorInstance(e)}
+                    onEditorReady={(e) => {
+                      setEditorInstance(e)
+                      // Listen for navigate-to-line events dispatched from SearchPanel result clicks
+                      const handler = (ev: Event) => {
+                        const detail = (ev as CustomEvent<{ path: string; line: number; column: number }>).detail
+                        if (detail.path !== activeFile()) return
+                        e.revealLineInCenter(detail.line)
+                        e.setPosition({ lineNumber: detail.line, column: detail.column })
+                        e.focus()
+                      }
+                      window.addEventListener("navigate-to-line", handler)
+                      onCleanup(() => window.removeEventListener("navigate-to-line", handler))
+                    }}
                     formatTrigger={props.formatTrigger}
                     class="flex-1 min-h-0"
                     fontSize={props.fontSize} tabSize={props.tabSize} wordWrap={props.wordWrap}
