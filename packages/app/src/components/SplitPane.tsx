@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, JSX, children } from "solid-js";
+import { createSignal, createEffect, onCleanup, JSX, children, Index, Show } from "solid-js";
 
 export type SplitPaneProps = {
   direction: "horizontal" | "vertical";
@@ -91,7 +91,7 @@ export function SplitPane(props: SplitPaneProps) {
       class={`flex size-full overflow-hidden ${props.direction === "vertical" ? "flex-col" : "flex-row"} ${props.class ?? ""}`}
     >
       <Index each={getChildren()}>
-        {(child, index) => {
+        {(child: () => JSX.Element, index: number) => {
           const isLast = () => index === getChildren().length - 1;
           const size = () => sizes()[index] ?? (100 / getChildren().length);
           
