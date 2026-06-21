@@ -14,7 +14,7 @@ export const SettingsMcpV2: Component = () => {
   const sync = useSync()
   const [state, setState] = createStore({
     newName: "",
-    newJson: "{\n  \"type\": \"local\",\n  \"command\": [\"npx\", \"-y\", \"@modelcontextprotocol/server-postgres\", \"postgresql://localhost/mydb\"]\n}",
+    newJson: "{\n  \"type\": \"local\",\n  \"command\": [\n    \"npx\",\n    \"-y\",\n    \"@modelcontextprotocol/server-postgres\",\n    \"postgresql://localhost/mydb\"\n  ],\n  \"enabled\": true\n}",
     pending: false,
     error: "",
   })

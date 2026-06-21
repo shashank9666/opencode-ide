@@ -39,7 +39,9 @@ import { useTerminal } from "@/context/terminal"
 import { sessionPermissionRequest } from "@/pages/session/composer/session-request-tree"
 import { usePermission } from "@/context/permission"
 import { useSync } from "@/context/sync"
+import { useLocal } from "@/context/local"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { findLast } from "@opencode-ai/core/util/array"
 import { ImagePreview } from "@opencode-ai/ui/image-preview"
 import { MarkdownPreview, PdfPreview } from "@/components/previews"
 
@@ -131,6 +133,7 @@ export default function FullIde() {
   const terminal = useTerminal()
   const permission = usePermission()
   const sync = useSync()
+  const local = useLocal()
   const dialog = useDialog()
 
   // ── Layout state ──
@@ -624,6 +627,75 @@ export default function FullIde() {
   }
 
   // ── Session ops ──
+  const userMessages = createMemo(() => {
+    const id = activeSessionId()
+    if (!id) return []
+    return (sync().data.message[id] ?? []).filter((m: any) => m.role === "user")
+  })
+  
+  const sessionInfo = createMemo(() => {
+    const id = activeSessionId()
+    if (!id) return
+    return sync().session.get(id)
+  })
+
+  const visibleUserMessages = createMemo(() => {
+    const revert = sessionInfo()?.revert?.messageID
+    if (!revert) return userMessages()
+    return userMessages().filter((m: any) => m.id < revert)
+  })
+
+  const handleCompactSession = async () => {
+    const sessionID = activeSessionId()
+    if (!sessionID) return
+
+    const model = local.model.current()
+    if (!model) {
+      showToast({
+        title: language.t("toast.model.none.title") ?? "No model selected",
+        description: language.t("toast.model.none.description") ?? "Please select a model first.",
+      })
+      return
+    }
+
+    await sdk().client.session.summarize({
+      sessionID,
+      modelID: model.id,
+      providerID: model.provider.id,
+    })
+  }
+
+  const handleUndoSession = async () => {
+    const sessionID = activeSessionId()
+    if (!sessionID) return
+
+    if (sync().data.session_working(sessionID)) {
+      await sdk().client.session.abort({ sessionID }).catch(() => {})
+    }
+
+    const revert = sessionInfo()?.revert?.messageID
+    const message = findLast(userMessages(), (x: any) => !revert || x.id < revert)
+    if (!message) return
+
+    await sdk().client.session.revert({ sessionID, messageID: message.id })
+  }
+
+  const handleRedoSession = async () => {
+    const sessionID = activeSessionId()
+    if (!sessionID) return
+
+    const revertMessageID = sessionInfo()?.revert?.messageID
+    if (!revertMessageID) return
+
+    const next = userMessages().find((x: any) => x.id > revertMessageID)
+    if (!next) {
+      await sdk().client.session.unrevert({ sessionID })
+      return
+    }
+
+    await sdk().client.session.revert({ sessionID, messageID: next.id })
+  }
+
   const handleNewSession = async () => {
     try {
       const result = await sdk().client.session.create({ title: "New IDE Session", directory: dir() })
@@ -731,6 +803,9 @@ export default function FullIde() {
     { id: "view.terminal", title: "Toggle Terminal", description: "Show/hide terminal panel", category: "view", keybind: "Ctrl+`", icon: "terminal", onSelect: () => toggleBottomPanel("terminal-area") },
     { id: "view.problems", title: "Toggle Problems", description: "Show/hide problems panel", category: "view", keybind: "Ctrl+Shift+M", icon: "circle-x", onSelect: () => toggleBottomPanel("problems") },
     { id: "ai.newSession", title: "New AI Chat Session", description: "Start a new AI conversation", category: "ai", icon: "comment", onSelect: () => { void handleNewSession() } },
+    { id: "ai.compact", title: "AI: Compact Session", description: "Summarize session to save context", category: "ai", icon: "shrink", onSelect: () => { void handleCompactSession() } },
+    { id: "ai.undo", title: "AI: Checkpoint (Undo)", description: "Revert last AI action", category: "ai", icon: "undo", onSelect: () => { void handleUndoSession() } },
+    { id: "ai.redo", title: "AI: Checkpoint (Redo)", description: "Redo reverted AI action", category: "ai", icon: "redo", onSelect: () => { void handleRedoSession() } },
     { id: "ai.explain", title: "Explain Code", description: "Get AI explanation of selected code", category: "ai", icon: "brain", onSelect: () => { showToast({ title: "Coming soon", description: "AI code explain coming in a future update" }) } },
     { id: "terminal.new", title: "New Terminal", description: "Create a new terminal", category: "terminal", icon: "terminal", onSelect: () => { terminal.new(); panelManager.showPanel("terminal-area") } },
     { id: "git.pull", title: "Git: Pull", description: "Pull latest changes", category: "git", icon: "download", onSelect: () => { showToast({ title: "Git Pull", description: "Pull completed" }) } },
@@ -1148,6 +1223,12 @@ export default function FullIde() {
                 confirmDeleteSession={confirmDeleteSession}
                 setActiveSessionId={setActiveSessionId}
                 dir={dir()}
+                onUndo={handleUndoSession}
+                onRedo={handleRedoSession}
+                onCompact={handleCompactSession}
+                canUndo={!!activeSessionId() && visibleUserMessages().length > 0}
+                canRedo={!!activeSessionId() && !!sessionInfo()?.revert?.messageID}
+                canCompact={!!activeSessionId() && visibleUserMessages().length > 0}
               />
             </Show>
             <Show when={rightPanel()?.id !== "ai-chat"}>
