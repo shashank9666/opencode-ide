@@ -2,6 +2,7 @@ import { For, Show, createSignal, createMemo } from "solid-js"
 import { Button } from "@opencode-ai/ui/button"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 import { useSettings } from "@/context/settings"
+import { useServerSync } from "@/context/server-sync"
 
 export type SettingsTab = "general" | "editor" | "theme" | "keybinds" | "config"
 
@@ -25,6 +26,8 @@ export default function SettingsPanel(props: {
 }) {
   const theme = useTheme()
   const settings = useSettings()
+  const serverSync = useServerSync()
+  const config = createMemo(() => serverSync().data.config)
   const [tab, setTab] = createSignal<SettingsTab>("general")
 
   const themeList = createMemo(() =>
@@ -176,23 +179,91 @@ export default function SettingsPanel(props: {
         </Show>
 
         <Show when={tab() === "config"}>
-          <div class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col gap-5">
+            <div class="flex flex-col gap-1.5 border-b border-border-base pb-3">
               <h3 class="text-14-medium text-text-strong">Project Configuration</h3>
               <p class="text-12-regular text-text-weak">
                 Edit <code class="px-1 py-0.5 bg-surface-base rounded text-11-medium">opencode.jsonc</code> to configure your project settings, plugins, MCP servers, and more.
               </p>
             </div>
-            <Button
-              variant="primary"
-              size="normal"
-              onClick={() => props.onOpenConfig?.()}
-            >
-              Open opencode.jsonc
-            </Button>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-13-regular text-text-strong">Default Model</label>
+              <input 
+                type="text" 
+                class="px-3 py-1.5 bg-surface-base border border-border-base rounded-md text-13-regular text-text-strong w-full"
+                value={config().model ?? ""}
+                placeholder="e.g. claude-3-5-sonnet-20241022"
+                onChange={(e) => serverSync().updateConfig({ model: e.currentTarget.value || undefined })}
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-13-regular text-text-strong">Default Primary Agent</label>
+              <input 
+                type="text" 
+                class="px-3 py-1.5 bg-surface-base border border-border-base rounded-md text-13-regular text-text-strong w-full"
+                value={config().default_agent ?? ""}
+                placeholder="e.g. coder"
+                onChange={(e) => serverSync().updateConfig({ default_agent: e.currentTarget.value || undefined })}
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-13-regular text-text-strong">Terminal Shell</label>
+              <input 
+                type="text" 
+                class="px-3 py-1.5 bg-surface-base border border-border-base rounded-md text-13-regular text-text-strong w-full"
+                value={config().shell ?? ""}
+                placeholder="e.g. /bin/zsh"
+                onChange={(e) => serverSync().updateConfig({ shell: e.currentTarget.value || undefined })}
+              />
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-13-regular text-text-strong">Telemetry/Conversational Identity (Username)</label>
+              <input 
+                type="text" 
+                class="px-3 py-1.5 bg-surface-base border border-border-base rounded-md text-13-regular text-text-strong w-full"
+                value={config().username ?? ""}
+                onChange={(e) => serverSync().updateConfig({ username: e.currentTarget.value || undefined })}
+              />
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="snapshots" 
+                checked={config().snapshots ?? false} 
+                onChange={(e) => serverSync().updateConfig({ snapshots: e.currentTarget.checked })} 
+                class="accent-accent-base" 
+              />
+              <label for="snapshots" class="text-13-regular text-text-strong">Enable Snapshots (Undo/Revert)</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="autoupdate" 
+                checked={config().autoupdate === true} 
+                onChange={(e) => serverSync().updateConfig({ autoupdate: e.currentTarget.checked })} 
+                class="accent-accent-base" 
+              />
+              <label for="autoupdate" class="text-13-regular text-text-strong">Automatically Update OpenCode</label>
+            </div>
+
+            <div class="mt-4">
+              <Button
+                variant="secondary"
+                size="normal"
+                onClick={() => props.onOpenConfig?.()}
+              >
+                Open opencode.jsonc file directly
+              </Button>
+            </div>
+
             <div class="text-12-regular text-text-weak mt-2">
-              <p>You can also configure via the Settings dialog (File &rarr; Preferences &rarr; Settings).</p>
-              <p class="mt-1">See <a class="text-accent-base underline" href="https://opencode.ai/docs/config/" target="_blank" rel="noopener noreferrer">online documentation</a> for all available options.</p>
+              <p>See <a class="text-accent-base underline" href="https://opencode.ai/docs/config/" target="_blank" rel="noopener noreferrer">online documentation</a> for all available options.</p>
             </div>
           </div>
         </Show>

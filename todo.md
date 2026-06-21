@@ -12,7 +12,7 @@
 - [x] 15. Fix split window in code editor. Drag-and-drop tabs between split panes to move files across groups.
 - [x] 15. Layout controls in status bar (split right, split down, merge all, full-screen toggle).
 - [ ] 18. Code editor: support compact sessions, checkpoints.
-- [ ] 18. Settings panel: options to dynamically operate `opencode.jsonc`.
+- [x] 18. Settings panel: options to dynamically operate `opencode.jsonc`.
   - [x] Updated MCP server form placeholder to use new config schema (`"type":"local"` + `"command"` array).
 - [x] 19. Fix the line and column tracker in the bottom bar (currently not working).
 - [x] 19. Language support for popular languages (60+ languages including TypeScript, JavaScript, Python, C/C++, Go, Java, Rust, Swift, Kotlin, Ruby, PHP, Lua, Haskell, and more).
