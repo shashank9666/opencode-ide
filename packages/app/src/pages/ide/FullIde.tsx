@@ -357,7 +357,15 @@ export default function FullIde() {
     const req = sessionPermissionRequest(sync().data.session, sync().data.permission, sessionID, (item) => {
       return !permission.autoResponds(item, sdk().directory)
     })
-    if (req?.permission === "edit" || req?.permission === "replace_file_content" || req?.permission === "write") return req
+    if (
+      req?.permission === "edit" ||
+      req?.permission === "replace_file_content" ||
+      req?.permission === "multi_replace_file_content" ||
+      req?.permission === "write_to_file" ||
+      req?.permission === "write"
+    ) {
+      return req
+    }
     return undefined
   })
 
