@@ -1668,6 +1668,9 @@ export class Find extends HeyApiClient {
       directory?: string
       workspace?: string
       pattern: string
+      caseSensitive?: "true" | "false"
+      wordMatch?: "true" | "false"
+      useRegex?: "true" | "false"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1679,6 +1682,9 @@ export class Find extends HeyApiClient {
             { in: "query", key: "directory" },
             { in: "query", key: "workspace" },
             { in: "query", key: "pattern" },
+            { in: "query", key: "caseSensitive" },
+            { in: "query", key: "wordMatch" },
+            { in: "query", key: "useRegex" },
           ],
         },
       ],
