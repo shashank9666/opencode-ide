@@ -203,16 +203,19 @@ export function EditorAreaGroup(props: {
         const textData = e.dataTransfer?.getData("text/plain")
         if (textData && textData.startsWith("file:")) {
           const path = textData.substring("file:".length)
-          const state = file.get(path)
-          if (state && state.content && state.content.type === "text") {
-            props.workspace.openFile(path, state.content.content, group().id)
-          } else {
+          let state = file.get(path)
+          if (!state || !state.content) {
             try {
-              const content = await file.read(path)
-              props.workspace.openFile(path, content, group().id)
+              await file.load(path)
+              state = file.get(path)
             } catch (err) {
               console.error("Failed to read dropped file:", err)
+              return
             }
+          }
+          
+          if (state && state.content && state.content.type === "text") {
+            props.workspace.openFile(path, state.content.content, group().id)
           }
           return
         }
