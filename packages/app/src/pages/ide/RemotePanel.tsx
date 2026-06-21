@@ -189,6 +189,7 @@ function FileTreeNode(props: {
 export default function RemotePanel(props: {
   connection?: string | null
   onFileClick?: (path: string) => void
+  onDisconnect?: () => void
 }) {
   const [currentPath, setCurrentPath] = createSignal("/")
 
@@ -247,8 +248,8 @@ export default function RemotePanel(props: {
         {(info) => (
           <>
             {/* Connection badge */}
-            <div class="px-3 py-2 border-b border-border-base shrink-0">
-              <div class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-surface-raised-base border border-border-base/50">
+            <div class="px-3 py-2 border-b border-border-base shrink-0 flex items-center justify-between gap-2">
+              <div class="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md bg-surface-raised-base border border-border-base/50 min-w-0">
                 <span class={`text-14-medium font-mono shrink-0 ${typeColor(info().type)}`}>
                   {typeIcon(info().type)}
                 </span>
@@ -260,6 +261,16 @@ export default function RemotePanel(props: {
                   </div>
                 </div>
               </div>
+              <Show when={props.onDisconnect}>
+                <IconButton 
+                  icon="close" 
+                  variant="ghost" 
+                  size="small" 
+                  class="size-7 rounded hover:bg-surface-raised-base hover:text-text-danger-base transition-colors shrink-0" 
+                  title="Disconnect" 
+                  onClick={() => props.onDisconnect?.()}
+                />
+              </Show>
             </div>
 
             {/* Current path breadcrumb */}

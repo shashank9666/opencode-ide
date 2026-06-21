@@ -169,12 +169,12 @@ export default function FullIde() {
   const [showKeybindings, setShowKeybindings] = createSignal(false)
   const [remoteModalOpen, setRemoteModalOpen] = createSignal(false)
   const [remoteConnection, setRemoteConnection] = createSignal<string | null>(
-    () => {
+    (() => {
       try {
         const saved = localStorage.getItem('remoteConnection')
         return saved || null
       } catch { return null }
-    }
+    })()
   )
   // Persist remote connection across page refreshes
   createEffect(() => {
@@ -544,11 +544,6 @@ export default function FullIde() {
     closeContextMenu()
     try {
       const path = node.path
-      // If it's an image, open in preview dialog
-      if (isImagePath(path)) {
-        await openImagePreview(path)
-        return
-      }
       console.log("loading file", path)
       await file.load(path)
       const state = file.get(path)
@@ -564,13 +559,12 @@ export default function FullIde() {
       if (content.type === "binary") {
         // Binary content is embedded as a data URL - check if it's an image
         if (!content.content) return
-        const isImageDataUrl = content.content.startsWith("data:image/")
         if (isImageDataUrl) {
-          dialog.show(() => <ImagePreview src={content.content} alt={getFilename(path)} />)
+          // Proceed to open in editor tab, EditorArea will render it as an image
+        } else {
+          showToast({ title: "Binary file", description: `${getFilename(path)} is a binary file and cannot be edited.` })
           return
         }
-        showToast({ title: "Binary file", description: `${getFilename(path)} is a binary file and cannot be edited.` })
-        return
       }
       console.log("calling editor.openFile", path)
       editor.openFile(path, content.content ?? "")
@@ -1138,6 +1132,7 @@ export default function FullIde() {
             <Show when={leftPanel()?.id === "remote"}>
               <RemotePanel
                 connection={remoteConnection()}
+                onDisconnect={() => setRemoteConnection(null)}
                 onFileClick={(path) => {
                   // Try to open the remote file in the code editor
                   void (async () => {
@@ -1366,25 +1361,35 @@ export default function FullIde() {
                           </div>
                         </SplitPane>
                       </Show>
-                      <div class="w-40 shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto">
+                      <div class="w-48 shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto py-1">
                         <For each={terminal.all()}>
-                          {(pty) => {
+                          {(pty, index) => {
                             const shellInfo = () => getShellInfo(pty.title)
+                            const isSplit = terminalSplit() === "vertical" && terminalSplitId()
+                            // If split, we assume all terminals are in the split group for visual purposes in this basic implementation
+                            const isFirst = index() === 0
+                            const isLast = index() === terminal.all().length - 1
+
                             return (
                               <div
-                                class="group flex items-center px-2 py-1.5 cursor-pointer border-b border-border-base/50 transition-colors"
+                                class="group flex items-center px-2 py-0.5 cursor-pointer transition-colors"
                                 classList={{
-                                  "bg-background-base border-l-2 border-l-accent-base": terminal.active() === pty.id,
-                                  "hover:bg-surface-raised-base-hover": terminal.active() !== pty.id,
+                                  "bg-surface-raised-base text-text-strong": terminal.active() === pty.id,
+                                  "text-text-weak hover:bg-surface-raised-base-hover hover:text-text-strong": terminal.active() !== pty.id,
                                 }}
                                 onClick={() => {
                                   terminal.open(pty.id)
                                   if (terminalSplit()) setTerminalSplitId(pty.id === terminalSplitId() ? terminal.all().find((t) => t.id !== pty.id)?.id ?? pty.id : pty.id)
                                 }}
                               >
-                                <span class="text-13-regular mr-2 shrink-0" style={{ "font-family": "monospace" }}>{shellInfo().icon}</span>
+                                <Show when={isSplit}>
+                                  <div class="w-3 flex justify-center text-text-weaker shrink-0 font-mono text-14-regular mr-1 -mt-1">
+                                    {isFirst ? "┌" : (isLast ? "└" : "├")}
+                                  </div>
+                                </Show>
+                                <span class="text-12-regular mr-1.5 shrink-0 opacity-80" style={{ "font-family": "monospace" }}>{shellInfo().icon}</span>
                                 <div class="flex-1 min-w-0">
-                                  <div class="text-12-medium truncate" classList={{ "text-text-strong": terminal.active() === pty.id, "text-text-weak": terminal.active() !== pty.id }}>{shellInfo().label}</div>
+                                  <div class="text-13-regular truncate">{shellInfo().label}</div>
                                 </div>
                               </div>
                             )

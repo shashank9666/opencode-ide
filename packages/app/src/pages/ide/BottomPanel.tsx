@@ -1,4 +1,4 @@
-import { type JSX, For, Show } from "solid-js"
+import { type JSX, For, Show, createSignal, createMemo } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
@@ -133,10 +133,38 @@ export function ProblemsTab(props: {
   counts: { errors: number; warnings: number; info: number }
   filter: { errors: boolean; warnings: boolean; info: boolean }
   onFilterChange: (filter: { errors: boolean; warnings: boolean; info: boolean }) => void
-  onProblemClick?: (problem: { file: string; line: number }) => void
+  onProblemClick?: (problem: { file: string; line: number; column: number }) => void
 }) {
+  const [collapsedFiles, setCollapsedFiles] = createSignal<Set<string>>(new Set())
+
+  const toggleFile = (file: string) => {
+    const next = new Set(collapsedFiles())
+    if (next.has(file)) next.delete(file)
+    else next.add(file)
+    setCollapsedFiles(next)
+  }
+
+  const groupedProblems = createMemo(() => {
+    const groups: Record<string, typeof props.problems> = {}
+    let filtered = props.problems
+    
+    // Apply filters
+    filtered = filtered.filter(p => {
+      if (p.severity === "error" && !props.filter.errors) return false
+      if (p.severity === "warning" && !props.filter.warnings) return false
+      if (p.severity === "info" && !props.filter.info) return false
+      return true
+    })
+
+    for (const p of filtered) {
+      if (!groups[p.file]) groups[p.file] = []
+      groups[p.file].push(p)
+    }
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))
+  })
+
   return (
-    <div class="size-full flex flex-col">
+    <div class="size-full flex flex-col font-sans">
       {/* Filter bar */}
       <div class="flex items-center gap-2 px-3 py-1.5 border-b border-border-base bg-surface-base shrink-0">
         <button
@@ -175,14 +203,10 @@ export function ProblemsTab(props: {
           <span class="w-2 h-2 rounded-full bg-accent-base" />
           {props.counts.info} Info
         </button>
-        <div class="flex-1" />
-        <Show when={props.problems.length > 0}>
-          <span class="text-12-regular text-text-weaker">{props.problems.length} shown</span>
-        </Show>
       </div>
-      <div class="flex-1 overflow-auto p-2">
+      <div class="flex-1 overflow-auto p-0">
         <Show
-          when={props.problems.length > 0}
+          when={groupedProblems().length > 0}
           fallback={
             <div class="flex flex-col items-center justify-center h-full text-text-weak text-13-regular gap-2">
               <Icon name="circle-check" size="large" class="text-icon-weaker opacity-40" />
@@ -190,32 +214,79 @@ export function ProblemsTab(props: {
             </div>
           }
         >
-          <For each={props.problems}>
-            {(problem) => (
-              <button
-                type="button"
-                class="w-full flex items-start gap-2 px-2 py-1 text-13-regular hover:bg-surface-raised-base-hover rounded-md text-left transition-colors"
-                onClick={() => props.onProblemClick?.(problem)}
-              >
-                <Icon
-                  name={problem.severity === "error" ? "circle-x" : problem.severity === "warning" ? "warning" : "comment"}
-                  size="small"
-                  classList={{
-                    "text-text-danger-base shrink-0 mt-0.5": problem.severity === "error",
-                    "text-text-warning-base shrink-0 mt-0.5": problem.severity === "warning",
-                    "text-accent-base shrink-0 mt-0.5": problem.severity === "info",
-                  }}
-                />
-                <div class="flex-1 min-w-0">
-                  <span class="text-text-strong">{problem.message}</span>
-                  <div class="text-12-regular text-text-weaker truncate">
-                    {problem.file}:{problem.line}:{problem.column}
-                    {problem.code ? ` [${problem.code}]` : ""}
+          <div class="py-1">
+            <For each={groupedProblems()}>
+              {([file, problems]) => {
+                const isCollapsed = collapsedFiles().has(file)
+                const fileErrors = problems.filter(p => p.severity === "error").length
+                const fileWarnings = problems.filter(p => p.severity === "warning").length
+                return (
+                  <div>
+                    {/* File Header */}
+                    <div 
+                      class="flex items-center gap-1.5 px-2 py-1 text-13-regular hover:bg-surface-raised-base-hover cursor-pointer transition-colors"
+                      onClick={() => toggleFile(file)}
+                    >
+                      <Icon 
+                        name={isCollapsed ? "chevron-right" : "chevron-down"} 
+                        size="small" 
+                        class="text-icon-weak shrink-0" 
+                      />
+                      <Icon name="file" size="small" class="text-icon-weak shrink-0" />
+                      <div class="flex items-baseline gap-2 min-w-0 flex-1">
+                        <span class="text-text-strong font-medium truncate">{file.split('/').pop()}</span>
+                        <span class="text-text-weak text-12-regular truncate">{file.substring(0, file.lastIndexOf('/'))}</span>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0 pr-2">
+                        <Show when={fileErrors > 0}>
+                          <div class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-text-danger-base" />
+                            <span class="text-12-regular text-text-weak">{fileErrors}</span>
+                          </div>
+                        </Show>
+                        <Show when={fileWarnings > 0}>
+                          <div class="flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-text-warning-base" />
+                            <span class="text-12-regular text-text-weak">{fileWarnings}</span>
+                          </div>
+                        </Show>
+                      </div>
+                    </div>
+                    {/* File Problems */}
+                    <Show when={!isCollapsed}>
+                      <For each={problems}>
+                        {(problem) => (
+                          <div
+                            class="flex items-start gap-2 pl-8 pr-2 py-1 text-13-regular hover:bg-surface-raised-base-hover cursor-pointer transition-colors border-l border-transparent hover:border-accent-base"
+                            onClick={() => props.onProblemClick?.(problem)}
+                          >
+                            <Icon
+                              name={problem.severity === "error" ? "circle-x" : problem.severity === "warning" ? "warning" : "comment"}
+                              size="small"
+                              classList={{
+                                "text-text-danger-base shrink-0 mt-[3px]": problem.severity === "error",
+                                "text-text-warning-base shrink-0 mt-[3px]": problem.severity === "warning",
+                                "text-accent-base shrink-0 mt-[3px]": problem.severity === "info",
+                              }}
+                            />
+                            <div class="flex-1 min-w-0">
+                              <span class="text-text-strong mr-2">{problem.message}</span>
+                              <span class="text-text-weak whitespace-nowrap">
+                                <Show when={problem.code}>
+                                  <span class="mr-2">ts({problem.code})</span>
+                                </Show>
+                                <span>[Ln {problem.line}, Col {problem.column}]</span>
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    </Show>
                   </div>
-                </div>
-              </button>
-            )}
-          </For>
+                )
+              }}
+            </For>
+          </div>
         </Show>
       </div>
     </div>
