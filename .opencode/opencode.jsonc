@@ -13,17 +13,6 @@
   // and inject via env at runtime (ANTHROPIC_API_KEY, OPENAI_API_KEY etc.)
   "provider": {},
 
-  // ─── Permissions: safe defaults for public users ───────────
-  "permission": {
-    "read": "allow",      // reading files is safe
-    "glob": "allow",      // file discovery is safe
-    "grep": "allow",      // searching is safe
-    "edit": "ask",        // always ask before modifying files
-    "bash": "ask",        // always ask before running shell commands
-    "webfetch": "ask",    // ask before fetching external URLs
-    "websearch": "ask",   // ask before web searches
-    "lsp": "allow"        // code intelligence, no risk
-  },
 
   // ─── MCP servers ───────────────────────────────────────────
   "mcp": {

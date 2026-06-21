@@ -24,9 +24,10 @@ import { useSDK } from "@/context/sdk"
 import { showToast } from "@/utils/toast"
 import { useLanguage } from "@/context/language"
 import { useDirectoryPicker } from "@/components/directory-picker"
+import { useNavigate, useSearchParams, useParams } from "@solidjs/router"
+import { pushFileAction, undoFileAction, redoFileAction } from "@/utils/file-history"
 import { useGlobal } from "@/context/global"
 import { useServer } from "@/context/server"
-import { useNavigate, useParams } from "@solidjs/router"
 import * as monaco from "monaco-editor"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { decode64 } from "@/utils/base64"
@@ -671,6 +672,7 @@ export default function FullIde() {
     const newPath = parent ? `${parent}/${renameValue()}` : renameValue()
     try {
       await sdk().client.v2.fs.rename({ oldPath, newPath })
+      pushFileAction({ type: "rename", oldPath, newPath })
       if (editor.activeFile() === oldPath) editor.closeFile(oldPath)
     } catch (e) { showToast({ variant: "error", title: "Rename failed", description: String(e) }) }
     setRenaming(null)
@@ -685,11 +687,13 @@ export default function FullIde() {
     if (creating() === "file") {
       try {
         await sdk().client.v2.fs.write({ path: newPath, content: "" })
+        pushFileAction({ type: "create", path: newPath, isDir: false })
         editor.openFile(newPath, "")
       } catch (e) { showToast({ variant: "error", title: "Create failed", description: String(e) }) }
     } else {
       try {
         await sdk().client.v2.fs.write({ path: `${newPath}/.gitkeep`, content: "" })
+        pushFileAction({ type: "create", path: newPath, isDir: true })
       } catch (e) { showToast({ variant: "error", title: "Create failed", description: String(e) }) }
     }
     setCreating(null)
@@ -756,8 +760,16 @@ export default function FullIde() {
             .filter(f => f.path.startsWith(target.path + "/"))
             .forEach(f => workspace.closeFile(f.path, group.id))
         }
+        pushFileAction({ type: "delete", path: target.path, isDir: true })
       } else {
+        let contentToRestore = ""
+        try {
+          const fileData = await sdk().client.v2.fs.read({ path: target.path })
+          contentToRestore = (fileData as any).text || ""
+        } catch {}
+        
         await sdk().client.v2.fs.delete({ path: target.path })
+        pushFileAction({ type: "delete", path: target.path, isDir: false, content: contentToRestore })
         if (editor.activeFile() === target.path) editor.closeFile(target.path)
       }
       showToast({ variant: "success", title: "Deleted", description: `"${getFilename(target.path)}" was deleted` })
@@ -907,6 +919,9 @@ export default function FullIde() {
   // ── Keyboard shortcuts ──
   const handleKeyDown = async (e: KeyboardEvent) => {
     const isMod = e.ctrlKey || e.metaKey
+    const activeEl = document.activeElement
+    const isInput = activeEl?.tagName === "INPUT" || activeEl?.tagName === "TEXTAREA" || activeEl?.closest(".monaco-editor")
+
     if (isMod && e.key === "s") { e.preventDefault(); await saveFile() }
     if (isMod && e.shiftKey && e.key === "P") { e.preventDefault(); setCommandPaletteOpen(true) }
     if (isMod && !e.shiftKey && e.key === "p") { e.preventDefault(); setCommandPaletteOpen(true) }
@@ -919,6 +934,10 @@ export default function FullIde() {
     if (isMod && e.shiftKey && e.key === "D") { e.preventDefault(); toggleRightPanel("debug") }
     if (isMod && e.shiftKey && e.key === "T") { e.preventDefault(); toggleRightPanel("testing") }
     if (isMod && e.key === ",") { e.preventDefault(); toggleSettings() }
+    
+    if (isMod && !e.shiftKey && e.key === "z" && !isInput) { e.preventDefault(); void undoFileAction(sdk()) }
+    if (isMod && (e.key === "y" || (e.shiftKey && e.key === "Z")) && !isInput) { e.preventDefault(); void redoFileAction(sdk()) }
+
     if (e.key === "Escape" && commandPaletteOpen()) setCommandPaletteOpen(false)
   }
 
