@@ -37,9 +37,11 @@ export function EditorAreaGroup(props: {
   onRejectDiff?: () => void;
   onCursorChange?: (line: number, column: number) => void;
 }) {
+  const emptyGroup = { id: "", activeFile: undefined as string | undefined, files: [] as OpenFile[] };
   const group = createMemo(() => {
-    const node = props.node as EditorGroup;
-    return { ...node, files: node.files || [] };
+    const node = props.node as EditorNode;
+    const g = node.type === "group" ? node.group : emptyGroup;
+    return { ...g, files: g.files || [] };
   });
   const activeFile = () => group()?.activeFile;
   const isActiveGroup = () => props.activeGroupId === group().id;
