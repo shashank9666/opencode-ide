@@ -28,6 +28,7 @@ export default function BottomPanel(props: {
   onNewTerminal?: (profile?: string) => void
   onSplitTerminal?: () => void
   onKillTerminal?: () => void
+  isTerminalSplit?: boolean
   onMaximize?: () => void
   children: (tab: BottomPanelTab) => JSX.Element
 }) {
@@ -95,8 +96,8 @@ export default function BottomPanel(props: {
               </DropdownMenu.Portal>
             </DropdownMenu>
             <div class="w-px h-4 bg-border-base mx-0.5" />
-            <Tooltip value="Split Terminal" placement="top">
-              <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onSplitTerminal} />
+            <Tooltip value={props.isTerminalSplit ? "Unsplit Terminal" : "Split Terminal"} placement="top">
+              <IconButton icon={props.isTerminalSplit ? "sidebar-close" : "layout-right"} fallbackIcon="layout-sidebar" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onSplitTerminal} />
             </Tooltip>
             <Tooltip value="Kill Terminal" placement="top">
               <IconButton icon="trash" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onKillTerminal} />

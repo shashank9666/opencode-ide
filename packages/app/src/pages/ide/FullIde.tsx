@@ -15,6 +15,7 @@ import { createProblemTracker } from "@/components/problem-tracker"
 import { type InlineAIActionPayload } from "@/components/inline-ai-toolbar"
 import { createEditorWorkspace } from "@/components/editor-workspace"
 import { EditorArea } from "@/components/EditorArea"
+import { SplitPane } from "@/components/SplitPane"
 import { Terminal } from "@/components/terminal"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -1187,8 +1188,11 @@ export default function FullIde() {
                           </Show>
                         </div>
                       }>
-                        <div class="flex-1 min-w-0 flex flex-row">
-                          <div class="flex-1 min-w-0 relative border-r border-border-base">
+                        <SplitPane
+                          class="flex-1 min-w-0 min-h-0"
+                          direction="horizontal"
+                        >
+                          <div class="flex-1 min-w-0 min-h-0 relative">
                             <For each={terminal.all()}>
                               {(pty) => (
                                 <div class="absolute inset-0" style={{ display: terminalSplitId() === pty.id ? "block" : "none" }}>
@@ -1197,7 +1201,7 @@ export default function FullIde() {
                               )}
                             </For>
                           </div>
-                          <div class="flex-1 min-w-0 relative">
+                          <div class="flex-1 min-w-0 min-h-0 relative">
                             <For each={terminal.all()}>
                               {(pty) => (
                                 <div class="absolute inset-0" style={{ display: terminalSplitId() !== pty.id && terminal.active() === pty.id ? "block" : "none" }}>
@@ -1206,7 +1210,7 @@ export default function FullIde() {
                               )}
                             </For>
                           </div>
-                        </div>
+                        </SplitPane>
                       </Show>
                       <div class="w-40 shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto">
                         <For each={terminal.all()}>
@@ -1297,11 +1301,7 @@ export default function FullIde() {
                 confirmDeleteSession={confirmDeleteSession}
                 setActiveSessionId={setActiveSessionId}
                 dir={dir()}
-                onUndo={handleUndoSession}
-                onRedo={handleRedoSession}
                 onCompact={handleCompactSession}
-                canUndo={!!activeSessionId() && visibleUserMessages().length > 0}
-                canRedo={!!activeSessionId() && !!sessionInfo()?.revert?.messageID}
                 canCompact={!!activeSessionId() && visibleUserMessages().length > 0}
               />
             </Show>

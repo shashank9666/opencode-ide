@@ -96,7 +96,7 @@ export function SplitPane(props: SplitPaneProps) {
         
         return (
           <>
-            <div style={{ flex: `0 0 ${size}%`, "min-width": 0, "min-height": 0, overflow: "hidden" }}>
+            <div class="flex flex-col" style={{ flex: `0 0 ${size}%`, "min-width": 0, "min-height": 0, overflow: "hidden" }}>
               {child}
             </div>
             {!isLast && (

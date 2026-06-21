@@ -13,11 +13,7 @@ export default function AIWorkspacePanel(props: {
   confirmDeleteSession: (id: string, title: string) => void
   setActiveSessionId: (id: string | null) => void
   dir: string
-  onUndo?: () => void
-  onRedo?: () => void
   onCompact?: () => void
-  canUndo?: boolean
-  canRedo?: boolean
   canCompact?: boolean
 }) {
   const [hoveredSession, setHoveredSession] = createSignal<string | null>(null)
@@ -157,12 +153,7 @@ export default function AIWorkspacePanel(props: {
               <Show when={props.onCompact}>
                 <IconButton icon="collapse" variant="ghost" size="small" class="size-5 rounded shrink-0" onClick={props.onCompact} disabled={!props.canCompact} title="Compact Session" aria-label="Compact Session" />
               </Show>
-              <Show when={props.onUndo}>
-                <IconButton icon="arrow-undo-down" variant="ghost" size="small" class="size-5 rounded shrink-0" onClick={props.onUndo} disabled={!props.canUndo} title="Undo" aria-label="Undo" />
-              </Show>
-              <Show when={props.onRedo}>
-                <IconButton icon="reset" variant="ghost" size="small" class="size-5 rounded shrink-0" onClick={props.onRedo} disabled={!props.canRedo} title="Redo" aria-label="Redo" />
-              </Show>
+
               <Show when={props.onClose}>
                 <IconButton
                   icon="close"
