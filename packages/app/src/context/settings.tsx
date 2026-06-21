@@ -35,6 +35,7 @@ export interface Settings {
     showCustomAgents: boolean
     newLayoutDesigns?: boolean
     showDebugBar: boolean
+    inlineCodeSuggestions: boolean
   }
   appearance: {
     fontSize: number
@@ -126,6 +127,7 @@ const defaultSettings: Settings = {
     showSessionProgressBar: true,
     showCustomAgents: false,
     showDebugBar: false,
+    inlineCodeSuggestions: false,
   },
   appearance: {
     fontSize: 14,
@@ -312,6 +314,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setShowDebugBar(value: boolean) {
           setStore("general", "showDebugBar", value)
+        },
+        inlineCodeSuggestions: withFallback(
+          () => store.general?.inlineCodeSuggestions,
+          defaultSettings.general.inlineCodeSuggestions,
+        ),
+        setInlineCodeSuggestions(value: boolean) {
+          setStore("general", "inlineCodeSuggestions", value)
         },
       },
       visibility: {

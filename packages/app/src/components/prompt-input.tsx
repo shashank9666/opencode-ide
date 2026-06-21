@@ -1976,6 +1976,61 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         </TooltipKeybind>
                       </div>
                     </Show>
+
+                    {/* Chatbot Options & Plan Mode */}
+                    <div class="flex items-center gap-1 ml-2 border-l border-border-base pl-2" style={control()}>
+                      <Tooltip placement="top" gutter={4} value="Changes Overview">
+                        <IconButton
+                          icon="git-merge"
+                          variant="ghost"
+                          size="small"
+                          class="size-6 rounded"
+                          onClick={() => showToast({ title: "Changes Overview", description: "Coming soon" })}
+                          aria-label="Changes Overview"
+                        />
+                      </Tooltip>
+                      <Tooltip placement="top" gutter={4} value="Background Terminals">
+                        <IconButton
+                          icon="terminal"
+                          variant="ghost"
+                          size="small"
+                          class="size-6 rounded"
+                          onClick={() => showToast({ title: "Background Terminals", description: "Coming soon" })}
+                          aria-label="Background Terminals"
+                        />
+                      </Tooltip>
+                      <Tooltip placement="top" gutter={4} value="Artifacts">
+                        <IconButton
+                          icon="archive"
+                          variant="ghost"
+                          size="small"
+                          class="size-6 rounded"
+                          onClick={() => showToast({ title: "Artifacts", description: "Coming soon" })}
+                          aria-label="Artifacts"
+                        />
+                      </Tooltip>
+                      <Tooltip placement="top" gutter={4} value="Toggle Plan Mode">
+                        <IconButton
+                          icon="list-check"
+                          variant="ghost"
+                          size="small"
+                          class="size-6 rounded"
+                          onClick={() => showToast({ title: "Plan Mode", description: "Toggled plan mode" })}
+                          aria-label="Toggle Plan Mode"
+                        />
+                      </Tooltip>
+                      <Tooltip placement="top" gutter={4} value="Playwright Stream">
+                        <IconButton
+                          icon="browser"
+                          variant="ghost"
+                          size="small"
+                          class="size-6 rounded"
+                          onClick={() => window.dispatchEvent(new CustomEvent("open-playwright-preview"))}
+                          aria-label="Playwright Stream"
+                        />
+                      </Tooltip>
+                    </div>
+
                     <Show when={!providersLoading()}>
                       <Show when={store.mode !== "shell"}>
                         <div

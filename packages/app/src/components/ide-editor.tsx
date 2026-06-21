@@ -14,6 +14,36 @@ self.MonacoEnvironment = {
   },
 }
 
+monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+  jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+  allowNonTsExtensions: true,
+  moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+  module: monaco.languages.typescript.ModuleKind.ESNext,
+  noEmit: true,
+  esModuleInterop: true,
+  target: monaco.languages.typescript.ScriptTarget.Latest,
+})
+
+monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+  noSemanticValidation: true,
+  noSyntaxValidation: false,
+})
+
+monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+  jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+  allowNonTsExtensions: true,
+  moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+  module: monaco.languages.typescript.ModuleKind.ESNext,
+  noEmit: true,
+  esModuleInterop: true,
+  target: monaco.languages.typescript.ScriptTarget.Latest,
+})
+
+monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+  noSemanticValidation: true,
+  noSyntaxValidation: false,
+})
+
 const extToLanguage = new Map([
   [".ts", "typescript"], [".tsx", "typescript"], [".js", "javascript"], [".jsx", "javascript"],
   [".mjs", "javascript"], [".cjs", "javascript"], [".mts", "typescript"], [".cts", "typescript"],
@@ -183,8 +213,6 @@ export default function IdeEditor(props: {
   onMount(() => {
     if (!container) return
     editor = monaco.editor.create(container, {
-      value: props.content,
-      language: languageFromPath(props.path),
       theme: "vs-dark",
       automaticLayout: true,
       fontSize: props.fontSize ?? 13,
@@ -329,8 +357,16 @@ export default function IdeEditor(props: {
   createEffect(() => {
     if (!editor) return
     const lang = languageFromPath(props.path)
-    const model = editor.getModel()
-    if (model) monaco.editor.setModelLanguage(model, lang)
+    const uri = monaco.Uri.parse(`file:///${props.path.replace(/^[/\\]+/, '')}`)
+    let model = monaco.editor.getModel(uri)
+    if (!model) {
+      model = monaco.editor.createModel(props.content, lang, uri)
+    } else {
+      monaco.editor.setModelLanguage(model, lang)
+    }
+    if (editor.getModel() !== model) {
+      editor.setModel(model)
+    }
   })
 
   createEffect(() => {

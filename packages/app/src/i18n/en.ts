@@ -839,6 +839,8 @@ export const dict = {
   "settings.general.row.showCustomAgents.description": "Show the agent picker in the composer",
   "settings.general.row.showDebugBar.title": "Performance Debug Bar",
   "settings.general.row.showDebugBar.description": "Show the performance metrics debug bar",
+  "settings.general.row.inlineCodeSuggestions.title": "Inline Code Suggestions",
+  "settings.general.row.inlineCodeSuggestions.description": "Enable AI powered inline code suggestions in the editor",
   "settings.general.row.reasoningSummaries.title": "Show reasoning summaries",
   "settings.general.row.reasoningSummaries.description": "Display model reasoning summaries in the timeline",
   "settings.general.row.shellToolPartsExpanded.title": "Expand shell tool parts",

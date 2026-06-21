@@ -335,6 +335,15 @@ export default function FullIde() {
     }
   })
 
+  // Handle custom events
+  createEffect(() => {
+    const handleOpenPlaywright = () => {
+      workspace.openFile("browser://playwright", "", workspace.activeGroupId())
+    }
+    window.addEventListener("open-playwright-preview", handleOpenPlaywright)
+    onCleanup(() => window.removeEventListener("open-playwright-preview", handleOpenPlaywright))
+  })
+
   createEffect(() => {
     const currentDir = dir()
     if (!currentDir) return

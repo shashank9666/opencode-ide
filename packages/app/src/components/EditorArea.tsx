@@ -14,6 +14,7 @@ import { useSDK } from "@/context/sdk";
 
 import { Button } from "@opencode-ai/ui/button";
 import { MarkdownPreviewPanel } from "./MarkdownPreviewPanel";
+import { BrowserPreviewPanel } from "./BrowserPreviewPanel";
 
 let draggedTab: { path: string; sourceGroupId: string } | null = null
 
@@ -55,6 +56,7 @@ const group = () => ((props.node as any)?.group) ?? emptyGroup;
     const f = activeFile()
     return f ? f.toLowerCase().endsWith(".md") : false
   }
+  const isBrowserPreview = () => activeFile() === "browser://playwright";
 
   const file = useFile();
   const settings = useSettings();
@@ -411,7 +413,7 @@ if (dt) {
         </div>
       </Show>
 
-      <Show when={activeFileState()} fallback={
+      <Show when={activeFileState() || isBrowserPreview()} fallback={
         <div class="flex-1 flex flex-col items-center justify-center text-text-weak gap-3 select-none">
           <Icon name="open-file" size="large" class="text-icon-weaker opacity-30" style={{ "font-size": "48px" }} />
           <div class="text-14-regular">Open a file from the Explorer</div>
@@ -420,13 +422,17 @@ if (dt) {
       }>
         {(state) => (
           <div class="flex-1 relative min-h-0 flex" classList={{ "flex-row": showPreview() && isMarkdownFile(), "flex-col": !(showPreview() && isMarkdownFile()) }}>
-            <div class="flex-1 flex flex-col min-h-0">
-              <Show when={/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path)}>
-                <div class="flex-1 flex items-center justify-center p-8 bg-surface-base overflow-auto">
-                  <img src={state().content} alt={getFilename(state().path)} class="max-w-full max-h-full object-contain drop-shadow-md" />
-                </div>
-              </Show>
-              <Show when={!/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state().path) && !props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
+            <Show when={isBrowserPreview()}>
+              <BrowserPreviewPanel />
+            </Show>
+            <Show when={!isBrowserPreview() && state && state()}>
+              <div class="flex-1 flex flex-col min-h-0">
+                <Show when={/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state()?.path || '')}>
+                  <div class="flex-1 flex items-center justify-center p-8 bg-surface-base overflow-auto">
+                    <img src={state()?.content?.encoding === "base64" ? `data:${state()?.content?.mimeType || 'image/png'};base64,${state()?.content?.content}` : state()?.content?.content} alt={getFilename(state()?.path || '')} class="max-w-full max-h-full object-contain drop-shadow-md" />
+                  </div>
+                </Show>
+                <Show when={!/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(state()?.path || '') && !props.previewDiff && (!effectiveDiffMode() || !hasDiff())}>
                 <>
                   <IdeEditor
                     path={state().path}
@@ -584,7 +590,7 @@ Completion:`;
               </Show>
             </div>
             <Show when={showPreview() && isMarkdownFile()}>
-              <MarkdownPreviewPanel content={state().content} visible={true} />
+              <MarkdownPreviewPanel content={state()?.content ?? ""} visible={true} />
             </Show>
           </div>
         )}

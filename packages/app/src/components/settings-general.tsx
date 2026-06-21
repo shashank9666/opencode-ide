@@ -444,6 +444,18 @@ export const SettingsGeneral: Component = () => {
             />
           </div>
         </SettingsRow>
+
+        <SettingsRow
+          title={language.t("settings.general.row.inlineCodeSuggestions.title")}
+          description={language.t("settings.general.row.inlineCodeSuggestions.description")}
+        >
+          <div data-action="settings-inline-code-suggestions">
+            <Switch
+              checked={settings.general.inlineCodeSuggestions()}
+              onChange={(checked) => settings.general.setInlineCodeSuggestions(checked)}
+            />
+          </div>
+        </SettingsRow>
       </SettingsList>
     </div>
   )
