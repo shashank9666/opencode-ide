@@ -20,7 +20,7 @@
     "read": "ask",
     "edit": "ask",
     "bash": "ask",
-    "browser": "ask",
+    "browser": "allow",
     "mcp": "ask"
   },
 
