@@ -42,6 +42,25 @@ export class PatchError extends Schema.TaggedErrorClass<PatchError>()("Git.Patch
   cause: Schema.optional(Schema.Defect),
 }) {}
 
+export class BlameError extends Schema.TaggedErrorClass<BlameError>()("Git.BlameError", {
+  file: Schema.String,
+  message: Schema.String,
+  cause: Schema.optional(Schema.Defect),
+}) {}
+
+export interface BlameEntry {
+  readonly sha: string
+  readonly line: number
+  readonly originalLine: number
+  readonly numLines: number
+  readonly author: string
+  readonly email: string
+  readonly time: number
+  readonly tz: string
+  readonly summary: string
+  readonly content: string
+}
+
 export interface Interface {
   readonly find: (input: AbsolutePath) => Effect.Effect<Repo | undefined>
   readonly remote: (repo: Repo, name?: string) => Effect.Effect<string | undefined>
@@ -72,6 +91,7 @@ export interface Interface {
     force: boolean
   }) => Effect.Effect<void, WorktreeError>
   readonly worktreeList: (repo: Repo) => Effect.Effect<AbsolutePath[], WorktreeError>
+  readonly blame: (input: { directory: string; file: string }) => Effect.Effect<BlameEntry[], BlameError>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/GitV2") {}
@@ -375,6 +395,81 @@ export const layer = Layer.effect(
         .map((line) => AbsolutePath.make(resolvePath(repo.directory, line.slice("worktree ".length).trim())))
     })
 
+    const blame = Effect.fn("Git.blame")(function* (input: { directory: string; file: string }) {
+      const result = yield* execute(input.directory, proc)(["blame", "--porcelain", "--", input.file]).pipe(
+        Effect.mapError((cause) => new BlameError({ file: input.file, message: cause.message, cause })),
+      )
+      if (result.exitCode !== 0) {
+        return yield* new BlameError({
+          file: input.file,
+          message: result.stderr.trim() || result.text.trim() || "Failed to blame file",
+        })
+      }
+
+      const lines = result.text.split("\n")
+      const entries: BlameEntry[] = []
+      let i = 0
+
+      while (i < lines.length) {
+        const headerLine = lines[i]
+        const headerMatch = headerLine.match(/^([0-9a-f]{40})\s+(\d+)\s+(\d+)\s+(\d+)/)
+        if (!headerMatch) {
+          i++
+          continue
+        }
+
+        const sha = headerMatch[1]
+        const originalLine = parseInt(headerMatch[2], 10)
+        const finalLine = parseInt(headerMatch[3], 10)
+        const numLines = parseInt(headerMatch[4], 10)
+
+        let author = ""
+        let email = ""
+        let time = 0
+        let tz = ""
+        let summary = ""
+        let filename = ""
+        i++
+
+        // Parse metadata until we hit a blank line or another SHA header
+        while (i < lines.length) {
+          const current = lines[i]
+          if (current === "" || current.startsWith("not commited yet")) {
+            i++ // skip blank line
+            break
+          }
+          if (current.match(/^[0-9a-f]{40}\s+\d+/)) break // next entry
+
+          if (current.startsWith("author ")) author = current.slice(7)
+          else if (current.startsWith("author-mail ")) email = current.slice(12).replace(/[<>]/g, "")
+          else if (current.startsWith("author-time ")) time = parseInt(current.slice(12), 10)
+          else if (current.startsWith("author-tz ")) tz = current.slice(10)
+          else if (current.startsWith("summary ")) summary = current.slice(8)
+          else if (current.startsWith("filename ")) filename = current.slice(9)
+          i++
+        }
+
+        // Now lines[i] is the content line (or empty/end)
+        const content = i < lines.length ? lines[i] : ""
+        i++
+
+        entries.push({
+          sha,
+          line: finalLine,
+          originalLine,
+          numLines,
+          author,
+          email,
+          time,
+          tz,
+          summary,
+          content,
+        })
+      }
+
+      return entries
+    })
+
     return Service.of({
       find,
       remote,
@@ -396,6 +491,7 @@ export const layer = Layer.effect(
       worktreeCreate,
       worktreeRemove,
       worktreeList,
+      blame,
     })
   }),
 )

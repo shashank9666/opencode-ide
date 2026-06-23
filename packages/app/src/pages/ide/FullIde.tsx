@@ -1,5 +1,4 @@
 import {
-  batch,
   createEffect,
   createSignal,
   createMemo,
@@ -24,7 +23,7 @@ import { useSDK } from "@/context/sdk"
 import { showToast } from "@/utils/toast"
 import { useLanguage } from "@/context/language"
 import { useDirectoryPicker } from "@/components/directory-picker"
-import { useNavigate, useSearchParams, useParams } from "@solidjs/router"
+import { useNavigate, useParams } from "@solidjs/router"
 import { pushFileAction, undoFileAction, redoFileAction } from "@/utils/file-history"
 import { useGlobal } from "@/context/global"
 import { useServer } from "@/context/server"
@@ -65,6 +64,7 @@ import SettingsPanel from "./SettingsPanel"
 import KeybindingsPanel from "./KeybindingsPanel"
 import RemotePanel from "./RemotePanel"
 import DatabasePanel from "./DatabasePanel"
+import ExtensionsPanel from "./ExtensionsPanel"
 import RemoteConnectionModal from "./RemoteConnectionModal"
 import DefaultShellModal from "./DefaultShellModal"
 
@@ -226,6 +226,55 @@ export default function FullIde() {
   })
   const [terminalLoading, setTerminalLoading] = createSignal<string | null>(null)
   let terminalSplitCounter = 0
+
+  // ── Git status for explorer markers ──
+  const [gitStatusMap, setGitStatusMap] = createSignal<Map<string, "add" | "del" | "mix">>(new Map())
+  const [gitStatusSet, setGitStatusSet] = createSignal<Set<string>>(new Set())
+  const [vcsBranch, setVcsBranch] = createSignal<string>("")
+  const [vcsChangeCount, setVcsChangeCount] = createSignal(0)
+  createEffect(() => {
+    const sdkCtx = sdk()
+    if (!sdkCtx) return
+    let active = true
+    const fetch = async () => {
+      try {
+        const [infoRes, statusRes] = await Promise.all([
+          sdkCtx.client.v2.vcs.get().catch(() => ({ data: {} as any })),
+          sdkCtx.client.v2.vcs.status().catch(() => ({ data: [] })),
+        ])
+        if (!active) return
+        const branch = infoRes.data?.branch ?? ""
+        setVcsBranch(branch)
+        const data = statusRes.data ?? []
+        setVcsChangeCount(data.length)
+        const kinds = new Map<string, "add" | "del" | "mix">()
+        const paths = new Set<string>()
+        for (const f of data) {
+          paths.add(f.file)
+          // Determine kind from status
+          if (f.status === "added") kinds.set(f.file, "add")
+          else if (f.status === "deleted") kinds.set(f.file, "del")
+          else kinds.set(f.file, "mix") // modified
+          // Also add parent directories
+          const parts = f.file.split("/")
+          for (let i = 1; i < parts.length; i++) {
+            const dir = parts.slice(0, i).join("/")
+            if (!kinds.has(dir)) kinds.set(dir, kinds.get(f.file)!)
+            else kinds.set(dir, "mix")
+            paths.add(dir)
+          }
+        }
+        setGitStatusMap(kinds)
+        setGitStatusSet(paths)
+      } catch {
+        // VCS might not be available
+      }
+    }
+    fetch()
+    const timer = setInterval(fetch, 5000)
+    const cleanup = () => { active = false; clearInterval(timer) }
+    onCleanup(cleanup)
+  })
 
   const [keybindings, setKeybindings] = createSignal<{ id: string; key: string; command: string }[]>([
     { id: "save", key: "Ctrl+S", command: "workbench.action.files.save" },
@@ -1139,6 +1188,8 @@ export default function FullIde() {
                 onCreateFile={() => startCreate("file", "")}
                 onCreateFolder={() => startCreate("directory", "")}
                 onFileClick={handleFileClick}
+                kinds={gitStatusMap()}
+                marks={gitStatusSet()}
               />
             </Show>
 
@@ -1156,17 +1207,9 @@ export default function FullIde() {
 
             <Show when={leftPanel()?.id === "source-control"}>
               <SourceControlPanel
-                branch={"main"}
-                changes={0}
-                stagedFiles={[]}
-                unstagedFiles={[]}
+                sdk={sdk}
+                dir={dir}
                 onFileClick={(p) => handleFindResultClick({ path: p, line: 0 })}
-                onCommit={async (message) => {
-                  showToast({ title: "Commit", description: `Committing: ${message}` })
-                }}
-                onPull={() => showToast({ title: "Git Pull", description: "Pull completed" })}
-                onPush={() => showToast({ title: "Git Push", description: "Push completed" })}
-                onFetch={() => showToast({ title: "Git Fetch", description: "Fetch completed" })}
               />
             </Show>
 
@@ -1207,7 +1250,13 @@ export default function FullIde() {
             </Show>
 
             <Show when={leftPanel()?.id === "run-debug"}>
-              <DebugPanel onClose={() => panelManager.hidePanel("run-debug")} />
+              <DebugPanel
+                onOpenFile={(path) => handleFindResultClick({ path, line: 0 })}
+                onRunTerminal={(command, title) => {
+                  terminal.newShell({ command, title })
+                  panelManager.showPanel("terminal-area")
+                }}
+              />
             </Show>
 
             <Show when={leftPanel()?.id === "testing"}>
@@ -1215,10 +1264,7 @@ export default function FullIde() {
             </Show>
 
             <Show when={leftPanel()?.id === "extensions"}>
-              <div class="size-full flex flex-col items-center justify-center py-6 text-13-regular text-text-weaker bg-surface-base">
-                <span class="text-12-medium text-text-weaker uppercase tracking-wider mb-4">Extensions</span>
-                <span>Coming soon</span>
-              </div>
+              <ExtensionsPanel />
             </Show>
 
             <Show when={leftPanel()?.id === "database"}>
@@ -1484,9 +1530,11 @@ export default function FullIde() {
           <ModernStatusBar
             line={editorLine()} column={editorColumn()} language={activeFileLanguage()}
             encoding="UTF-8" lineEnding="LF" dirty={editor.dirty()}
-            gitBranch="main"
+            gitBranch={vcsBranch() || undefined}
+            gitChanges={vcsChangeCount()}
             terminalCount={terminal.all().length} syncStatus="synced"
             onCommandPalette={() => setCommandPaletteOpen(true)}
+            onGitClick={() => toggleLeftPanel("source-control")}
             remoteConnection={remoteConnection() ?? undefined}
             onRemoteClick={() => setRemoteModalOpen(true)}
             activeSessionId={activeSessionId()}

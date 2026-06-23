@@ -25,6 +25,7 @@ import { IntegrationHandler } from "./handlers/integration"
 import { CredentialHandler } from "./handlers/credential"
 import { Credential } from "@opencode-ai/core/credential"
 import { ProjectCopyHandler } from "./handlers/project-copy"
+import { GitHandler } from "./handlers/git"
 
 export const handlers = Layer.mergeAll(
   HealthHandler,
@@ -45,6 +46,7 @@ export const handlers = Layer.mergeAll(
   QuestionHandler,
   ReferenceHandler,
   ProjectCopyHandler,
+  GitHandler,
 ).pipe(
   Layer.provide(sessionLocationLayer),
   Layer.provide(locationLayer),

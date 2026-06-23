@@ -10,6 +10,8 @@ export interface ExplorerPanelProps {
   onCreateFolder: () => void
   onFileClick: (node: { path: string; type: string }) => void
   onFileContextMenu?: (e: MouseEvent, node: { path: string; type: string }) => void
+  kinds?: Map<string, "add" | "del" | "mix">
+  marks?: Set<string>
 }
 
 export default function ExplorerPanel(props: ExplorerPanelProps) {
@@ -36,7 +38,14 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
               <IconButton icon="collapse" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); file.tree.collapseAll() }} aria-label="Collapse All" />
             </div>
           </div>
-          <FileTree path="" active={props.activeFile} onFileClick={props.onFileClick} onContextMenu={props.onFileContextMenu} />
+          <FileTree
+            path=""
+            active={props.activeFile}
+            onFileClick={props.onFileClick}
+            onContextMenu={props.onFileContextMenu}
+            kinds={props.kinds}
+            marks={props.marks}
+          />
         </div>
       </div>
     </>
