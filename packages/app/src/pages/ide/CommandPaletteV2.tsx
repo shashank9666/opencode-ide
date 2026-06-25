@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 
-type CommandCategory = "files" | "editor" | "view" | "ai" | "git" | "terminal" | "settings" | "workspace"
+type CommandCategory = "files" | "editor" | "view" | "ai" | "git" | "terminal" | "settings" | "workspace" | "recent"
 
 interface PaletteAction {
   id: string
@@ -22,6 +22,7 @@ const CATEGORY_LABELS: Record<CommandCategory, string> = {
   terminal: "Terminal",
   settings: "Settings",
   workspace: "Workspace",
+  recent: "Recently Used",
 }
 
 const CATEGORY_ICONS: Record<CommandCategory, string> = {
@@ -33,6 +34,20 @@ const CATEGORY_ICONS: Record<CommandCategory, string> = {
   terminal: "terminal",
   settings: "settings-gear",
   workspace: "layout-left",
+  recent: "clock",
+}
+
+// Recent commands persistence
+const RECENT_KEY = "opencode-palette-recent"
+function loadRecent(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+function saveRecent(ids: string[]) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(ids.slice(0, 20)))
 }
 
 export default function CommandPaletteV2(props: {
@@ -42,6 +57,7 @@ export default function CommandPaletteV2(props: {
   onSearch?: (query: string) => void
   onFileSearch?: (query: string) => Promise<string[]>
   onFileSelect?: (path: string) => void
+  onGoToLine?: (line: number) => void
 }) {
   const [query, setQuery] = createSignal("")
   const [selectedIndex, setSelectedIndex] = createSignal(0)
@@ -49,6 +65,8 @@ export default function CommandPaletteV2(props: {
   const [fileResults, setFileResults] = createSignal<string[]>([])
   const [searching, setSearching] = createSignal(false)
   const [pinned, setPinned] = createSignal<Set<string>>(new Set())
+  const [recentIds, setRecentIds] = createSignal<string[]>(loadRecent())
+  const [showRecent, setShowRecent] = createSignal(false)
   let inputRef: HTMLInputElement | undefined
   let listRef: HTMLDivElement | undefined
   let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -59,6 +77,15 @@ export default function CommandPaletteV2(props: {
       if (raw) setPinned(new Set(JSON.parse(raw) as string[]))
     } catch {}
   })
+
+  // Track recently used commands
+  const trackRecent = (id: string) => {
+    setRecentIds(prev => {
+      const next = [id, ...prev.filter(x => x !== id)].slice(0, 20)
+      saveRecent(next)
+      return next
+    })
+  }
 
   const togglePin = (id: string) => {
     setPinned((prev) => {
@@ -73,22 +100,64 @@ export default function CommandPaletteV2(props: {
   const filtered = createMemo(() => {
     if (mode() === "files") return []
     const q = query().toLowerCase().trim()
-    const cmds = !q ? props.commands : props.commands.filter((cmd) => {
+
+    // Detect line number mode: ":42", "#42", or just "42"
+    const lineMatch = query().trim().match(/^[:#]?(\d+)$/)
+    if (lineMatch && props.onGoToLine) {
+      const lineNum = parseInt(lineMatch[1], 10)
+      const goLine: PaletteAction = {
+        id: "goToLine",
+        title: `Go to Line ${lineNum}`,
+        description: `Navigate to line ${lineNum} in the active editor`,
+        category: "editor" as CommandCategory,
+        icon: "arrow-down",
+        onSelect: () => props.onGoToLine!(lineNum),
+      }
+      return [goLine]
+    }
+
+    // Filter out "goToLine" when not in line mode
+    const baseCmds = props.commands.filter(cmd => cmd.id !== "goToLine")
+
+    const cmds = !q ? baseCmds : baseCmds.filter((cmd) => {
       const title = cmd.title.toLowerCase()
       const desc = cmd.description?.toLowerCase() ?? ""
       const cat = CATEGORY_LABELS[cmd.category].toLowerCase()
       return title.includes(q) || desc.includes(q) || cat.includes(q)
     })
+
+    // When no query, show recent commands first
+    if (!q && !showRecent()) {
+      const recentSet = new Set(recentIds())
+      const recentCmds = baseCmds.filter(cmd => recentSet.has(cmd.id)).slice(0, 5)
+      if (recentCmds.length > 0) {
+        // Add "Show All" option at the end
+        return [...recentCmds, ...cmds.filter(cmd => !recentSet.has(cmd.id))]
+      }
+    }
+
     return cmds.slice(0, 50)
   })
 
   const grouped = createMemo(() => {
     const pinSet = pinned()
+    const recentSet = new Set(recentIds())
     const pinGroup: PaletteAction[] = []
+    const recentGroup: PaletteAction[] = []
     const normalGroups = new Map<CommandCategory, PaletteAction[]>()
+    const q = query().toLowerCase().trim()
+    const lineMatch = query().trim().match(/^[:#]?(\d+)$/)
+
     for (const cmd of filtered()) {
-      if (pinSet.has(cmd.id)) {
+      if (lineMatch) {
+        // Go-to-line mode: flat list, no grouping
+        const existing = normalGroups.get(cmd.category) ?? []
+        existing.push(cmd)
+        normalGroups.set(cmd.category, existing)
+      } else if (pinSet.has(cmd.id)) {
         pinGroup.push(cmd)
+      } else if (!q && recentSet.has(cmd.id)) {
+        recentGroup.push(cmd)
       } else {
         const existing = normalGroups.get(cmd.category) ?? []
         existing.push(cmd)
@@ -97,6 +166,7 @@ export default function CommandPaletteV2(props: {
     }
     const result: [string, CommandCategory, PaletteAction[]][] = []
     if (pinGroup.length > 0) result.push(["Pinned", "files" as CommandCategory, pinGroup])
+    if (recentGroup.length > 0 && q) result.push(["Recently Used", "recent" as CommandCategory, recentGroup])
     for (const [cat, cmds] of normalGroups) {
       result.push([CATEGORY_LABELS[cat], cat, cmds])
     }
@@ -107,6 +177,7 @@ export default function CommandPaletteV2(props: {
     if (mode() === "commands") {
       const cmd = filtered()[selectedIndex()]
       if (cmd) {
+        trackRecent(cmd.id)
         props.onClose()
         cmd.onSelect()
       }
@@ -135,6 +206,15 @@ export default function CommandPaletteV2(props: {
     setQuery(value)
     setSelectedIndex(0)
     props.onSearch?.(value)
+
+    // Detect line number mode: ":42" or "42"
+    const lineMatch = value.trim().match(/^[:#]?(\d+)$/)
+    if (lineMatch && props.onGoToLine) {
+      // Stay in commands mode, show a "Go to Line" item
+      setMode("commands")
+      setFileResults([])
+      return
+    }
 
     if (mode() !== "files" || !props.onFileSearch) return
 
@@ -368,6 +448,9 @@ export default function CommandPaletteV2(props: {
           <div class="flex items-center gap-3 px-4 py-2 border-t border-border-base bg-surface-base/50 text-11-regular text-text-weaker">
             <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">↑↓</kbd> Navigate</span>
             <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">↵</kbd> Select</span>
+            <Show when={props.onGoToLine}>
+              <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">:42</kbd> Go to Line</span>
+            </Show>
             <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">Esc</kbd> Close</span>
           </div>
         </div>

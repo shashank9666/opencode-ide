@@ -1,4 +1,4 @@
-import { createSignal, For, Show, createMemo } from "solid-js"
+import { createSignal, For, Show, createMemo, onMount, onCleanup } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
@@ -65,6 +65,7 @@ export default function SearchPanel(props: {
   onResultClick: (result: { path: string; line: number; column?: number }) => void
   onReplace?: (pattern: string, replacement: string) => Promise<void>
   onReplaceAll?: (pattern: string, replacement: string) => Promise<void>
+  onSymbolSearch?: (pattern: string) => Promise<Array<{ name: string; kind: string; path: string; line: number }>>
 }) {
   const [searchQuery, setSearchQuery] = createSignal("")
   const [replaceText, setReplaceText] = createSignal("")
@@ -80,6 +81,10 @@ export default function SearchPanel(props: {
   const [collapsedAll, setCollapsedAll] = createSignal(false)
   const [collapsedFiles, setCollapsedFiles] = createSignal<Set<string>>(new Set())
   const [viewAsTree, setViewAsTree] = createSignal(false)
+  const [searchMode, setSearchMode] = createSignal<"files" | "symbols">("files")
+  const [symbolResults, setSymbolResults] = createSignal<Array<{ name: string; kind: string; path: string; line: number }>>([])
+  const [selectedResultIndex, setSelectedResultIndex] = createSignal(-1)
+  let searchInputRef: HTMLInputElement | undefined
 
   const groupedResults = createMemo(() => {
     const groups = new Map<string, SearchResultItem[]>()
@@ -120,11 +125,18 @@ export default function SearchPanel(props: {
     setSearching(true)
     setCollapsedAll(false)
     setCollapsedFiles(new Set<string>())
+    setSelectedResultIndex(-1)
     try {
-      const result = await props.onSearch(q)
-      setResults(result ?? [])
+      if (searchMode() === "symbols" && props.onSymbolSearch) {
+        const syms = await props.onSymbolSearch(q)
+        setSymbolResults(syms ?? [])
+      } else {
+        const result = await props.onSearch(q)
+        setResults(result ?? [])
+      }
     } catch {
       setResults([])
+      setSymbolResults([])
     } finally {
       setSearching(false)
     }
@@ -137,17 +149,73 @@ export default function SearchPanel(props: {
   const clearResults = () => {
     setSearchQuery("")
     setResults([])
+    setSymbolResults([])
+    setSelectedResultIndex(-1)
+  }
+
+  // Keyboard navigation in results
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setSelectedResultIndex(prev => prev + 1)
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setSelectedResultIndex(prev => Math.max(0, prev - 1))
+    } else if (e.key === "Enter") {
+      e.preventDefault()
+      const idx = selectedResultIndex()
+      if (searchMode() === "symbols") {
+        const sym = symbolResults()[idx]
+        if (sym) props.onResultClick({ path: sym.path, line: sym.line })
+      } else {
+        const grouped = groupedResults()
+        let count = 0
+        for (const [path, fileResults] of grouped) {
+          for (const r of fileResults) {
+            if (count === idx) {
+              props.onResultClick({ path: r.path.text, line: r.line_number, column: r.submatches?.[0]?.start ?? 0 })
+              return
+            }
+            count++
+          }
+        }
+      }
+    }
+  }
+
+  // Symbol kind icon mapping
+  const symbolKindIcon = (kind: string) => {
+    switch (kind.toLowerCase()) {
+      case "function":
+      case "method":
+        return "code"
+      case "class":
+      case "struct":
+        return "layout"
+      case "interface":
+        return "layout-sidebar"
+      case "variable":
+      case "property":
+        return "open-file"
+      case "enum":
+        return "bullet-list"
+      case "module":
+      case "namespace":
+        return "folder"
+      default:
+        return "open-file"
+    }
   }
 
   const getFilename = (path: string) => path.split("/").pop() ?? path
 
   return (
-    <div class="size-full flex flex-col">
+    <div class="size-full flex flex-col" onKeyDown={handleKeyDown}>
       {/* Header */}
       <div class="flex items-center justify-between px-3 py-2 shrink-0">
         <span class="text-12-medium text-text-weak uppercase tracking-wider">SEARCH</span>
         <div class="flex items-center gap-1">
-          <Show when={results().length > 0}>
+          <Show when={results().length > 0 || symbolResults().length > 0}>
             <Tooltip value="Refresh" placement="bottom">
               <IconButton
                 icon="reset"
@@ -158,27 +226,29 @@ export default function SearchPanel(props: {
                 aria-label="Refresh search results"
               />
             </Tooltip>
-            <Tooltip value={collapsedAll() ? "Expand All" : "Collapse All"} placement="bottom">
-              <IconButton
-                icon="collapse"
-                variant="ghost"
-                size="small"
-                class="size-6 rounded-md"
-                classList={{ "text-accent-base": collapsedAll() }}
-                onClick={toggleCollapseAll}
-                aria-label="Collapse All"
-              />
-            </Tooltip>
-            <Tooltip value={viewAsTree() ? "View as List" : "View as Tree"} placement="bottom">
-              <IconButton
-                icon={viewAsTree() ? "bullet-list" : "file-tree"}
-                variant="ghost"
-                size="small"
-                class="size-6 rounded-md"
-                onClick={() => setViewAsTree(!viewAsTree())}
-                aria-label="Toggle view mode"
-              />
-            </Tooltip>
+            <Show when={searchMode() === "files"}>
+              <Tooltip value={collapsedAll() ? "Expand All" : "Collapse All"} placement="bottom">
+                <IconButton
+                  icon="collapse"
+                  variant="ghost"
+                  size="small"
+                  class="size-6 rounded-md"
+                  classList={{ "text-accent-base": collapsedAll() }}
+                  onClick={toggleCollapseAll}
+                  aria-label="Collapse All"
+                />
+              </Tooltip>
+              <Tooltip value={viewAsTree() ? "View as List" : "View as Tree"} placement="bottom">
+                <IconButton
+                  icon={viewAsTree() ? "bullet-list" : "file-tree"}
+                  variant="ghost"
+                  size="small"
+                  class="size-6 rounded-md"
+                  onClick={() => setViewAsTree(!viewAsTree())}
+                  aria-label="Toggle view mode"
+                />
+              </Tooltip>
+            </Show>
           </Show>
           <Tooltip value="Toggle Replace" placement="bottom">
             <IconButton
@@ -194,6 +264,40 @@ export default function SearchPanel(props: {
         </div>
       </div>
 
+      {/* Search mode tabs */}
+      <div class="flex items-center border-b border-border-base px-2 shrink-0">
+        <button
+          type="button"
+          class="px-3 py-1.5 text-11-medium transition-colors relative"
+          classList={{
+            "text-text-strong": searchMode() === "files",
+            "text-text-weaker hover:text-text-weak": searchMode() !== "files",
+          }}
+          onClick={() => { setSearchMode("files"); setSymbolResults([]) }}
+        >
+          <span class="flex items-center gap-1.5">
+            <Icon name="magnifying-glass" size="small" />
+            Files
+          </span>
+          {searchMode() === "files" && <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-base" />}
+        </button>
+        <button
+          type="button"
+          class="px-3 py-1.5 text-11-medium transition-colors relative"
+          classList={{
+            "text-text-strong": searchMode() === "symbols",
+            "text-text-weaker hover:text-text-weak": searchMode() !== "symbols",
+          }}
+          onClick={() => { setSearchMode("symbols"); setResults([]) }}
+        >
+          <span class="flex items-center gap-1.5">
+            <Icon name="code" size="small" />
+            Symbols
+          </span>
+          {searchMode() === "symbols" && <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-base" />}
+        </button>
+      </div>
+
       {/* Search input */}
       <div class="p-2 border-b border-border-base shrink-0">
         <div class="flex gap-1 mb-1">
@@ -202,12 +306,40 @@ export default function SearchPanel(props: {
               <Icon name="magnifying-glass" size="small" class="text-icon-weaker" />
             </div>
             <input
+              ref={searchInputRef}
               type="text"
               class="w-full pl-7 pr-2 py-1.5 text-13-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong"
-              placeholder="Search files..."
+              placeholder={searchMode() === "symbols" ? "Search symbols (function, class, variable...)" : "Search files..."}
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") performSearch() }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.altKey) {
+                    // Alt+Enter to navigate to selected result
+                    const idx = selectedResultIndex()
+                    if (idx >= 0) {
+                      if (searchMode() === "symbols") {
+                        const sym = symbolResults()[idx]
+                        if (sym) props.onResultClick({ path: sym.path, line: sym.line })
+                      } else {
+                        const grouped = groupedResults()
+                        let count = 0
+                        for (const [, fileResults] of grouped) {
+                          for (const r of fileResults) {
+                            if (count === idx) {
+                              props.onResultClick({ path: r.path.text, line: r.line_number })
+                              return
+                            }
+                            count++
+                          }
+                        }
+                      }
+                    }
+                  } else {
+                    performSearch()
+                  }
+                }
+              }}
             />
             <Show when={searchQuery()}>
               <button
@@ -328,10 +460,16 @@ export default function SearchPanel(props: {
             ...
           </button>
           <div class="flex-1" />
-          <Show when={results().length > 0}>
+          <Show when={searchMode() === "files" && results().length > 0}>
             <span class="text-11-regular text-text-weaker">
               {totalMatches()} in {totalFiles()} file{totalFiles() !== 1 ? "s" : ""}
             </span>
+          </Show>
+          <Show when={searchMode() === "symbols" && symbolResults().length > 0}>
+            <span class="text-11-regular text-text-weaker">
+              {symbolResults().length} symbol{symbolResults().length !== 1 ? "s" : ""}
+            </span>
+          </Show>
             <button
               type="button"
               class="text-11-medium px-1.5 py-0.5 rounded text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
@@ -350,7 +488,32 @@ export default function SearchPanel(props: {
             <span class="animate-pulse">Searching...</span>
           </div>
         </Show>
-        <Show when={!searching() && results().length > 0}>
+
+        {/* Symbol results */}
+        <Show when={!searching() && searchMode() === "symbols" && symbolResults().length > 0}>
+          <For each={symbolResults()}>
+            {(sym, i) => (
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-3 py-1.5 text-12-regular hover:bg-surface-raised-base-hover cursor-pointer text-left transition-colors group"
+                classList={{
+                  "bg-accent-base/10": i() === selectedResultIndex(),
+                }}
+                onClick={() => props.onResultClick({ path: sym.path, line: sym.line })}
+              >
+                <Icon name={symbolKindIcon(sym.kind) as any} size="small" class="text-icon-weaker shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <span class="text-text-strong">{sym.name}</span>
+                  <span class="text-text-weaker ml-1.5 text-11-regular">{sym.kind}</span>
+                </div>
+                <span class="text-text-weaker text-11-regular truncate shrink-0 max-w-40">{getFilename(sym.path)}:{sym.line}</span>
+              </button>
+            )}
+          </For>
+        </Show>
+
+        {/* File search results */}
+        <Show when={!searching() && searchMode() === "files" && results().length > 0}>
           <For each={groupedResults()}>
             {([path, fileResults]) => (
               <div class="border-b border-border-base/30 last:border-0">
@@ -399,7 +562,8 @@ export default function SearchPanel(props: {
             )}
           </For>
         </Show>
-        <Show when={!searching() && searchQuery() && results().length === 0}>
+
+        <Show when={!searching() && searchQuery() && (searchMode() === "files" ? results().length === 0 : symbolResults().length === 0)}>
           <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2">
             <Icon name="circle-x" size="large" class="text-icon-weaker opacity-40" />
             <span>No results found</span>
@@ -408,9 +572,14 @@ export default function SearchPanel(props: {
         </Show>
         <Show when={!searching() && !searchQuery()}>
           <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2 px-4 text-center">
-            <Icon name="magnifying-glass" size="large" class="text-icon-weaker opacity-40" />
-            <span>Search across your project files</span>
-            <span class="text-12-regular">Type a search term and press Enter</span>
+            <Icon name={searchMode() === "symbols" ? "code" : "magnifying-glass"} size="large" class="text-icon-weaker opacity-40" />
+            <span>{searchMode() === "symbols" ? "Search for symbols" : "Search across your project files"}</span>
+            <span class="text-12-regular">
+              {searchMode() === "symbols"
+                ? "Search for functions, classes, variables..."
+                : "Type a search term and press Enter"
+              }
+            </span>
           </div>
         </Show>
       </div>

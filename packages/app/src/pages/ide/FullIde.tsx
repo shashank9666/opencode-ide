@@ -1730,6 +1730,11 @@ export default function FullIde() {
         open={commandPaletteOpen()}
         onClose={() => setCommandPaletteOpen(false)}
         commands={paletteActions}
+        onGoToLine={(line) => {
+          window.dispatchEvent(new CustomEvent("navigate-to-line", {
+            detail: { path: editor.activeFile(), line, column: 1 }
+          }))
+        }}
         onFileSearch={async (query) => {
           try {
             return await file.searchFiles(query)
