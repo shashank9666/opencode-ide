@@ -322,7 +322,7 @@ export default function FullIde() {
   const [breadcrumbs, setBreadcrumbs] = createSignal<string[]>([])
   const [formatTrigger, setFormatTrigger] = createSignal(0)
   const [diffMode, setDiffMode] = createSignal(false)
-  const [rightTab, setRightTab] = createSignal<"ai-chat" | "ai-workspace" | "debug" | "testing" | "database">("ai-chat")
+  const [rightTab, setRightTab] = createSignal<string>("ai-chat")
 
   // ── Context menus ──
   const [contextMenu, setContextMenu] = createSignal<{ x: number; y: number; path: string; isDir: boolean } | null>(null)
@@ -516,7 +516,7 @@ export default function FullIde() {
     }
   }
 
-  const toggleRightPanel = (tab: "ai-chat" | "ai-workspace" | "debug" | "testing" | "database") => {
+  const toggleRightPanel = (tab: string) => {
     const pos = panelManager.panels().find((p) => p.position === "right" && p.visible)
     if (pos?.id === tab) {
       panelManager.hidePanel(tab)
@@ -980,9 +980,9 @@ export default function FullIde() {
     if (isMod && e.shiftKey && e.key === "F") { e.preventDefault(); toggleLeftPanel("search") }
     if (isMod && e.shiftKey && e.key === "G") { e.preventDefault(); toggleLeftPanel("source-control") }
 
-    if (isMod && e.shiftKey && e.key === "I") { e.preventDefault(); toggleRightPanel(rightTab() === "ai-chat" ? "ai-workspace" : "ai-chat") }
-    if (isMod && e.shiftKey && e.key === "D") { e.preventDefault(); toggleRightPanel("debug") }
-    if (isMod && e.shiftKey && e.key === "T") { e.preventDefault(); toggleRightPanel("testing") }
+    if (isMod && e.shiftKey && e.key === "I") { e.preventDefault(); toggleRightPanel("ai-chat") }
+    if (isMod && e.shiftKey && e.key === "D") { e.preventDefault(); toggleLeftPanel("run-debug") }
+    if (isMod && e.shiftKey && e.key === "T") { e.preventDefault(); toggleLeftPanel("testing") }
     if (isMod && e.key === ",") { e.preventDefault(); toggleSettings() }
 
     // Go to Line — only when focus is NOT in an editor (Monaco handles Ctrl+G natively)
@@ -1015,8 +1015,8 @@ export default function FullIde() {
   const paletteActions: PaletteAction[] = [
     { id: "file.save", title: "Save File", description: "Save the current file", category: "files", keybind: "Ctrl+S", icon: "arrow-down-to-line", onSelect: () => { void saveFile() } },
     { id: "file.open", title: "Quick Open", description: "Search and open files", category: "files", keybind: "Ctrl+P", icon: "open-file", onSelect: () => setCommandPaletteOpen(true) },
-    { id: "file.newFile", title: "New File", description: "Create a new file", category: "files", icon: "plus", onSelect: () => startCreate("file", "") },
-    { id: "file.newFolder", title: "New Folder", description: "Create a new folder", category: "files", icon: "folder", onSelect: () => startCreate("directory", "") },
+    { id: "file.newFile", title: "New File", description: "Create a new file", category: "files", icon: "plus", onSelect: () => startCreate("file", dir()) },
+    { id: "file.newFolder", title: "New Folder", description: "Create a new folder", category: "files", icon: "folder", onSelect: () => startCreate("directory", dir()) },
     { id: "file.openFolder", title: "Open Folder...", description: "Open a project folder", category: "files", icon: "folder-add-left", onSelect: () => handleOpenFolder() },
     { id: "editor.format", title: "Format Document", description: "Format the current document", category: "editor", keybind: "Shift+Alt+F", icon: "code", onSelect: () => setFormatTrigger(formatTrigger() + 1) },
     { id: "editor.wordWrap", title: "Toggle Word Wrap", description: "Toggle word wrapping", category: "editor", icon: "align-right", onSelect: () => setWordWrap(wordWrap() === "off" ? "on" : "off") },
@@ -1025,8 +1025,8 @@ export default function FullIde() {
     { id: "view.sourceControl", title: "Toggle Source Control", description: "Show/hide git panel", category: "view", keybind: "Ctrl+Shift+G", icon: "branch", onSelect: () => toggleLeftPanel("source-control") },
 
     { id: "view.aiChat", title: "Toggle AI Chat", description: "Show/hide AI chat panel", category: "view", icon: "comment", onSelect: () => toggleRightPanel("ai-chat") },
-    { id: "view.debug", title: "Toggle Debug", description: "Show/hide debug panel", category: "view", keybind: "Ctrl+Shift+D", icon: "bug", onSelect: () => toggleRightPanel("debug") },
-    { id: "view.testing", title: "Toggle Testing", description: "Show/hide testing panel", category: "view", keybind: "Ctrl+Shift+T", icon: "beaker", onSelect: () => toggleRightPanel("testing") },
+    { id: "view.debug", title: "Toggle Debug", description: "Show/hide debug panel", category: "view", keybind: "Ctrl+Shift+D", icon: "bug", onSelect: () => toggleLeftPanel("run-debug") },
+    { id: "view.testing", title: "Toggle Testing", description: "Show/hide testing panel", category: "view", keybind: "Ctrl+Shift+T", icon: "beaker", onSelect: () => toggleLeftPanel("testing") },
     { id: "view.terminal", title: "Toggle Terminal", description: "Show/hide terminal panel", category: "view", keybind: "Ctrl+`", icon: "terminal", onSelect: () => toggleBottomPanel("terminal-area") },
     { id: "view.problems", title: "Toggle Problems", description: "Show/hide problems panel", category: "view", keybind: "Ctrl+Shift+M", icon: "circle-x", onSelect: () => toggleBottomPanel("problems") },
     { id: "ai.newSession", title: "New AI Chat Session", description: "Start a new AI conversation", category: "ai", icon: "comment", onSelect: () => { void handleNewSession() } },
