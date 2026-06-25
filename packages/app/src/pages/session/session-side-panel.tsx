@@ -1,4 +1,5 @@
 import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, type JSX } from "solid-js"
+import { Portal } from "solid-js/web"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
@@ -17,10 +18,13 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { SessionContextTab, SortableTab, FileVisual } from "@/components/session"
 import { useCommand } from "@/context/command"
 import { useFile, type SelectedLineRange } from "@/context/file"
+import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
+import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
+import { getFilename } from "@opencode-ai/core/util/path"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import {
@@ -59,6 +63,7 @@ export function SessionSidePanel(props: {
   const language = useLanguage()
   const command = useCommand()
   const dialog = useDialog()
+  const sdk = useSDK()
   const { sessionKey, tabs, view, params } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
@@ -167,9 +172,60 @@ export function SessionSidePanel(props: {
     layout.fileTree.setTab("all")
   }
 
+  const platform = usePlatform()
+
   const [store, setStore] = createStore({
     activeDraggable: undefined as string | undefined,
+    contextMenu: undefined as { x: number; y: number; node: { path: string; type: string } } | undefined,
   })
+
+  const handleFileContextMenu = (e: MouseEvent, node: { path: string; type: string }) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setStore("contextMenu", { x: e.clientX, y: e.clientY, node })
+  }
+
+  const closeContextMenu = () => setStore("contextMenu", undefined)
+
+  const copyPath = () => {
+    const node = store.contextMenu?.node
+    if (!node) return
+    navigator.clipboard.writeText(node.path)
+    closeContextMenu()
+  }
+
+  const copyRelativePath = () => {
+    const node = store.contextMenu?.node
+    if (!node) return
+    navigator.clipboard.writeText(node.path)
+    closeContextMenu()
+  }
+
+  const openInTerminal = () => {
+    const node = store.contextMenu?.node
+    if (!node || platform.platform !== "desktop" || !platform.openPath) return
+    const dir = node.type === "directory" ? node.path : node.path.split("/").slice(0, -1).join("/")
+    if (dir) platform.openPath(dir)
+    closeContextMenu()
+  }
+
+  const revealInExplorer = () => {
+    const node = store.contextMenu?.node
+    if (!node) return
+    window.dispatchEvent(new CustomEvent("reveal-in-explorer", { detail: { path: node.path } }))
+    closeContextMenu()
+  }
+
+  const deleteFile = async () => {
+    const node = store.contextMenu?.node
+    if (!node) return
+    try {
+      await sdk().client.v2.fs.delete({ path: node.path })
+    } catch (err) {
+      console.error("Failed to delete file:", err)
+    }
+    closeContextMenu()
+  }
 
   const handleDragStart = (event: unknown) => {
     const id = getDraggableId(event)
@@ -429,6 +485,7 @@ export function SessionSidePanel(props: {
                               draggable={false}
                               active={props.activeDiff}
                               onFileClick={(node) => props.focusReviewDiff(node.path)}
+                              onContextMenu={handleFileContextMenu}
                             />
                           </Show>
                         </Match>
@@ -444,6 +501,7 @@ export function SessionSidePanel(props: {
                             modified={diffFiles()}
                             kinds={kinds()}
                             onFileClick={(node) => openTab(file.tab(node.path))}
+                            onContextMenu={handleFileContextMenu}
                           />
                         </Match>
                       </Switch>
@@ -470,6 +528,66 @@ export function SessionSidePanel(props: {
           </div>
         </Show>
       </aside>
+      <Show when={store.contextMenu}>
+        <Portal>
+          <div
+            class="fixed inset-0 z-50"
+            onPointerDown={closeContextMenu}
+            onContextMenu={(e) => { e.preventDefault(); closeContextMenu() }}
+          >
+            <div
+              class="absolute min-w-[180px] py-1 bg-background-base border border-border-base rounded-lg shadow-lg overflow-hidden"
+              style={{ left: `${store.contextMenu!.x}px`, top: `${store.contextMenu!.y}px` }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-base hover:bg-surface-raised-base-hover text-left"
+                onClick={copyPath}
+              >
+                <Icon name="copy" size="small" class="text-icon-weak shrink-0" />
+                Copy Path
+              </button>
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-base hover:bg-surface-raised-base-hover text-left"
+                onClick={copyRelativePath}
+              >
+                <Icon name="copy" size="small" class="text-icon-weak shrink-0" />
+                Copy Relative Path
+              </button>
+              <div class="h-px bg-border-base mx-2 my-1" />
+              <Show when={platform.platform === "desktop"}>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-base hover:bg-surface-raised-base-hover text-left"
+                  onClick={revealInExplorer}
+                >
+                  <Icon name="folder" size="small" class="text-icon-weak shrink-0" />
+                  Reveal in Explorer
+                </button>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-base hover:bg-surface-raised-base-hover text-left"
+                  onClick={openInTerminal}
+                >
+                  <Icon name="terminal" size="small" class="text-icon-weak shrink-0" />
+                  Open in Terminal
+                </button>
+              </Show>
+              <div class="h-px bg-border-base mx-2 my-1" />
+              <button
+                type="button"
+                class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover text-left"
+                onClick={deleteFile}
+              >
+                <Icon name="trash" size="small" class="text-icon-weak shrink-0" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </Portal>
+      </Show>
     </Show>
   )
 }

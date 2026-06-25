@@ -1,4 +1,4 @@
-import { createSignal, For, Show, type Component } from "solid-js"
+import { createSignal, createEffect, onCleanup, For, Show, onMount, type Component } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 
 export type MenuItem = {
@@ -41,6 +41,14 @@ export interface IdeActions {
   toggleBlockComment?: () => void
   formatDocument?: () => void
   formatSelection?: () => void
+  // Selection
+  expandSelection?: () => void
+  shrinkSelection?: () => void
+  selectAllOccurrences?: () => void
+  addCursorAbove?: () => void
+  addCursorBelow?: () => void
+  selectLine?: () => void
+  selectWord?: () => void
   // View
   toggleExplorer?: () => void
   toggleSearch?: () => void
@@ -53,6 +61,7 @@ export interface IdeActions {
   toggleZenMode?: () => void
   togglePanel?: () => void
   toggleSecondarySideBar?: () => void
+  toggleWordWrap?: () => void
   // Go
   goToFile?: () => void
   goToSymbolWorkspace?: () => void
@@ -67,6 +76,7 @@ export interface IdeActions {
   // Run
   runWithoutDebugging?: () => void
   startDebugging?: () => void
+  stopDebugging?: () => void
   // Terminal
   newTerminal?: () => void
   splitTerminal?: () => void
@@ -116,6 +126,23 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
     ],
   }
 
+  const SELECTION_MENU: MenuItem = {
+    label: "Selection",
+    submenu: [
+      { label: "Select All", shortcut: "Ctrl+A", action: actions.undo },
+      { label: "Expand Selection", shortcut: "Shift+Alt+→", action: actions.expandSelection },
+      { label: "Shrink Selection", shortcut: "Shift+Alt+←", action: actions.shrinkSelection },
+      { separator: true },
+      { label: "Select Line", shortcut: "Ctrl+L", action: actions.selectLine },
+      { label: "Select Word", shortcut: "Ctrl+D", action: actions.selectWord },
+      { separator: true },
+      { label: "Add Cursor Above", shortcut: "Ctrl+Alt+↑", action: actions.addCursorAbove },
+      { label: "Add Cursor Below", shortcut: "Ctrl+Alt+↓", action: actions.addCursorBelow },
+      { separator: true },
+      { label: "Select All Occurrences", shortcut: "Ctrl+Shift+L", action: actions.selectAllOccurrences },
+    ],
+  }
+
   const VIEW_MENU: MenuItem = {
     label: "View",
     submenu: [
@@ -125,12 +152,26 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
       { label: "Search", shortcut: "Ctrl+Shift+F", action: actions.toggleSearch },
       { label: "Source Control", shortcut: "Ctrl+Shift+G", action: actions.toggleSourceControl },
       { label: "Run and Debug", shortcut: "Ctrl+Shift+D", action: actions.startDebugging },
+      { separator: true },
+      { label: "Toggle Terminal", shortcut: "Ctrl+`", action: actions.togglePanel },
+      { label: "Toggle Secondary Sidebar", action: actions.toggleSecondarySideBar },
+      { label: "Toggle Word Wrap", shortcut: "Alt+Z", action: actions.toggleWordWrap },
+      { separator: true },
+      { label: "Toggle Fullscreen", shortcut: "F11", action: actions.toggleFullScreen },
+      { label: "Toggle Zen Mode", shortcut: "Ctrl+K Z", action: actions.toggleZenMode },
+      { separator: true },
+      { label: "Zoom In", shortcut: "Ctrl+=", action: actions.zoomIn },
+      { label: "Zoom Out", shortcut: "Ctrl+-", action: actions.zoomOut },
+      { label: "Reset Zoom", shortcut: "Ctrl+0", action: actions.resetZoom },
     ],
   }
 
   const GO_MENU: MenuItem = {
     label: "Go",
     submenu: [
+      { label: "Back", shortcut: "Alt+←", action: actions.goBack },
+      { label: "Forward", shortcut: "Alt+→", action: actions.goForward },
+      { separator: true },
       { label: "Go to File...", shortcut: "Ctrl+P", action: actions.goToFile },
       { label: "Go to Symbol in Workspace...", shortcut: "Ctrl+T", action: actions.goToSymbolWorkspace },
       { label: "Go to Symbol in Editor...", shortcut: "Ctrl+Shift+O", action: actions.goToSymbolEditor },
@@ -138,19 +179,17 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
       { separator: true },
       { label: "Go to Definition", shortcut: "F12", action: actions.goToDefinition },
       { label: "Go to Declaration", shortcut: "Ctrl+F12", action: actions.goToDeclaration },
-      { label: "Go to Type Definition", shortcut: "Ctrl+Shift+O", action: actions.goToTypeDefinition },
-      { label: "Go to Implementation", shortcut: "Ctrl+F12", action: actions.goToImplementation },
-      { separator: true },
-      { label: "Go Back", shortcut: "Alt+Left", action: actions.goBack },
-      { label: "Go Forward", shortcut: "Alt+Right", action: actions.goForward },
+      { label: "Go to Type Definition", shortcut: "Ctrl+Shift+F12", action: actions.goToTypeDefinition },
+      { label: "Go to Implementation", shortcut: "F12", action: actions.goToImplementation },
     ],
   }
 
   const RUN_MENU: MenuItem = {
     label: "Run",
     submenu: [
-      { label: "Run Without Debugging", shortcut: "Ctrl+F5", action: actions.runWithoutDebugging },
       { label: "Start Debugging", shortcut: "F5", action: actions.startDebugging },
+      { label: "Run Without Debugging", shortcut: "Ctrl+F5", action: actions.runWithoutDebugging },
+      { label: "Stop Debugging", shortcut: "Shift+F5", action: actions.stopDebugging },
       { separator: true },
       { label: "Run Task", shortcut: "Ctrl+Shift+B", action: actions.runTask },
     ],
@@ -159,8 +198,8 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
   const TERMINAL_MENU: MenuItem = {
     label: "Terminal",
     submenu: [
-      { label: "New Terminal", shortcut: "Ctrl+`", action: actions.newTerminal },
-      { label: "Split Terminal", action: actions.splitTerminal },
+      { label: "New Terminal", shortcut: "Ctrl+Shift+`", action: actions.newTerminal },
+      { label: "Split Terminal", shortcut: "Ctrl+Shift+5", action: actions.splitTerminal },
       { separator: true },
       { label: "Run Task", shortcut: "Ctrl+Shift+B", action: actions.runTask },
       { separator: true },
@@ -168,7 +207,7 @@ export function buildMenus(actions: Partial<IdeActions>): MenuItem[] {
     ],
   }
 
-  return [FILE_MENU, EDIT_MENU, VIEW_MENU, GO_MENU, RUN_MENU, TERMINAL_MENU]
+  return [FILE_MENU, EDIT_MENU, SELECTION_MENU, VIEW_MENU, GO_MENU, RUN_MENU, TERMINAL_MENU]
 }
 
 // Keep a backward compatible default MENUS array if needed elsewhere
@@ -176,31 +215,73 @@ export const MENUS: MenuItem[] = buildMenus({})
 
 export default function MenuBar(props: { onCommandPalette?: () => void }) {
   const [activeMenu, setActiveMenu] = createSignal<string | null>(null)
+  const [menuPosition, setMenuPosition] = createSignal<{ left: number; top: number; maxHeight: number }>({ left: 0, top: 0, maxHeight: 400 })
+  let menuBarRef: HTMLDivElement | undefined
 
   const menus = buildMenus({ commandPalette: props.onCommandPalette })
 
-  const handleMenuClick = (menu: MenuItem) => {
-    if (activeMenu() === menu.label) setActiveMenu(null)
-    else setActiveMenu(menu.label)
+  const handleMenuClick = (menu: MenuItem, index: number) => {
+    if (activeMenu() === menu.label) {
+      setActiveMenu(null)
+      return
+    }
+    setActiveMenu(menu.label)
+    updateMenuPosition(index)
   }
 
   const handleMouseLeave = () => setActiveMenu(null)
 
+  const updateMenuPosition = (index: number) => {
+    if (!menuBarRef) return
+    const buttons = menuBarRef.querySelectorAll("button[data-menu-trigger]")
+    const button = buttons[index] as HTMLElement | undefined
+    if (!button) return
+
+    const rect = button.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const menuWidth = 224 // min-w-56 = 14rem = 224px
+
+    let left = rect.left
+    let top = rect.bottom
+
+    // Prevent overflow right
+    if (left + menuWidth > viewportWidth) {
+      left = Math.max(0, viewportWidth - menuWidth - 8)
+    }
+
+    // Prevent overflow bottom — calculate available height
+    const availableHeight = viewportHeight - top - 8
+    setMenuPosition({
+      left,
+      top,
+      maxHeight: Math.max(200, Math.min(500, availableHeight)),
+    })
+  }
+
   return (
-    <div class="flex items-center h-full" onMouseLeave={handleMouseLeave}>
-      <For each={menus}>{(menu) => (
+    <div class="flex items-center h-full" ref={menuBarRef} onMouseLeave={handleMouseLeave}>
+      <For each={menus}>{(menu, index) => (
         <div class="relative h-full">
           <button
             type="button"
+            data-menu-trigger
             class="px-2.5 h-full text-13-regular hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors cursor-default"
             classList={{ "bg-surface-raised-base text-text-strong": activeMenu() === menu.label }}
-            onClick={() => handleMenuClick(menu)}
+            onClick={() => handleMenuClick(menu, index())}
             onMouseEnter={() => { if (activeMenu()) setActiveMenu(menu.label) }}
           >
             {menu.label}
           </button>
           <Show when={activeMenu() === menu.label && menu.submenu}>
-            <div class="absolute top-full left-0 mt-0 min-w-52 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div
+              class="fixed min-w-56 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 overflow-y-auto"
+              style={{
+                left: `${menuPosition().left}px`,
+                top: `${menuPosition().top}px`,
+                "max-height": `${menuPosition().maxHeight}px`,
+              }}
+            >
               <For each={menu.submenu}>{(item) => (
                 <>
                   <Show when={item.separator}>

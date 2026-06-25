@@ -1081,6 +1081,15 @@ export default function FullIde() {
     toggleBlockComment: () => { /* trigger editor format */ },
     formatDocument: () => setFormatTrigger(f => f + 1),
 
+    // Selection
+    expandSelection: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.smartSelect.expand" } })) },
+    shrinkSelection: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.smartSelect.shrink" } })) },
+    selectAllOccurrences: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.selectHighlights" } })) },
+    addCursorAbove: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.insertCursorAbove" } })) },
+    addCursorBelow: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.insertCursorBelow" } })) },
+    selectLine: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.expandLineSelection" } })) },
+    selectWord: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.wordHighlight.trigger" } })) },
+
     // View
     toggleExplorer: () => toggleLeftPanel("explorer"),
     toggleSearch: () => toggleLeftPanel("search"),
@@ -1096,6 +1105,7 @@ export default function FullIde() {
     toggleZenMode: () => { showToast({ title: "Zen Mode", description: "Coming soon" }) },
     togglePanel: () => toggleBottomPanel("terminal-area"),
     toggleSecondarySideBar: () => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") },
+    toggleWordWrap: () => setWordWrap(w => w === "off" ? "on" : "off"),
 
     // Go
     goToFile: () => setCommandPaletteOpen(true),

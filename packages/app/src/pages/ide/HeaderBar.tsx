@@ -16,19 +16,51 @@ export default function HeaderBar(props: {
   actions?: Partial<IdeActions>
 }) {
   const [activeMenu, setActiveMenu] = createSignal<string | null>(null)
+  const [menuPosition, setMenuPosition] = createSignal<{ left: number; top: number; maxHeight: number }>({ left: 0, top: 0, maxHeight: 400 })
   const [searchOpen, setSearchOpen] = createSignal(false)
   const [searchQuery, setSearchQuery] = createSignal("")
   let searchInputRef: HTMLInputElement | undefined
+  let menuBarRef: HTMLDivElement | undefined
   const dialog = useDialog()
 
   const menus = () => buildMenus(props.actions || {})
 
-  const handleMenuClick = (menuLabel: string) => {
-    if (activeMenu() === menuLabel) setActiveMenu(null)
-    else setActiveMenu(menuLabel)
+  const handleMenuClick = (menuLabel: string, index: number) => {
+    if (activeMenu() === menuLabel) {
+      setActiveMenu(null)
+      return
+    }
+    setActiveMenu(menuLabel)
+    updateMenuPosition(index)
   }
 
   const handleMouseLeave = () => setActiveMenu(null)
+
+  const updateMenuPosition = (index: number) => {
+    if (!menuBarRef) return
+    const buttons = menuBarRef.querySelectorAll("button[data-menu-trigger]")
+    const button = buttons[index] as HTMLElement | undefined
+    if (!button) return
+
+    const rect = button.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const menuWidth = 224
+
+    let left = rect.left
+    let top = rect.bottom
+
+    if (left + menuWidth > viewportWidth) {
+      left = Math.max(0, viewportWidth - menuWidth - 8)
+    }
+
+    const availableHeight = viewportHeight - top - 8
+    setMenuPosition({
+      left,
+      top,
+      maxHeight: Math.max(200, Math.min(500, availableHeight)),
+    })
+  }
 
   const handleSearchKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -54,20 +86,28 @@ export default function HeaderBar(props: {
         </div>
 
         {/* Menus */}
-        <div class="flex items-center h-full">
-          <For each={menus()}>{(menu) => (
+        <div class="flex items-center h-full" ref={menuBarRef}>
+          <For each={menus()}>{(menu, index) => (
             <div class="relative h-full">
               <button
                 type="button"
+                data-menu-trigger
                 class="px-2.5 h-full text-13-regular hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors cursor-default"
                 classList={{ "bg-surface-raised-base text-text-strong": activeMenu() === menu.label }}
-                onClick={() => handleMenuClick(menu.label)}
+                onClick={() => handleMenuClick(menu.label, index())}
                 onMouseEnter={() => { if (activeMenu()) setActiveMenu(menu.label) }}
               >
                 {menu.label}
               </button>
               <Show when={activeMenu() === menu.label && menu.submenu}>
-                <div class="absolute top-full left-0 mt-0 min-w-52 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div
+                  class="fixed min-w-56 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 overflow-y-auto"
+                  style={{
+                    left: `${menuPosition().left}px`,
+                    top: `${menuPosition().top}px`,
+                    "max-height": `${menuPosition().maxHeight}px`,
+                  }}
+                >
                   <For each={menu.submenu}>{(item) => (
                     <>
                       <Show when={item.separator}>

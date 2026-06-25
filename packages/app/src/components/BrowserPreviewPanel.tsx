@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect, Show, For } from "solid-js"
+import { createSignal, createMemo, createEffect, onCleanup, Show, For } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
@@ -13,6 +13,17 @@ type HistoryEntry = {
   url: string
   timestamp: number
   title?: string
+}
+
+// ── Browser Instance (for tracking) ──
+
+type BrowserInstance = {
+  id: string
+  url: string
+  title: string
+  status: ConnectionStatus
+  createdAt: number
+  loadTime: number | null
 }
 
 // ── Recent URLs ──
@@ -44,6 +55,22 @@ const COMMON_PORTS = [
   { port: 5500, label: "Live Server" },
 ]
 
+// ── Browser Tracker State ──
+
+const BROWSER_INSTANCES_KEY = "opencode-browser-instances"
+
+function loadBrowserInstances(): BrowserInstance[] {
+  try {
+    const raw = localStorage.getItem(BROWSER_INSTANCES_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveBrowserInstances(instances: BrowserInstance[]) {
+  localStorage.setItem(BROWSER_INSTANCES_KEY, JSON.stringify(instances.slice(0, 10)))
+}
+
 // ── Main Component ──
 
 export function BrowserPreviewPanel() {
@@ -54,6 +81,9 @@ export function BrowserPreviewPanel() {
   const [showQuickConnect, setShowQuickConnect] = createSignal(false)
   const [pageTitle, setPageTitle] = createSignal("")
   const [loadTime, setLoadTime] = createSignal<number | null>(null)
+  const [browserInstances, setBrowserInstances] = createSignal<BrowserInstance[]>(loadBrowserInstances())
+  const [showBrowserList, setShowBrowserList] = createSignal(false)
+  const [activeBrowserId, setActiveBrowserId] = createSignal<string | null>(null)
   let loadStartTime = 0
 
   const iframeSrc = createMemo(() => {
@@ -69,11 +99,38 @@ export function BrowserPreviewPanel() {
     setStatus("connected")
     const loadMs = Date.now() - loadStartTime
     setLoadTime(loadMs)
+
+    // Update browser instance
+    const currentUrl = iframeSrc()
+    if (activeBrowserId()) {
+      setBrowserInstances(prev => {
+        const updated = prev.map(b =>
+          b.id === activeBrowserId()
+            ? { ...b, url: currentUrl, status: "connected" as const, loadTime: loadMs }
+            : b
+        )
+        saveBrowserInstances(updated)
+        return updated
+      })
+    }
   }
 
   const handleIframeError = () => {
     setStatus("error")
     setLoadTime(null)
+
+    // Update browser instance
+    if (activeBrowserId()) {
+      setBrowserInstances(prev => {
+        const updated = prev.map(b =>
+          b.id === activeBrowserId()
+            ? { ...b, status: "error" as const, loadTime: null }
+            : b
+        )
+        saveBrowserInstances(updated)
+        return updated
+      })
+    }
   }
 
   // Add to history when URL changes
@@ -111,7 +168,6 @@ export function BrowserPreviewPanel() {
   }
 
   const goBack = () => {
-    // Simple implementation: clear URL
     setUrl("")
   }
 
@@ -137,6 +193,63 @@ export function BrowserPreviewPanel() {
       default: return "browser"
     }
   }
+
+  // ── Playwright Browser Launch ──
+  const launchPlaywright = (targetUrl?: string) => {
+    const launchUrl = targetUrl || url() || "http://localhost:3000"
+    const newId = `browser-${Date.now()}`
+    const newBrowser: BrowserInstance = {
+      id: newId,
+      url: launchUrl,
+      title: `Browser ${browserInstances().length + 1}`,
+      status: "loading",
+      createdAt: Date.now(),
+      loadTime: null,
+    }
+
+    setBrowserInstances(prev => {
+      const updated = [...prev, newBrowser]
+      saveBrowserInstances(updated)
+      return updated
+    })
+    setActiveBrowserId(newId)
+    setUrl(launchUrl)
+    setShowBrowserList(false)
+
+    // Emit event for Playwright integration
+    window.dispatchEvent(new CustomEvent("playwright-launch", {
+      detail: { url: launchUrl, id: newId }
+    }))
+  }
+
+  const switchBrowser = (id: string) => {
+    const browser = browserInstances().find(b => b.id === id)
+    if (browser) {
+      setActiveBrowserId(id)
+      setUrl(browser.url)
+      setShowBrowserList(false)
+    }
+  }
+
+  const closeBrowser = (id: string) => {
+    setBrowserInstances(prev => {
+      const updated = prev.filter(b => b.id !== id)
+      saveBrowserInstances(updated)
+      return updated
+    })
+    if (activeBrowserId() === id) {
+      setActiveBrowserId(null)
+      setUrl("")
+      setStatus("idle")
+    }
+
+    window.dispatchEvent(new CustomEvent("playwright-close", {
+      detail: { id }
+    }))
+  }
+
+  const totalBrowserCount = () => browserInstances().length
+  const connectedCount = () => browserInstances().filter(b => b.status === "connected").length
 
   return (
     <div class="flex-1 flex flex-col min-h-0 min-w-0 bg-surface-base">
@@ -190,6 +303,99 @@ export function BrowserPreviewPanel() {
               onClick={() => { setUrl(""); setStatus("idle"); setLoadTime(null) }}
               aria-label="Clear"
             />
+          </Show>
+        </div>
+
+        <div class="w-px h-4 bg-border-base mx-1" />
+
+        {/* Launch Playwright */}
+        <Tooltip value="Launch Browser" placement="bottom">
+          <IconButton
+            icon="play"
+            variant="ghost"
+            size="small"
+            class="size-6 rounded text-text-success-base hover:text-text-success-base"
+            onClick={() => launchPlaywright()}
+            aria-label="Launch Browser"
+          />
+        </Tooltip>
+
+        {/* Browser list */}
+        <div class="relative">
+          <Tooltip value="Browser Instances" placement="bottom">
+            <IconButton
+              icon="browser"
+              variant="ghost"
+              size="small"
+              class="size-6 rounded"
+              onClick={() => setShowBrowserList(!showBrowserList())}
+              aria-label="Browser Instances"
+            />
+          </Tooltip>
+          <Show when={totalBrowserCount() > 0}>
+            <div class="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-accent-base text-white text-[9px] font-bold flex items-center justify-center px-0.5">
+              {totalBrowserCount()}
+            </div>
+          </Show>
+          <Show when={showBrowserList()}>
+            <div class="absolute top-full right-0 mt-1 w-72 bg-surface-raised-base border border-border-base rounded-lg shadow-xl z-50 overflow-hidden">
+              <div class="px-3 py-2 border-b border-border-base flex items-center justify-between">
+                <span class="text-12-medium text-text-strong">Browser Instances ({totalBrowserCount()})</span>
+                <button
+                  type="button"
+                  class="text-11-regular text-accent-base hover:text-accent-base-hover"
+                  onClick={() => launchPlaywright()}
+                >
+                  + New
+                </button>
+              </div>
+              <div class="max-h-64 overflow-y-auto">
+                <Show
+                  when={browserInstances().length > 0}
+                  fallback={
+                    <div class="px-3 py-4 text-12-regular text-text-weaker text-center">
+                      No browser instances
+                    </div>
+                  }
+                >
+                  <For each={browserInstances()}>
+                    {(browser) => (
+                      <div
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-surface-raised-base-hover transition-colors cursor-pointer group"
+                        classList={{ "bg-accent-base/10": activeBrowserId() === browser.id }}
+                        onClick={() => switchBrowser(browser.id)}
+                      >
+                        <Icon
+                          name={browser.status === "connected" ? "circle-check" : browser.status === "loading" ? "reset" : browser.status === "error" ? "circle-x" : "browser"}
+                          size="small"
+                          class={browser.status === "connected" ? "text-text-success-base" : browser.status === "loading" ? "text-text-warning-base" : browser.status === "error" ? "text-text-danger-base" : "text-text-weak"}
+                        />
+                        <div class="flex-1 min-w-0">
+                          <div class="text-12-regular text-text-strong truncate">{browser.title}</div>
+                          <div class="text-11-regular text-text-weaker truncate">{browser.url}</div>
+                        </div>
+                        <Show when={browser.loadTime !== null}>
+                          <span class="text-10-regular text-text-weaker shrink-0">{formatTime(browser.loadTime!)}</span>
+                        </Show>
+                        <button
+                          type="button"
+                          class="size-5 flex items-center justify-center rounded hover:bg-surface-base text-text-weaker hover:text-text-danger-base opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => { e.stopPropagation(); closeBrowser(browser.id) }}
+                          aria-label="Close browser"
+                        >
+                          <Icon name="close-small" size="small" />
+                        </button>
+                      </div>
+                    )}
+                  </For>
+                </Show>
+              </div>
+              {connectedCount() > 0 && (
+                <div class="px-3 py-1.5 border-t border-border-base text-10-regular text-text-weaker">
+                  {connectedCount()} connected
+                </div>
+              )}
+            </div>
           </Show>
         </div>
 
@@ -333,6 +539,16 @@ export function BrowserPreviewPanel() {
               <p class="text-14-medium text-text-weak">Browser Preview</p>
               <p class="text-12-regular text-text-weaker">Enter a URL or port number to preview your app</p>
             </div>
+
+            {/* Launch Playwright Button */}
+            <button
+              type="button"
+              class="flex items-center gap-2 px-4 py-2 text-13-medium bg-accent-base text-white rounded-lg hover:bg-accent-base-hover transition-colors mt-2"
+              onClick={() => launchPlaywright()}
+            >
+              <Icon name="play" size="small" />
+              Launch Browser
+            </button>
 
             <div class="flex flex-col gap-1.5 mt-2 w-full max-w-xs">
               <div class="text-11-medium text-text-weaker uppercase tracking-wider">Quick Start</div>

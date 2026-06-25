@@ -390,6 +390,18 @@ export default function IdeEditor(props: {
     editor.getAction("editor.action.formatDocument")?.run()
   })
 
+  // Handle editor actions from menu bar (Selection menu)
+  createEffect(() => {
+    if (!editor) return
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ action: string }>).detail
+      if (!detail?.action) return
+      editor?.getAction(detail.action)?.run()
+    }
+    window.addEventListener("editor-action", handler)
+    onCleanup(() => window.removeEventListener("editor-action", handler))
+  })
+
   createEffect(() => {
     if (!editor) return
     editor.updateOptions({
