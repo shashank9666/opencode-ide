@@ -36,6 +36,7 @@ export interface Settings {
     newLayoutDesigns?: boolean
     showDebugBar: boolean
     inlineCodeSuggestions: boolean
+    fastMode: boolean
   }
   appearance: {
     fontSize: number
@@ -128,6 +129,7 @@ const defaultSettings: Settings = {
     showCustomAgents: false,
     showDebugBar: false,
     inlineCodeSuggestions: false,
+    fastMode: false,
   },
   appearance: {
     fontSize: 14,
@@ -321,6 +323,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setInlineCodeSuggestions(value: boolean) {
           setStore("general", "inlineCodeSuggestions", value)
+        },
+        fastMode: withFallback(
+          () => store.general?.fastMode,
+          defaultSettings.general.fastMode,
+        ),
+        setFastMode(value: boolean) {
+          setStore("general", "fastMode", value)
         },
       },
       visibility: {

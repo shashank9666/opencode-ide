@@ -523,6 +523,8 @@ type SessionHeaderV2ActionsState = {
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
+  const settings = useSettings()
+
   return (
     <div class="flex items-center gap-2">
       <Show when={props.state.statusVisible}>
@@ -530,6 +532,22 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           <StatusPopoverV2 />
         </Tooltip>
       </Show>
+      <Tooltip placement="bottom" value={settings.general.fastMode() ? "Fast Mode active" : "Fast Mode"}>
+        <IconButtonV2
+          type="button"
+          variant="ghost-muted"
+          size="large"
+          class="!w-9 shrink-0"
+          state={settings.general.fastMode() ? "pressed" : undefined}
+          onClick={() => settings.general.setFastMode(!settings.general.fastMode())}
+          aria-label="Toggle Fast Mode"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8.5 2L3 9H7.5L6.5 14L13 6.5H8.5L8.5 2Z" stroke="currentColor" stroke-linejoin="round"/>
+            </svg>
+          }
+        />
+      </Tooltip>
       <TooltipKeybind title={props.state.reviewLabel} keybind={props.state.reviewKeybind}>
         <IconButtonV2
           type="button"

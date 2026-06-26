@@ -15,6 +15,13 @@ import { SettingsPluginsV2 } from "./plugins"
 import { SettingsToolsV2 } from "./tools"
 import { SettingsSkillsV2 } from "./skills"
 import { SettingsAutoApproveV2 } from "./auto-approve"
+import { SettingsProjectV2 } from "./project"
+import { SettingsCommandsV2 } from "./commands"
+import { SettingsReferencesV2 } from "./references"
+import { SettingsFormattersV2 } from "./formatters"
+import { SettingsLspV2 } from "./lsp"
+import { SettingsNetworkV2 } from "./network"
+import { SettingsPoliciesV2 } from "./policies"
 
 export const DialogSettings: Component = () => {
   const language = useLanguage()
@@ -78,6 +85,40 @@ export const DialogSettings: Component = () => {
                     </TabsV2.Trigger>
                   </div>
                 </div>
+
+                <div class="flex flex-col gap-1.5">
+                  <TabsV2.SectionTitle>Project</TabsV2.SectionTitle>
+                  <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="project">
+                      <Icon name="settings-gear" />
+                      Config
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="commands">
+                      <Icon name="terminal" />
+                      Commands
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="references">
+                      <Icon name="branch" />
+                      References
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="formatters">
+                      <Icon name="edit" />
+                      Formatters
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="lsp">
+                      <Icon name="code" />
+                      LSP
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="network">
+                      <Icon name="server" />
+                      Network
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="policies">
+                      <Icon name="shield" />
+                      Policies
+                    </TabsV2.Trigger>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="settings-v2-nav-footer">
@@ -115,6 +156,27 @@ export const DialogSettings: Component = () => {
         </TabsV2.Content>
         <TabsV2.Content value="skills" class="settings-v2-panel">
           <SettingsSkillsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="project" class="settings-v2-panel">
+          <SettingsProjectV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="commands" class="settings-v2-panel">
+          <SettingsCommandsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="references" class="settings-v2-panel">
+          <SettingsReferencesV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="formatters" class="settings-v2-panel">
+          <SettingsFormattersV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="lsp" class="settings-v2-panel">
+          <SettingsLspV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="network" class="settings-v2-panel">
+          <SettingsNetworkV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="policies" class="settings-v2-panel">
+          <SettingsPoliciesV2 />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

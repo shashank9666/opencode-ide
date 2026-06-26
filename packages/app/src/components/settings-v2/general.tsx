@@ -271,7 +271,17 @@ export const SettingsGeneralV2: Component = () => {
           </div>
         </SettingsRowV2>
 
-
+        <SettingsRowV2
+          title="Fast Mode"
+          description="Use priority processing tier for faster responses"
+        >
+          <div data-action="settings-fast-mode">
+            <Switch
+              checked={settings.general.fastMode()}
+              onChange={(checked) => settings.general.setFastMode(checked)}
+            />
+          </div>
+        </SettingsRowV2>
 
         <SettingsRowV2
           title={language.t("settings.general.row.shell.title")}
