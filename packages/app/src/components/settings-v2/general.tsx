@@ -604,22 +604,34 @@ export const SettingsGeneralV2: Component = () => {
               placeholder="Image URL"
               spellcheck={false}
             />
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.currentTarget.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    const result = e.target?.result as string;
-                    settings.appearance.setWallpaperUrl(result);
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-              class="text-12-regular text-text-weak file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-12-medium file:bg-surface-raised-base file:text-text-strong hover:file:bg-surface-raised-base-hover cursor-pointer"
-            />
+            <div class="flex items-center gap-2">
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.currentTarget.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      const result = e.target?.result as string;
+                      settings.appearance.setWallpaperUrl(result);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                class="text-12-regular text-text-weak file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-12-medium file:bg-surface-raised-base file:text-text-strong hover:file:bg-surface-raised-base-hover cursor-pointer"
+              />
+              <Show when={settings.appearance.wallpaperUrl()}>
+                <ButtonV2 
+                  variant="ghost" 
+                  size="small" 
+                  onClick={() => settings.appearance.setWallpaperUrl("")}
+                  class="text-text-danger-base hover:text-text-danger-strong"
+                >
+                  Remove
+                </ButtonV2>
+              </Show>
+            </div>
           </div>
         </SettingsRowV2>
 
