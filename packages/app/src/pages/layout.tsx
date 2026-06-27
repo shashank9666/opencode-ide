@@ -147,6 +147,18 @@ export default function Layout(props: ParentProps) {
       dir: store[0].path.directory || dir,
     }
   })
+  
+  const appStyle = createMemo(() => {
+    const isGlass = settings.appearance.glassmorphism()
+    const wp = settings.appearance.wallpaperUrl()
+    const opacity = settings.appearance.opacity()
+    return {
+      ...(wp ? { "background-image": `url(${wp})`, "background-size": "cover", "background-position": "center" } : {}),
+      "--app-opacity": isGlass ? opacity : 1,
+      "--app-glass-blur": isGlass ? "10px" : "0px",
+    } as any
+  })
+
   const availableThemeEntries = createMemo(() => theme.ids().map((id) => [id, theme.themes()[id]] as const))
   const colorSchemeOrder: ColorScheme[] = ["system", "light", "dark"]
   const colorSchemeKey: Record<ColorScheme, "theme.scheme.system" | "theme.scheme.light" | "theme.scheme.dark"> = {
@@ -1810,6 +1822,8 @@ export default function Layout(props: ParentProps) {
   )
 
   createEffect(() => {
+    document.documentElement.dataset.colorfulIcons = settings.appearance.colorfulIcons() ? "true" : "false"
+    document.documentElement.dataset.glassmorphism = settings.appearance.glassmorphism() ? "true" : "false"
     document.documentElement.style.setProperty(
       "--dialog-left-margin",
       newDesign() ? "0px" : `${layout.sidebar.opened() ? layout.sidebar.width() : 48}px`,
@@ -2358,7 +2372,7 @@ export default function Layout(props: ParentProps) {
     <Show
       when={!newDesign()}
       fallback={
-        <div class="relative bg-v2-background-bg-deep flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
+        <div class="relative bg-v2-background-bg-deep flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text" style={appStyle()}>
           {autoselecting() ?? ""}
           <Titlebar update={titlebarUpdate} />
           <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
@@ -2372,7 +2386,7 @@ export default function Layout(props: ParentProps) {
         </div>
       }
     >
-      <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
+      <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text" style={appStyle()}>
         {autoselecting() ?? ""}
         <Titlebar update={titlebarUpdate} />
         <Show when={updateVersion() !== undefined}>

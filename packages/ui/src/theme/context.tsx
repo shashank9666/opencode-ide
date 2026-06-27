@@ -72,6 +72,8 @@ const names: Record<string, string> = {
   opencode: "OpenCode",
   orng: "Orng",
   "osaka-jade": "Osaka Jade",
+  "ocean-glass": "Ocean Glass",
+  "minimal-glass": "Minimal Glass",
   palenight: "Palenight",
   rosepine: "Rose Pine",
   shadesofpurple: "Shades of Purple",

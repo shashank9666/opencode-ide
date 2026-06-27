@@ -46,6 +46,9 @@ export interface Settings {
     colorfulIcons: boolean
     customAccentColor: string
     customBackgroundColor: string
+    glassmorphism: boolean
+    opacity: number
+    wallpaperUrl: string
   }
   keybinds: Record<string, string>
   permissions: {
@@ -139,6 +142,9 @@ const defaultSettings: Settings = {
     colorfulIcons: false,
     customAccentColor: "",
     customBackgroundColor: "",
+    glassmorphism: false,
+    opacity: 0.8,
+    wallpaperUrl: "",
   },
   keybinds: {},
   permissions: {
@@ -358,6 +364,18 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         colorfulIcons: withFallback(() => store.appearance?.colorfulIcons, defaultSettings.appearance.colorfulIcons),
         setColorfulIcons(value: boolean) {
           setStore("appearance", "colorfulIcons", value)
+        },
+        glassmorphism: withFallback(() => store.appearance?.glassmorphism, defaultSettings.appearance.glassmorphism),
+        setGlassmorphism(value: boolean) {
+          setStore("appearance", "glassmorphism", value)
+        },
+        opacity: withFallback(() => store.appearance?.opacity, defaultSettings.appearance.opacity),
+        setOpacity(value: number) {
+          setStore("appearance", "opacity", value)
+        },
+        wallpaperUrl: withFallback(() => store.appearance?.wallpaperUrl, defaultSettings.appearance.wallpaperUrl),
+        setWallpaperUrl(value: string) {
+          setStore("appearance", "wallpaperUrl", value)
         },
       },
       keybinds: {

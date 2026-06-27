@@ -169,6 +169,62 @@ export default function SettingsPanel(props: {
                 ))}
               </div>
             </div>
+
+            {/* Glassmorphism & Wallpaper */}
+            <div class="pt-2 border-t border-border-base flex flex-col gap-4">
+              <label class="text-12-medium text-text-weaker uppercase tracking-wider block">Appearance & Background</label>
+              
+              <div class="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="glassmorphism" 
+                  checked={settings.appearance.glassmorphism()} 
+                  onChange={(e) => settings.appearance.setGlassmorphism(e.currentTarget.checked)} 
+                  class="accent-accent-base" 
+                />
+                <label for="glassmorphism" class="text-13-regular text-text-strong">Enable Glassmorphism (Blur effect)</label>
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="text-13-regular text-text-strong">Background Opacity: {Math.round(settings.appearance.opacity() * 100)}%</label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={settings.appearance.opacity() * 100} 
+                  onInput={(e) => settings.appearance.setOpacity(Number(e.currentTarget.value) / 100)} 
+                  class="w-full accent-accent-base" 
+                />
+              </div>
+
+              <div class="flex flex-col gap-1.5">
+                <label class="text-13-regular text-text-strong">Wallpaper URL (or Base64)</label>
+                <input 
+                  type="text" 
+                  placeholder="https://example.com/wallpaper.jpg"
+                  value={settings.appearance.wallpaperUrl()} 
+                  onInput={(e) => settings.appearance.setWallpaperUrl(e.currentTarget.value)} 
+                  class="w-full px-2 py-1.5 bg-surface-base border border-border-base rounded text-13-regular text-text-strong" 
+                />
+                <label class="text-13-regular text-text-strong mt-2">Upload Local Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        const result = e.target?.result as string;
+                        settings.appearance.setWallpaperUrl(result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  class="text-12-regular text-text-weak file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-12-medium file:bg-surface-raised-base file:text-text-strong hover:file:bg-surface-raised-base-hover cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
         </Show>
 
