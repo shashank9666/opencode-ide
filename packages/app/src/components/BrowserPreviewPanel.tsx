@@ -1,6 +1,5 @@
 import { createSignal, createMemo, createEffect, Show, onCleanup } from "solid-js"
 import { BrowserToolbar } from "./browser/BrowserToolbar"
-import { BrowserDevTools, type ConsoleEntry, type NetworkRequest, type ScreenshotEntry, type DOMNode, type LogEntry } from "./browser/BrowserDevTools"
 import { BrowserTabBar, type BrowserTab } from "./browser/BrowserTabBar"
 import { BrowserEmptyState } from "./browser/BrowserEmptyState"
 import { BrowserSkeleton } from "./browser/BrowserSkeleton"
@@ -333,11 +332,7 @@ export function BrowserPreviewPanel() {
         latency={loadTime()}
         viewportWidth={viewportWidth()}
         viewportHeight={viewportHeight()}
-        engine={engine()}
         onViewportChange={(w, h) => { setViewportWidth(w); setViewportHeight(h) }}
-        onEngineChange={setEngine}
-        showSessions={showSidebar()}
-        onToggleSessions={() => setShowSidebar(!showSidebar())}
       />
     </div>
   )
