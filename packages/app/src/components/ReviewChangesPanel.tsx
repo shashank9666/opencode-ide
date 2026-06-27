@@ -1,56 +1,205 @@
-import { For, createMemo } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import { Icon } from "@opencode-ai/ui/icon";
 import { getFilename } from "@opencode-ai/core/util/path";
+import { IdeDiffEditor } from "./ide-editor";
+import { useSync } from "@/context/sync";
+import { useSDK } from "@/context/sdk";
+import { useFile } from "@/context/file";
+
+type FileChange = {
+  path: string;
+  before: string;
+  after: string;
+};
+
+function lineDiff(before: string, after: string) {
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
+  let added = 0;
+  let removed = 0;
+  const maxLen = Math.max(beforeLines.length, afterLines.length);
+  for (let i = 0; i < maxLen; i++) {
+    const b = beforeLines[i];
+    const a = afterLines[i];
+    if (b === undefined) { added++; continue; }
+    if (a === undefined) { removed++; continue; }
+    if (b !== a) { added++; removed++; }
+  }
+  return { added, removed };
+}
 
 export function ReviewChangesPanel(props: { workspace: any }) {
-  const diffFiles = createMemo(() => {
-    if (!props.workspace) return [];
-    return props.workspace.getGroups().flatMap((g: any) => 
-      g.files.filter((f: any) => f.originalContent !== undefined && f.dirty)
-      .map((f: any) => ({ ...f, groupId: g.id }))
+  const sync = useSync();
+  const sdk = useSDK();
+  const file = useFile();
+  const [selectedFile, setSelectedFile] = createSignal<FileChange | null>(null);
+  const [loadedFiles, setLoadedFiles] = createSignal<Record<string, FileChange>>({});
+  const [loading, setLoading] = createSignal(false);
+
+  // Collect all file writes from the active session's message history
+  const changedFilePaths = createMemo(() => {
+    const parts = sync().data.part ?? {};
+    const paths = new Set<string>();
+    for (const partList of Object.values(parts)) {
+      if (!Array.isArray(partList)) continue;
+      for (const part of partList as any[]) {
+        if (part.type !== "tool") continue;
+        const input = part.state?.input;
+        if (!input) continue;
+        const path = input.path || input.filePath || input.target_file || "";
+        const toolName = part.tool || "";
+        if (
+          path &&
+          (
+            toolName.includes("edit") ||
+            toolName.includes("write") ||
+            toolName.includes("replace") ||
+            toolName.includes("patch")
+          )
+        ) {
+          paths.add(path);
+        }
+      }
+    }
+    return [...paths];
+  });
+
+  // Also include workspace files that have originalContent set (from inline diff accept flow)
+  const workspaceChangedFiles = createMemo(() => {
+    if (!props.workspace) return [] as FileChange[];
+    return props.workspace.getGroups().flatMap((g: any) =>
+      g.files
+        .filter((f: any) => f.originalContent !== undefined && f.content !== f.originalContent)
+        .map((f: any): FileChange => ({ path: f.path, before: f.originalContent, after: f.content }))
     );
   });
 
-  const approximateDiffCount = (original: string, modified: string) => {
-    // This is just a rough approximation for the UI since we don't have a diff library
-    const origLines = original.split('\n').length;
-    const modLines = modified.split('\n').length;
-    const diff = modLines - origLines;
-    if (diff > 0) return { added: diff, removed: 0 };
-    if (diff < 0) return { added: 0, removed: -diff };
-    return { added: 1, removed: 1 }; // Assume modified
+  // Load before/after for SDK-tracked paths
+  const loadFileDiff = async (path: string) => {
+    if (loadedFiles()[path]) {
+      setSelectedFile(loadedFiles()[path]!);
+      return;
+    }
+    setLoading(true);
+    try {
+      await file.load(path);
+      const state = file.get(path);
+      const after = state?.content?.type === "text" ? state.content.content : "";
+      // Try to get git original via sdk
+      let before = after;
+      try {
+        const resp = await sdk().client.file.read({ path });
+        if (resp && typeof (resp as any).content === "string") before = (resp as any).content;
+      } catch {
+        // fallback: show current content on both sides (no diff)
+      }
+      const change: FileChange = { path, before, after };
+      setLoadedFiles(prev => ({ ...prev, [path]: change }));
+      setSelectedFile(change);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const allChanges = createMemo((): FileChange[] => {
+    const wChanges = workspaceChangedFiles();
+    const paths = new Set(wChanges.map((f: FileChange) => f.path));
+    const sdkPaths = changedFilePaths().filter(p => !paths.has(p));
+    const sdkChanges: FileChange[] = sdkPaths.map(p => ({
+      path: p,
+      before: loadedFiles()[p]?.before ?? "",
+      after: loadedFiles()[p]?.after ?? "",
+    }));
+    return [...wChanges, ...sdkChanges];
+  });
+
   return (
-    <div class="flex-1 flex flex-col h-full bg-surface-base min-h-0 overflow-y-auto custom-scrollbar p-6">
-      <div class="max-w-4xl mx-auto w-full">
-        <h2 class="text-2xl text-text-strong font-medium mb-6">Review Changes</h2>
-        <div class="flex flex-col gap-[1px] bg-border-base border border-border-base rounded-md overflow-hidden shadow-sm">
-          <For each={diffFiles()} fallback={
-            <div class="p-8 text-center text-text-weak bg-surface-raised-base">No pending AI changes to review.</div>
-          }>
-            {(f) => {
-              const diff = approximateDiffCount(f.originalContent || "", f.content || "");
+    <div class="flex-1 flex h-full min-h-0 overflow-hidden bg-surface-base">
+      {/* File list sidebar */}
+      <div class="w-72 shrink-0 flex flex-col border-r border-border-base bg-surface-raised-base overflow-y-auto">
+        <div class="px-4 py-3 border-b border-border-base">
+          <h2 class="text-13-medium text-text-strong">Review AI Changes</h2>
+          <p class="text-11-regular text-text-weak mt-0.5">{allChanges().length} file{allChanges().length !== 1 ? "s" : ""} modified</p>
+        </div>
+
+        <Show
+          when={allChanges().length > 0}
+          fallback={
+            <div class="flex-1 flex flex-col items-center justify-center p-6 gap-3 text-center">
+              <Icon name="review" class="size-8 text-icon-weaker opacity-30" />
+              <p class="text-13-regular text-text-weak">No AI file changes found in this session.</p>
+              <p class="text-11-regular text-text-weaker">Changes appear here when the AI edits files.</p>
+            </div>
+          }
+        >
+          <For each={allChanges()}>
+            {(change) => {
+              const diff = createMemo(() => lineDiff(change.before, change.after));
+              const isSelected = createMemo(() => selectedFile()?.path === change.path);
               return (
-                <div 
-                  class="flex items-center gap-3 px-4 py-3 bg-surface-raised-base hover:bg-surface-base cursor-pointer transition-colors group"
-                  onClick={() => props.workspace.openFile(f.path, f.content, f.groupId)}
+                <button
+                  class={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left transition-colors border-b border-border-base/50 ${isSelected() ? "bg-accent-base/10 border-l-2 border-l-accent-base" : "hover:bg-surface-base"}`}
+                  onClick={() => {
+                    if (change.before !== "" || change.after !== "") {
+                      setSelectedFile(change);
+                    } else {
+                      void loadFileDiff(change.path);
+                    }
+                  }}
                 >
-                  <div class="flex-1 min-w-0 flex items-center gap-2">
-                    <Icon name="open-file" size="small" class="text-icon-muted" />
-                    <span class="text-13-medium text-text-strong">{getFilename(f.path)}</span>
-                    <span class="text-12-regular text-text-weak truncate opacity-60">{f.path}</span>
+                  <Icon name="open-file" size="small" class="mt-0.5 text-icon-muted shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <div class="text-12-medium text-text-strong truncate">{getFilename(change.path)}</div>
+                    <div class="text-11-regular text-text-weaker truncate">{change.path}</div>
+                    <div class="flex gap-2 mt-0.5">
+                      <span class="text-11-regular text-success-base">+{diff().added}</span>
+                      <span class="text-11-regular text-danger-base">-{diff().removed}</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-4 text-12-regular font-mono">
-                    <span class="text-success-base">+{diff.added}</span>
-                    <span class="text-danger-base">-{diff.removed}</span>
-                    <Icon name="chevron-right" class="size-4 text-text-weak opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
+                </button>
               );
             }}
           </For>
-        </div>
+        </Show>
+      </div>
+
+      {/* Diff view */}
+      <div class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <Show
+          when={selectedFile()}
+          fallback={
+            <div class="flex-1 flex flex-col items-center justify-center gap-3 text-center select-none">
+              <Icon name="review" class="size-10 text-icon-weaker opacity-20" />
+              <p class="text-14-regular text-text-weak">Select a file to view changes</p>
+            </div>
+          }
+        >
+          {(change) => (
+            <>
+              {/* Diff header */}
+              <div class="flex items-center justify-between px-4 py-2.5 border-b border-border-base bg-surface-raised-base shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <Icon name="open-file" size="small" class="text-icon-muted shrink-0" />
+                  <span class="text-13-medium text-text-strong truncate">{getFilename(change().path)}</span>
+                  <span class="text-12-regular text-text-weak truncate opacity-60">{change().path}</span>
+                </div>
+                <Show when={loading()}>
+                  <div class="text-11-regular text-text-weak animate-pulse">Loading…</div>
+                </Show>
+              </div>
+
+              {/* Monaco diff */}
+              <div class="flex-1 min-h-0">
+                <IdeDiffEditor
+                  path={change().path}
+                  original={change().before}
+                  modified={change().after}
+                  class="h-full"
+                />
+              </div>
+            </>
+          )}
+        </Show>
       </div>
     </div>
   );

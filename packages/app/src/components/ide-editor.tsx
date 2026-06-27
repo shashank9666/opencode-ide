@@ -365,7 +365,9 @@ export default function IdeEditor(props: {
       monaco.editor.setModelLanguage(model, lang)
     }
     if (editor.getModel() !== model) {
+      const state = editor.saveViewState()
       editor.setModel(model)
+      if (state) editor.restoreViewState(state)
     }
   })
 
@@ -468,10 +470,11 @@ export function IdeDiffEditor(props: {
         revealLineCount: 10,
         minimumLineCount: 10
       }
-    } as any) // Typecast for compatibility if hideUnchangedRegions isn't in older typings
+    })
 
-    const normOriginal = (props.original || "").replace(/\r\n/g, "\n")
-    const normModified = (props.modified || "").replace(/\r\n/g, "\n")
+    const norm = (s: string) => s.replace(/\r\n/g, "\n").replace(/\n+$/, "") + "\n"
+    const normOriginal = norm(props.original || "")
+    const normModified = norm(props.modified || "")
 
     diffEditor.setModel({
       original: monaco.editor.createModel(normOriginal, lang),
@@ -572,8 +575,9 @@ export function IdeDiffEditor(props: {
     const lang = languageFromPath(props.path)
     const model = diffEditor.getModel()
     if (!model) return
-    const normOriginal = (props.original || "").replace(/\r\n/g, "\n")
-    const normModified = (props.modified || "").replace(/\r\n/g, "\n")
+    const norm = (s: string) => s.replace(/\r\n/g, "\n").replace(/\n+$/, "") + "\n"
+    const normOriginal = norm(props.original || "")
+    const normModified = norm(props.modified || "")
     if (model.original.getValue() !== normOriginal) model.original.setValue(normOriginal)
     if (model.modified.getValue() !== normModified) model.modified.setValue(normModified)
     monaco.editor.setModelLanguage(model.original, lang)

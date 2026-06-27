@@ -1120,8 +1120,8 @@ export default function FullIde() {
     closeWindow: () => window.close(),
 
     // Edit
-    undo: () => document.execCommand("undo"),
-    redo: () => document.execCommand("redo"),
+    undo: () => editorInstance()?.trigger("keyboard", "undo", null),
+    redo: () => editorInstance()?.trigger("keyboard", "redo", null),
     cut: () => document.execCommand("cut"),
     copy: () => document.execCommand("copy"),
     paste: () => document.execCommand("paste"),
@@ -1373,8 +1373,8 @@ export default function FullIde() {
                 const args = pendingEditToolArgs()
                 if (!args?.path) return undefined
                 const state = file.get(args.path)
-                const original = (state?.content?.type === "text") ? state.content.content : ""
-                return { path: args.path, modified: args.content, original }
+                if (!state?.content || state.content.type !== "text") return undefined
+                return { path: args.path, modified: args.content, original: state.content.content }
               })()
             }
             onAcceptDiff={() => {
