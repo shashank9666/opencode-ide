@@ -1903,8 +1903,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       <Icon name="browser" size="small" />
                       Local Preview
                     </span>
-                    <div class="w-px h-3 bg-border-base" />
-                    <span>{browserPageCount()} {browserPageCount() === 1 ? "page" : "pages"}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <Button 

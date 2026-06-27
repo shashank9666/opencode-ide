@@ -88,8 +88,8 @@ export function ReviewChangesPanel(props: { workspace: any }) {
       // Try to get git original via vcsFile
       let before = after;
       try {
-        const resp = await sdk().client.instance.vcsFile({ query: { path, ref: "HEAD" } });
-        if (resp && typeof resp === "string") before = resp;
+        const resp = await sdk().client.vcs.file({ path, ref: "HEAD" });
+        if (resp && resp.data && typeof resp.data === "string") before = resp.data;
       } catch {
         // fallback: show current content on both sides (no diff)
       }
