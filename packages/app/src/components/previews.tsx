@@ -315,6 +315,10 @@ export function MarkdownPreview(props: { content: string; filename: string; onCl
   const [html, setHtml] = createSignal("")
   const [error, setError] = createSignal<string | null>(null)
   const [loading, setLoading] = createSignal(true)
+  const [showSource, setShowSource] = createSignal(false)
+  const [wordWrap, setWordWrap] = createSignal(false)
+  const [scrollProgress, setScrollProgress] = createSignal(0)
+  let scrollContainerRef: HTMLDivElement | undefined
 
   const tryParse = async (markdown: string): Promise<string> => {
     const parser = markedContext as unknown
@@ -356,41 +360,77 @@ export function MarkdownPreview(props: { content: string; filename: string; onCl
     void renderMarkdown(props.content)
   })
 
+  const handleScroll = () => {
+    if (!scrollContainerRef) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef
+    const max = Math.max(1, scrollHeight - clientHeight)
+    const progress = Math.min(100, Math.round((scrollTop / max) * 100))
+    setScrollProgress(progress)
+    scrollContainerRef.style.setProperty("--scroll-progress", `${progress}%`)
+  }
+
   return (
     <Dialog transition class="!max-w-4xl !max-h-[85vh]">
-      <div class="flex items-center justify-between px-4 py-2 border-b border-border-base shrink-0">
-        <span class="text-13-medium text-text-strong truncate">Preview {props.filename}</span>
-        <div class="flex items-center gap-1">
+      <div data-component="markdown-toolbar">
+        <span class="text-12-medium text-text-weak ml-1">{props.filename}</span>
+        <div class="flex-1" />
+        <div class="flex items-center gap-0.5">
+          <span class="text-10-regular text-text-weaker tabular-nums mr-1">{scrollProgress()}%</span>
           <button
-            type="button"
-            class="flex items-center justify-center size-6 rounded text-icon-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors"
-            onClick={() => void renderMarkdown(props.content)}
+            data-active={wordWrap() ? "true" : "false"}
+            title="Toggle word wrap"
+            onClick={() => setWordWrap((p) => !p)}
           >
+            <Icon name="wrap" size="small" />
+          </button>
+          <button
+            data-active={showSource() ? "true" : "false"}
+            title="Toggle source view"
+            onClick={() => setShowSource((p) => !p)}
+          >
+            <Icon name="code" size="small" />
+          </button>
+          <div data-slot="toolbar-separator" />
+          <button title="Refresh preview" onClick={() => void renderMarkdown(props.content)}>
             <Icon name="reset" size="small" />
           </button>
           <IconButton icon="close" variant="ghost" size="small" class="size-6 rounded" onClick={props.onClose} />
         </div>
       </div>
-      <div class="flex-1 overflow-y-auto p-4">
-        <Show when={!loading()} fallback={
-          <div class="flex items-center justify-center py-10 text-text-weak">
-            <div class="flex items-center gap-2">
-              <Icon name="cursor" size="small" class="animate-pulse" />
-              <span>Rendering...</span>
-            </div>
+      <Show
+        when={!showSource()}
+        fallback={
+          <div class="flex-1 overflow-auto" ref={scrollContainerRef} onScroll={handleScroll}>
+            <pre
+              class="p-6 text-12-regular font-mono text-text-strong m-0"
+              style={{ "white-space": wordWrap() ? "pre-wrap" : "pre", "overflow-x": "auto" }}
+            >
+              {props.content}
+            </pre>
           </div>
-        }>
-          <Show when={!error()} fallback={
-            <div class="flex flex-col items-center gap-3 py-10">
-              <Icon name="circle-ban-sign" size="large" class="text-icon-danger-active" />
-              <p class="text-text-weak text-13-regular">Failed to render markdown</p>
-              <p class="text-text-weaker text-11-regular">{error()}</p>
+        }
+      >
+        <div data-component="markdown-preview" class="flex-1 overflow-y-auto p-8" ref={scrollContainerRef} onScroll={handleScroll}>
+          <Show when={!loading()} fallback={
+            <div class="flex items-center justify-center py-10 text-text-weak">
+              <div class="flex items-center gap-2">
+                <Icon name="cursor" size="small" class="animate-pulse" />
+                <span>Rendering...</span>
+              </div>
             </div>
           }>
-            <div class={proseClass} innerHTML={html()} />
+            <Show when={!error()} fallback={
+              <div class="flex flex-col items-center gap-3 py-10">
+                <Icon name="circle-ban-sign" size="large" class="text-icon-danger-active" />
+                <p class="text-text-weak text-13-regular">Failed to render markdown</p>
+                <p class="text-text-weaker text-11-regular">{error()}</p>
+              </div>
+            }>
+              <div class={proseClass} innerHTML={html()} />
+            </Show>
           </Show>
-        </Show>
-      </div>
+        </div>
+      </Show>
     </Dialog>
   )
 }
