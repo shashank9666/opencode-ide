@@ -326,6 +326,15 @@ export default function FullIde() {
 
   // ── Context menus ──
   const [contextMenu, setContextMenu] = createSignal<{ x: number; y: number; path: string; isDir: boolean } | null>(null)
+  const clampContextMenu = (x: number, y: number) => {
+    const width = 280
+    const height = 560
+    const padding = 12
+    return {
+      x: Math.max(padding, Math.min(x, window.innerWidth - width - padding)),
+      y: Math.max(padding, Math.min(y, window.innerHeight - height - padding)),
+    }
+  }
   const [renaming, setRenaming] = createSignal<string | null>(null)
   const [renameValue, setRenameValue] = createSignal("")
   const [creating, setCreating] = createSignal<"file" | "directory" | null>(null)
@@ -707,7 +716,8 @@ export default function FullIde() {
     const path = item.getAttribute("data-path") ?? ""
     const isDir = item.getAttribute("data-type") === "directory"
     e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, path, isDir })
+    const position = clampContextMenu(e.clientX, e.clientY)
+    setContextMenu({ x: position.x, y: position.y, path, isDir })
   }
 
   const closeContextMenu = () => { setContextMenu(null); setRenaming(null); setCreating(null) }
@@ -1599,7 +1609,7 @@ export default function FullIde() {
 
       {/* ── Context Menu ── */}
       <Show when={contextMenu()}>
-        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px` }} onClick={(e) => e.stopPropagation()}>
+        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 max-h-[calc(100vh-24px)] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px`, maxWidth: "calc(100vw - 24px)" }} onClick={(e) => e.stopPropagation()}>
           <Show when={!contextMenu()!.isDir}>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; handleFileClick({ path: ctx.path, type: "file" }); closeContextMenu() }}>Open</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>

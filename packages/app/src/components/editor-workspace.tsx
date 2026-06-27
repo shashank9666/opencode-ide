@@ -36,6 +36,12 @@ export function createEditorWorkspace() {
     return null;
   };
 
+  const resolveActiveGroupId = () => {
+    const resolved = findGroup(rootNode(), activeGroupId())
+    if (resolved) return resolved.id
+    return getActiveGroup()?.id ?? activeGroupId()
+  }
+
   const updateGroup = (node: EditorNode, id: string, updater: (g: EditorGroup) => EditorGroup): EditorNode => {
     if (node.type === "group") {
       if (node.group.id === id) return { ...node, group: updater(node.group) };
@@ -44,8 +50,9 @@ export function createEditorWorkspace() {
     return { ...node, children: node.children.map(c => updateGroup(c, id, updater)) };
   };
 
-  const openFile = (path: string, content: string, groupId: string = activeGroupId()) => {
-    setRootNode(prev => updateGroup(prev, groupId, (g) => {
+  const openFile = (path: string, content: string, groupId = "") => {
+    const targetGroupId = groupId || resolveActiveGroupId()
+    setRootNode(prev => updateGroup(prev, targetGroupId, (g) => {
       const existing = g.files.find(f => f.path === path);
       if (existing) {
         // Update content if file was reloaded from disk

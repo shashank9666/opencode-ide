@@ -1,4 +1,4 @@
-import { For, Show, createSignal, createMemo } from "solid-js"
+import { For, Show, createEffect, createSignal, createMemo } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
@@ -80,6 +80,19 @@ export default function RemotePanel(props: {
   const [connection, setConnection] = createSignal<RemoteConnection | null>(null)
   const [currentPath, setCurrentPath] = createSignal("/")
   const [selectedRemoteType, setSelectedRemoteType] = createSignal<RemoteType>("WSL")
+
+  createEffect(() => {
+    const value = props.connection
+    if (!value) {
+      setConnection(null)
+      return
+    }
+
+    const [type, ...targetParts] = value.split(": ")
+    if (type === "WSL" || type === "SSH" || type === "Container") {
+      setConnection({ type, target: targetParts.join(": "), status: "connected" })
+    }
+  })
 
   const isConnected = () => connection()?.status === "connected"
   const isConnecting = () => connection()?.status === "connecting"
