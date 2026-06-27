@@ -4,6 +4,7 @@ import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { StatusPopover } from "@/components/status-popover"
 import { buildMenus, type IdeActions, type SubmenuItem } from "./MenuBar"
+import { showToast } from "@/utils/toast"
 
 export default function HeaderBar(props: {
   workspaceName?: string
@@ -122,7 +123,15 @@ export default function HeaderBar(props: {
             class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular text-text-weak hover:bg-accent-base hover:text-white transition-colors cursor-default"
             disabled={item.disabled}
             classList={{ "opacity-50 cursor-not-allowed": item.disabled }}
-            onClick={() => { if (item.action) item.action(); setActiveMenu(null); setSubmenuActive(null) }}
+            onClick={() => {
+              if (item.action) {
+                item.action()
+              } else {
+                showToast({ title: "Not implemented", description: `${item.label || "This feature"} is coming soon` })
+              }
+              setActiveMenu(null)
+              setSubmenuActive(null)
+            }}
           >
             <span>{item.label}</span>
             <Show when={item.shortcut}>
