@@ -251,7 +251,7 @@ function MemoryItem(props: { memory: KnowledgeMemory; onEdit: () => void; onDele
           class="flex items-center justify-center size-5 rounded hover:bg-surface-stronger text-icon-weak hover:text-icon-base"
           aria-label="Edit memory"
         >
-          <Icon name="pencil" size="small" />
+            <Icon name="edit" size="small" />
         </button>
         <button
           type="button"

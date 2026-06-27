@@ -37,7 +37,7 @@ export default function TerminalCommandHistory(props: Props) {
   return (
     <div class="size-full flex flex-col bg-surface-base">
       <div class="flex items-center gap-2 px-3 py-1.5 border-b border-border-base shrink-0">
-        <Icon name="history" size="small" class="text-icon-weak" />
+        <Icon name="checklist" size="small" class="text-icon-weak" />
         <span class="text-12-medium text-text-weak uppercase tracking-wide">History</span>
         <span class="text-11-regular text-text-weaker">({props.entries.length})</span>
       </div>

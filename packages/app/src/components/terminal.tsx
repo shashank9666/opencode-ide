@@ -26,7 +26,7 @@ export interface TerminalProps extends ComponentProps<"div"> {
   onCleanup?: (pty: Partial<LocalPTY> & { id: string }) => void
   onConnect?: () => void
   onConnectError?: (error: unknown) => void
-  onCommand?: (command: string) => void
+  onTerminalCommand?: (command: string) => void
 }
 
 let shared: Promise<{ mod: typeof import("ghostty-web"); ghostty: Ghostty }> | undefined
@@ -170,7 +170,7 @@ export const Terminal = (props: TerminalProps) => {
   const password = auth?.password ?? ""
   const sameOrigin = new URL(url, location.href).origin === location.origin
   let container!: HTMLDivElement
-  const [local, others] = splitProps(props, ["pty", "class", "classList", "autoFocus", "onConnect", "onConnectError"])
+  const [local, others] = splitProps(props, ["pty", "class", "classList", "autoFocus", "onConnect", "onConnectError", "onTerminalCommand"])
   const id = local.pty.id
   const restore = typeof local.pty.buffer === "string" ? local.pty.buffer : ""
   const restoreSize =
@@ -204,6 +204,7 @@ export const Terminal = (props: TerminalProps) => {
   let drop: VoidFunction | undefined
   let reconn: ReturnType<typeof setTimeout> | undefined
   let tries = 0
+  let commandBuffer = ""
 
   const cleanup = () => {
     if (!cleanups.length) return
@@ -419,6 +420,19 @@ export const Terminal = (props: TerminalProps) => {
       cleanups.push(() => disposeIfDisposable(onResize))
       const onData = t.onData((data) => {
         if (ws?.readyState === WebSocket.OPEN) ws.send(data)
+        if (local.onTerminalCommand) {
+          for (const char of data) {
+            if (char === "\r") {
+              const cmd = commandBuffer.trim()
+              if (cmd) local.onTerminalCommand(cmd)
+              commandBuffer = ""
+            } else if (char === "\x7f" || char === "\b") {
+              commandBuffer = commandBuffer.slice(0, -1)
+            } else if (char >= " ") {
+              commandBuffer += char
+            }
+          }
+        }
       })
       cleanups.push(() => disposeIfDisposable(onData))
       const onKey = t.onKey((key) => {

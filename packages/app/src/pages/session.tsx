@@ -55,6 +55,11 @@ import {
   shouldShowFileTree,
 } from "@/pages/session/helpers"
 import { PlanningProvider } from "@/context/planning"
+import { KnowledgeProvider } from "@/context/knowledge"
+import { ProductionProvider } from "@/context/production"
+import { BackgroundTasksProvider } from "@/context/background-tasks"
+import { AgentCapabilitiesProvider } from "@/context/agent-capabilities"
+import { VerificationProvider } from "@/context/verification"
 import { MessageTimeline } from "@/pages/session/message-timeline"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
@@ -1743,6 +1748,11 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
   )
 
   return (
+    <KnowledgeProvider>
+    <ProductionProvider>
+    <BackgroundTasksProvider>
+    <AgentCapabilitiesProvider>
+    <VerificationProvider>
     <div class="relative size-full overflow-hidden flex flex-col bg-background-stronger">
       {sessionSync() ?? ""}
       <Show
@@ -1944,5 +1954,10 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
         </div>
       </Show>
     </div>
+    </VerificationProvider>
+    </AgentCapabilitiesProvider>
+    </BackgroundTasksProvider>
+    </ProductionProvider>
+    </KnowledgeProvider>
   )
 }

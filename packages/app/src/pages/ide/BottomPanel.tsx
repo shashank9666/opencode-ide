@@ -30,6 +30,8 @@ export default function BottomPanel(props: {
   onKillTerminal?: () => void
   isTerminalSplit?: boolean
   onMaximize?: () => void
+  showHistory?: boolean
+  onToggleHistory?: () => void
   children: (tab: BottomPanelTab) => JSX.Element
 }) {
   return (
@@ -99,6 +101,19 @@ export default function BottomPanel(props: {
             <div class="w-px h-4 bg-border-base mx-0.5" />
             <Tooltip value={props.isTerminalSplit ? "Unsplit Terminal" : "Split Terminal"} placement="top">
               <IconButton icon={props.isTerminalSplit ? "collapse" : "layout-right"} fallbackIcon="collapse" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onSplitTerminal} />
+            </Tooltip>
+            <Tooltip value="Command History" placement="top">
+              <IconButton
+                icon="checklist"
+                variant="ghost"
+                size="small"
+                class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong"
+                classList={{
+                  "text-accent-base": props.showHistory,
+                  "text-text-weaker": !props.showHistory,
+                }}
+                onClick={props.onToggleHistory}
+              />
             </Tooltip>
             <Tooltip value="Kill Terminal" placement="top">
               <IconButton icon="trash" variant="ghost" size="small" class="size-6 rounded hover:bg-surface-raised-base-hover hover:text-text-strong" onClick={props.onKillTerminal} />

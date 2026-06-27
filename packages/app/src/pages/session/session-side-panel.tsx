@@ -17,6 +17,13 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import FileTree from "@/components/file-tree"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { ToolTimeline } from "@/components/session/tool-timeline"
+import { AgentCapabilities } from "@/components/session/agent-capabilities"
+import { AgentCapabilitiesProvider } from "@/context/agent-capabilities"
+import { KnowledgePanel } from "@/components/session/knowledge-panel"
+import { ProductionFeatures } from "@/components/session/production-features"
+import { BackgroundTasksPanel } from "@/components/session/background-tasks"
+import { MultiAgentView, type SubAgent, type MasterMergeStatus } from "@/components/session/multi-agent-view"
+import { VerificationPipeline } from "@/components/session/verification-pipeline"
 import { FileChangeTracking, SessionContextTab, SortableTab, FileVisual } from "@/components/session"
 import { useCommand } from "@/context/command"
 import { useFile, type SelectedLineRange } from "@/context/file"
@@ -57,6 +64,8 @@ export function SessionSidePanel(props: {
   focusReviewDiff: (path: string) => void
   reviewSnap: boolean
   size: Sizing
+  multiAgent?: { agents: SubAgent[]; mergeStatus: MasterMergeStatus }
+  showVerification?: boolean
 }) {
   const layout = useLayout()
   const settings = useSettings()
@@ -403,12 +412,52 @@ export function SessionSidePanel(props: {
                             <div>Tools</div>
                           </div>
                         </Tabs.Trigger>
+                        <Tabs.Trigger value="capabilities">
+                          <div class="flex items-center gap-1.5">
+                            <Icon name="sliders" size="small" />
+                            <div>Capabilities</div>
+                          </div>
+                        </Tabs.Trigger>
                         <Show when={props.canReview() && props.diffsReady() && props.diffs().length > 0}>
                           <Tabs.Trigger value="changes">
                             <div class="flex items-center gap-1.5">
                               <Icon name="diff" size="small" />
                               <div>Changes</div>
                               <div>{props.reviewCount()}</div>
+                            </div>
+                          </Tabs.Trigger>
+                        </Show>
+                        <Tabs.Trigger value="knowledge">
+                          <div class="flex items-center gap-1.5">
+                            <Icon name="brain" size="small" />
+                            <div>Knowledge</div>
+                          </div>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="production">
+                          <div class="flex items-center gap-1.5">
+                            <Icon name="settings-gear" size="small" />
+                            <div>Production</div>
+                          </div>
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="background">
+                          <div class="flex items-center gap-1.5">
+                            <Icon name="checklist" size="small" />
+                            <div>Background</div>
+                          </div>
+                        </Tabs.Trigger>
+                        <Show when={props.multiAgent}>
+                          <Tabs.Trigger value="multi-agent">
+                            <div class="flex items-center gap-1.5">
+                              <Icon name="branch" size="small" />
+                              <div>Multi-Agent</div>
+                            </div>
+                          </Tabs.Trigger>
+                        </Show>
+                        <Show when={props.showVerification}>
+                          <Tabs.Trigger value="verify">
+                            <div class="flex items-center gap-1.5">
+                              <Icon name="shield" size="small" />
+                              <div>Verify</div>
                             </div>
                           </Tabs.Trigger>
                         </Show>
@@ -473,6 +522,14 @@ export function SessionSidePanel(props: {
                       </Show>
                     </Tabs.Content>
 
+                    <Tabs.Content value="capabilities" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "capabilities"}>
+                        <AgentCapabilitiesProvider>
+                          <AgentCapabilities />
+                        </AgentCapabilitiesProvider>
+                      </Show>
+                    </Tabs.Content>
+
                     <Tabs.Content value="changes" class="flex flex-col h-full overflow-hidden contain-strict">
                       <Show when={effectiveTab() === "changes"}>
                         <FileChangeTracking
@@ -502,6 +559,40 @@ export function SessionSidePanel(props: {
                         />
                       </Show>
                     </Tabs.Content>
+
+                    <Tabs.Content value="knowledge" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "knowledge"}>
+                        <KnowledgePanel />
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="production" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "production"}>
+                        <ProductionFeatures />
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="background" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "background"}>
+                        <BackgroundTasksPanel />
+                      </Show>
+                    </Tabs.Content>
+
+                    <Show when={props.multiAgent}>
+                      <Tabs.Content value="multi-agent" class="flex flex-col h-full overflow-hidden contain-strict">
+                        <Show when={activeTab() === "multi-agent"}>
+                          <MultiAgentView agents={props.multiAgent!.agents} mergeStatus={props.multiAgent!.mergeStatus} />
+                        </Show>
+                      </Tabs.Content>
+                    </Show>
+
+                    <Show when={props.showVerification}>
+                      <Tabs.Content value="verify" class="flex flex-col h-full overflow-hidden contain-strict">
+                        <Show when={activeTab() === "verify"}>
+                          <VerificationPipeline />
+                        </Show>
+                      </Tabs.Content>
+                    </Show>
 
                     <Show when={activeFileTab()} keyed>
                       {(tab) => <FileTabContent tab={tab} />}

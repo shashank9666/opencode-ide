@@ -16,6 +16,7 @@ import { createEditorWorkspace } from "@/components/editor-workspace"
 import { EditorArea } from "@/components/EditorArea"
 import { SplitPane } from "@/components/SplitPane"
 import { Terminal } from "@/components/terminal"
+import TerminalCommandHistory from "@/components/terminal/terminal-command-history"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { getFilename } from "@opencode-ai/core/util/path"
@@ -63,6 +64,7 @@ import TestingPanel from "./TestingPanel"
 import SettingsPanel from "./SettingsPanel"
 import KeybindingsPanel from "./KeybindingsPanel"
 import RemotePanel from "./RemotePanel"
+import { useRemote } from "@/context/remote"
 import DatabasePanel from "./DatabasePanel"
 import ExtensionsPanel from "./ExtensionsPanel"
 import RemoteConnectionModal from "./RemoteConnectionModal"
@@ -135,6 +137,7 @@ export default function FullIde() {
   const sync = useSync()
   const local = useLocal()
   const dialog = useDialog()
+  const remote = useRemote()
 
   // ── Layout state ──
   const savedLayout = (() => {
@@ -180,31 +183,44 @@ export default function FullIde() {
       } catch { return null }
     })()
   )
-  // Persist remote connection across page refreshes
+  // Sync remote connection label with context and persist
   createEffect(() => {
-    const val = remoteConnection()
-    if (val) localStorage.setItem('remoteConnection', val)
-    else localStorage.removeItem('remoteConnection')
+    const conn = remote.connection()
+    if (conn?.status === "connected") {
+      const label = `${conn.type === "Container" ? "Container" : conn.type}: ${conn.target}`
+      setRemoteConnection(label)
+      localStorage.setItem('remoteConnection', label)
+    } else if (remoteConnection() && !conn) {
+      setRemoteConnection(null)
+      localStorage.removeItem('remoteConnection')
+    }
   })
 
-  const handleRemoteConnect = (type: "SSH" | "WSL" | "Container", target: string) => {
+  const handleRemoteConnect = async (type: "SSH" | "WSL" | "Container", target: string) => {
     setRemoteModalOpen(false)
     showToast({
       title: "Connecting",
       description: `Connecting to ${type} host: ${target}...`,
     })
 
-    setTimeout(() => {
-      setRemoteConnection(`${type === "Container" ? "Container" : type}: ${target}`)
+    await remote.connect(type, target)
+
+    const conn = remote.connection()
+    if (conn?.status === "connected") {
       showToast({
         variant: "success",
         title: "Connected",
         description: `Successfully connected to ${type} host: ${target}!`,
       })
-      // Auto-open the remote explorer panel to show the file browser
       panelManager.panels().filter((p) => p.position === "left").forEach((p) => panelManager.hidePanel(p.id))
       panelManager.showPanel("remote")
-    }, 1500)
+    } else {
+      showToast({
+        variant: "error",
+        title: "Connection failed",
+        description: conn?.error ?? `Failed to connect to ${type} host: ${target}`,
+      })
+    }
   }
 
 
@@ -226,6 +242,7 @@ export default function FullIde() {
   })
   const [terminalLoading, setTerminalLoading] = createSignal<string | null>(null)
   let terminalSplitCounter = 0
+  const [showTerminalHistory, setShowTerminalHistory] = createSignal(false)
 
   // ── Git status for explorer markers ──
   const [gitStatusMap, setGitStatusMap] = createSignal<Map<string, "add" | "del" | "mix">>(new Map())
@@ -1408,20 +1425,23 @@ export default function FullIde() {
               onMaximize={() => {
                 setBottomPanelHeight(h => h > 300 ? 220 : window.innerHeight * 0.8)
               }}
+              showHistory={showTerminalHistory()}
+              onToggleHistory={() => setShowTerminalHistory(v => !v)}
             >
               {(tab) => (
                 <Switch>
                   <Match when={tab === "terminal"}>
                     <div class="size-full relative flex">
                       <Show when={terminalSplit() === "vertical" && terminalSplitId() && terminal.all().length >= 1} fallback={
-                        <div class="flex-1 min-w-0 relative">
-                          <For each={terminal.all()}>
-                            {(pty) => (
-                              <div class="absolute inset-0" style={{ display: terminal.active() === pty.id ? "block" : "none" }}>
-                                <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
-                              </div>
-                            )}
-                          </For>
+                        <div class="flex-1 min-w-0 relative flex">
+                          <div class="flex-1 min-w-0 relative">
+                            <For each={terminal.all()}>
+                              {(pty) => (
+                                <div class="absolute inset-0" style={{ display: terminal.active() === pty.id ? "block" : "none" }}>
+                                  <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} onTerminalCommand={(cmd) => terminal.addCommandEntry({ command: cmd, terminalId: pty.id, title: pty.title })} />
+                                </div>
+                              )}
+                            </For>
                           <Show when={terminal.all().length === 0}>
                             <div class="size-full flex items-center justify-center text-text-weak text-13-regular">
                               <Show when={terminalLoading() !== null} fallback={
@@ -1440,6 +1460,16 @@ export default function FullIde() {
                                   </div>
                                 </div>
                               </Show>
+                            </div>
+                          </Show>
+                          </div>
+                          <Show when={showTerminalHistory()}>
+                            <div class="w-72 shrink-0 border-l border-border-base">
+                              <TerminalCommandHistory
+                                entries={terminal.commandHistory()}
+                                onReRun={(cmd) => terminal.newShell({ command: cmd, title: cmd })}
+                                onKill={(id) => terminal.close(id)}
+                              />
                             </div>
                           </Show>
                         </div>
@@ -1462,7 +1492,7 @@ export default function FullIde() {
                                   {(pty) => (
                                     <Show when={terminalSplitId() !== pty.id}>
                                       <div class="absolute inset-0" style={{ display: leftActiveId() === pty.id ? "block" : "none" }}>
-                                        <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                                        <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} onTerminalCommand={(cmd) => terminal.addCommandEntry({ command: cmd, terminalId: pty.id, title: pty.title })} />
                                       </div>
                                     </Show>
                                   )}
@@ -1475,13 +1505,22 @@ export default function FullIde() {
                               {(pty) => (
                                 <Show when={terminalSplitId() === pty.id}>
                                   <div class="absolute inset-0" style={{ display: "block" }}>
-                                    <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} />
+                                    <Terminal pty={pty} class="size-full" onCleanup={(p) => terminal.update(p)} onTerminalCommand={(cmd) => terminal.addCommandEntry({ command: cmd, terminalId: pty.id, title: pty.title })} />
                                   </div>
                                 </Show>
                               )}
                             </For>
                           </div>
                         </SplitPane>
+                        <Show when={showTerminalHistory()}>
+                          <div class="w-72 shrink-0 border-l border-border-base">
+                            <TerminalCommandHistory
+                              entries={terminal.commandHistory()}
+                              onReRun={(cmd) => terminal.newShell({ command: cmd, title: cmd })}
+                              onKill={(id) => terminal.close(id)}
+                            />
+                          </div>
+                        </Show>
                       </Show>
                       <div class="w-48 shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto py-1">
                         <For each={terminal.all()}>

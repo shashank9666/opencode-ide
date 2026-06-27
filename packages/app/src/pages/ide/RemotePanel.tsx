@@ -568,7 +568,7 @@ export default function RemotePanel(props: {
               <button
                 type="button"
                 class="text-11-regular text-text-weaker hover:text-text-strong"
-                onClick={() => openRemoteCommand("Refresh Processes", `remote-${connection()!.type.toLowerCase()} ps`)}
+                onClick={() => { void remote.refreshProcesses(); openRemoteCommand("Refresh Processes", `remote-${remote.connection()!.type.toLowerCase()} ps`) }}
               >
                 Refresh
               </button>
@@ -687,7 +687,7 @@ export default function RemotePanel(props: {
                                   </DropdownMenu.Item>
                                   <DropdownMenu.Item
                                     onSelect={() => {
-                                      if (connection()?.type === section.type && connection()?.target === item) {
+                                      if (remote.connection()?.type === section.type && remote.connection()?.target === item) {
                                         handleDisconnect()
                                       }
                                     }}
