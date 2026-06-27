@@ -112,18 +112,32 @@ export default function AIWorkspacePanel(props: {
                         </p>
                       </div>
 
-                      {/* Delete button */}
-                      <IconButton
-                        icon="trash"
-                        variant="ghost"
-                        size="small"
-                        class="size-5 rounded opacity-0 group-hover:opacity-100 shrink-0"
-                        onClick={(e: MouseEvent) => {
-                          e.stopPropagation()
-                          props.confirmDeleteSession(session.id, session.title || "Untitled")
-                        }}
-                        aria-label="Delete session"
-                      />
+                      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+                        {/* Edit button */}
+                        <IconButton
+                          icon="edit"
+                          variant="ghost"
+                          size="small"
+                          class="size-5 rounded"
+                          onClick={(e: MouseEvent) => {
+                            e.stopPropagation()
+                            window.dispatchEvent(new CustomEvent("toast", { detail: { title: "Rename Session", description: "Coming soon" } }))
+                          }}
+                          aria-label="Rename session"
+                        />
+                        {/* Delete button */}
+                        <IconButton
+                          icon="trash"
+                          variant="ghost"
+                          size="small"
+                          class="size-5 rounded"
+                          onClick={(e: MouseEvent) => {
+                            e.stopPropagation()
+                            props.confirmDeleteSession(session.id, session.title || "Untitled")
+                          }}
+                          aria-label="Delete session"
+                        />
+                      </div>
                     </div>
                   )}
                 </For>

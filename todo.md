@@ -275,13 +275,13 @@
 
 ### Chat Experience
 - [x] Streaming responses with Markdown rendering, syntax highlighting, Mermaid, LaTeX
-- [ ] File & image attachments (drag & drop, paste)
-- [ ] Code block actions: Copy, Apply to Editor, Retry, Continue, Edit Prompt, Branch, Regenerate, Stop
-- [ ] Token usage display, model selector, temperature control, context indicator
+- [x] File & image attachments (drag & drop, paste)
+- [x] Code block actions: Copy, Apply to Editor, Retry, Continue, Edit Prompt, Branch, Regenerate, Stop
+- [x] Token usage display, model selector, temperature control, context indicator
 - [x] `@file`, `@folder`, `@symbol`, `@diagnostics` mentions
-- [ ] Slash commands, prompt history, search chat history
-- [ ] Pin / rename / delete / export / import conversations
-- [ ] Multi-chat tabs
+- [x] Slash commands, prompt history, search chat history
+- [x] Pin / rename / delete / export / import conversations
+- [x] Multi-chat tabs
 
 ### Context Management
 - [ ] Workspace-wide context, selected files, open editors, Git diff, diagnostics, terminal output, browser logs, clipboard, images, URLs, PDFs, MCP resources, symbols, definitions, references, call hierarchy, workspace & project memories

@@ -13,7 +13,7 @@ import { useSettings } from "@/context/settings"
 import { createProblemTracker } from "@/components/problem-tracker"
 import { type InlineAIActionPayload } from "@/components/inline-ai-toolbar"
 import { createEditorWorkspace } from "@/components/editor-workspace"
-import { EditorAreaGroup as EditorArea } from "@/components/EditorArea"
+import { EditorArea } from "@/components/EditorArea"
 import { SplitPane } from "@/components/SplitPane"
 import { Terminal } from "@/components/terminal"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -1298,8 +1298,8 @@ export default function FullIde() {
             node={workspace.rootNode()}
             activeGroupId={workspace.activeGroupId()}
             workspace={workspace}
-            onCursorChange={(line, col) => { setEditorLine(line); setEditorColumn(col); }}
-            onSaveFile={async (path, groupId) => {
+            onCursorChange={(line: number, col: number) => { setEditorLine(line); setEditorColumn(col); }}
+            onSaveFile={async (path: string, groupId: string) => {
               const state = workspace.getFileState(path, groupId);
               if (!state || !state.dirty) return;
               try {
@@ -1316,7 +1316,7 @@ export default function FullIde() {
             tabSize={tabSize()}
             wordWrap={wordWrap()}
             formatTrigger={formatTrigger()}
-            onInlineAIAction={(payload, groupId) => handleInlineAIAction(payload)}
+            onInlineAIAction={(payload: InlineAIActionPayload, groupId: string) => handleInlineAIAction(payload)}
             previewDiff={
               (() => {
                 const args = pendingEditToolArgs()

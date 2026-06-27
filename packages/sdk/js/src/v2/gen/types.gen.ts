@@ -11319,6 +11319,57 @@ export type V2ProjectCopyRefreshResponses = {
 
 export type V2ProjectCopyRefreshResponse = V2ProjectCopyRefreshResponses[keyof V2ProjectCopyRefreshResponses]
 
+export type V2GitBlameData = {
+  body?: never
+  path?: never
+  query: {
+    location?: {
+      directory?: string
+      workspace?: string
+    }
+    file: string
+  }
+  url: "/api/git/blame"
+}
+
+export type V2GitBlameErrors = {
+  /**
+   * InvalidRequestError
+   */
+  400: InvalidRequestError
+  /**
+   * UnauthorizedError
+   */
+  401: UnauthorizedError
+}
+
+export type V2GitBlameError = V2GitBlameErrors[keyof V2GitBlameErrors]
+
+export type V2GitBlameResponses = {
+  /**
+   * Success
+   */
+  200: {
+    location: {
+      directory: string
+    }
+    data: Array<{
+      sha: string
+      line: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      originalLine: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      numLines: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      author: string
+      email: string
+      time: number | "NaN" | "Infinity" | "-Infinity" | "Infinity" | "-Infinity" | "NaN"
+      tz: string
+      summary: string
+      content: string
+    }>
+  }
+}
+
+export type V2GitBlameResponse = V2GitBlameResponses[keyof V2GitBlameResponses]
+
 export type PtyConnectData = {
   body?: never
   path: {

@@ -279,6 +279,8 @@ import type {
   V2FsRenameResponses,
   V2FsWriteErrors,
   V2FsWriteResponses,
+  V2GitBlameErrors,
+  V2GitBlameResponses,
   V2HealthGetErrors,
   V2HealthGetResponses,
   V2IntegrationAttemptCancelErrors,
@@ -6691,6 +6693,41 @@ export class ProjectCopy2 extends HeyApiClient {
   }
 }
 
+export class Git extends HeyApiClient {
+  /**
+   * Git Blame
+   *
+   * Get blame information for a file showing who wrote each line.
+   */
+  public blame<ThrowOnError extends boolean = false>(
+    parameters: {
+      location?: {
+        directory?: string
+        workspace?: string
+      }
+      file: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "location" },
+            { in: "query", key: "file" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<V2GitBlameResponses, V2GitBlameErrors, ThrowOnError>({
+      url: "/api/git/blame",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class V2 extends HeyApiClient {
   private _health?: Health
   get health(): Health {
@@ -6775,6 +6812,11 @@ export class V2 extends HeyApiClient {
   private _projectCopy?: ProjectCopy2
   get projectCopy(): ProjectCopy2 {
     return (this._projectCopy ??= new ProjectCopy2({ client: this.client }))
+  }
+
+  private _git?: Git
+  get git(): Git {
+    return (this._git ??= new Git({ client: this.client }))
   }
 }
 

@@ -224,6 +224,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const [contextImagesOpen, setContextImagesOpen] = createSignal(false)
   const [artifactsPanelOpen, setArtifactsPanelOpen] = createSignal(false)
   const [planningMode, setPlanningMode] = createSignal(false)
+  const [isDragging, setIsDragging] = createSignal(false)
 
   const terminal = useTerminal()
 
@@ -1879,9 +1880,27 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               "border-icon-info-active border-dashed": store.draggingType !== null,
               [props.class ?? ""]: !!props.class,
             }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragging(true)
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault()
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsDragging(false)
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+              const files = e.dataTransfer?.files
+              if (files && files.length > 0) {
+                void addAttachments(Array.from(files))
+              }
+            }}
           >
             <PromptDragOverlay
-              type={store.draggingType}
+              type={isDragging() ? "image" : store.draggingType}
               label={language.t(
                 store.draggingType === "@mention" ? "prompt.dropzone.file.label" : "prompt.dropzone.label",
               )}
@@ -2109,8 +2128,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     <div class="flex items-center gap-1 ml-2 border-l border-border-base pl-2" style={control()}>
                       <Tooltip placement="top" gutter={4} value="Planning Mode">
                         <IconButton
-                          icon="map"
-                          variant={planningMode() ? "default" : "ghost"}
+                          icon="brain"
+                          variant={planningMode() ? "secondary" : "ghost"}
                           size="small"
                           class={`size-6 rounded ${planningMode() ? "bg-surface-raised-stronger text-icon-primary-active" : ""}`}
                           onClick={() => setPlanningMode((prev) => !prev)}
@@ -2118,6 +2137,18 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         />
                       </Tooltip>
                     </div>
+
+                    {/* Context Indicator */}
+                    <Show when={props.controls.projects?.directory}>
+                      <div class="flex items-center gap-1 ml-2 border-l border-border-base pl-2 pr-1" style={control()}>
+                        <div class="flex items-center gap-1.5 px-2 h-6 rounded bg-surface-raised-base border border-border-base text-text-weak cursor-default">
+                          <Icon name="folder" size="small" />
+                          <span class="text-[11px] font-medium tracking-wide truncate max-w-[120px]">
+                            {props.controls.projects.directory.split(/[/\\]/).pop()}
+                          </span>
+                        </div>
+                      </div>
+                    </Show>
 
                     {/* Chatbot Options */}
                     <div class="flex items-center gap-1 ml-2 border-l border-border-base pl-2" style={control()}>
@@ -2149,7 +2180,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                             <div class="relative">
                               <IconButton
                                 icon="archive"
-                                variant={artifactsPanelOpen() ? "default" : "ghost"}
+                                variant={artifactsPanelOpen() ? "secondary" : "ghost"}
                                 size="small"
                                 class={`size-6 rounded ${artifactsPanelOpen() ? "bg-surface-raised-stronger text-icon-primary-active" : ""}`}
                                 onClick={() => setArtifactsPanelOpen((prev) => !prev)}
