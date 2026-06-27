@@ -239,8 +239,8 @@ export default function FullIde() {
     const fetch = async () => {
       try {
         const [infoRes, statusRes] = await Promise.all([
-          sdkCtx.client.v2.vcs.get().catch(() => ({ data: {} as any })),
-          sdkCtx.client.v2.vcs.status().catch(() => ({ data: [] })),
+          sdkCtx.client.vcs.get().catch(() => ({ data: {} as any })),
+          sdkCtx.client.vcs.status().catch(() => ({ data: [] })),
         ])
         if (!active) return
         const branch = infoRes.data?.branch ?? ""
@@ -1092,7 +1092,6 @@ export default function FullIde() {
     findInFiles: () => toggleLeftPanel("search"),
     toggleLineComment: () => { /* trigger editor format */ },
     toggleBlockComment: () => { /* trigger editor format */ },
-    formatDocument: () => setFormatTrigger(f => f + 1),
 
     // View
     toggleExplorer: () => toggleLeftPanel("explorer"),
@@ -1609,7 +1608,7 @@ export default function FullIde() {
 
       {/* ── Context Menu ── */}
       <Show when={contextMenu()}>
-        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 max-h-[calc(100vh-24px)] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px`, maxWidth: "calc(100vw - 24px)" }} onClick={(e) => e.stopPropagation()}>
+        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 max-h-[calc(100vh-24px)] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px`, "max-width": "calc(100vw - 24px)" }} onClick={(e) => e.stopPropagation()}>
           <Show when={!contextMenu()!.isDir}>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; handleFileClick({ path: ctx.path, type: "file" }); closeContextMenu() }}>Open</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>
