@@ -22,6 +22,14 @@ function sanitizeHtml(html: string): string {
   return html.replace(/<script[\s\S]*?<\/script>/gi, "")
 }
 
+function addHeadingIds(html: string): string {
+  return html.replace(/<h([1-6])([^>]*)>(.*?)<\/h\1>/gi, (match, level, attrs, text) => {
+    if (attrs.includes('id=')) return match;
+    const id = text.replace(/<[^>]*>/g, "").toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "")
+    return `<h${level} id="${id}"${attrs}>${text}</h${level}>`
+  })
+}
+
 function extractToc(html: string): { id: string; text: string; level: number }[] {
   const headings: { id: string; text: string; level: number }[] = []
   const regex = /<h([1-3])(?:\s+id="([^"]*)")?[^>]*>(.*?)<\/h\1>/gi
@@ -48,22 +56,12 @@ export function MarkdownPreviewToolbar(props: {
   onToggleSource?: () => void
   wordWrap?: boolean
   onToggleWordWrap?: () => void
-  scrollContainer?: () => HTMLElement | undefined
+  scrollProgress?: number
 }) {
-  const scrollTop = () => {
-    const el = props.scrollContainer?.()
-    if (!el) return 0
-    return el.scrollTop
-  }
-  const scrollMax = () => {
-    const el = props.scrollContainer?.()
-    if (!el) return 1
-    return Math.max(1, el.scrollHeight - el.clientHeight)
-  }
-  const scrollPercent = () => Math.round((scrollTop() / scrollMax()) * 100)
+  const scrollPercent = () => props.scrollProgress ?? 0
 
   return (
-    <div data-component="markdown-toolbar">
+    <div data-component="markdown-toolbar" class="relative">
       <div class="flex items-center gap-1">
         {/* File name */}
         <span class="text-12-medium text-text-weak ml-1">{props.filename}</span>
@@ -172,7 +170,8 @@ export function MarkdownPreviewPanel(props: { content: string; filename: string 
         result = await fallbackMarked.parse(markdown)
       }
       const cleaned = sanitizeHtml(result)
-      const resolved = resolveRelativeUrls(cleaned, props.filename)
+      const withIds = addHeadingIds(cleaned)
+      const resolved = resolveRelativeUrls(withIds, props.filename)
       setHtml(resolved)
       setToc(extractToc(resolved))
     } catch (err) {
@@ -247,7 +246,7 @@ export function MarkdownPreviewPanel(props: { content: string; filename: string 
         onToggleSource={() => setShowSource((p) => !p)}
         wordWrap={wordWrap()}
         onToggleWordWrap={() => setWordWrap((p) => !p)}
-        scrollContainer={() => scrollContainerRef}
+        scrollProgress={scrollProgress()}
       />
       <Show
         when={!showSource()}
@@ -302,7 +301,7 @@ export function MarkdownPreviewPanel(props: { content: string; filename: string 
                 </div>
               }
             >
-              <div class={proseClass} innerHTML={html()} />
+              <div data-component="markdown" class={typeof proseClass !== "undefined" ? proseClass : ""} innerHTML={html()} />
             </Show>
           </Show>
         </div>
