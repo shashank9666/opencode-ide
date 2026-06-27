@@ -40,7 +40,7 @@ import { useLocal } from "@/context/local"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { findLast } from "@opencode-ai/core/util/array"
 import { ImagePreview } from "@opencode-ai/ui/image-preview"
-import { MarkdownPreview, PdfPreview } from "@/components/previews"
+import { PdfPreview } from "@/components/previews"
 
 // Reuse existing panels + extend
 import HeaderBar from "./HeaderBar"
@@ -322,7 +322,7 @@ export default function FullIde() {
   const [breadcrumbs, setBreadcrumbs] = createSignal<string[]>([])
   const [formatTrigger, setFormatTrigger] = createSignal(0)
   const [diffMode, setDiffMode] = createSignal(false)
-  const [rightTab, setRightTab] = createSignal<string>("ai-chat")
+  const [rightTab, setRightTab] = createSignal<"ai-chat" | "ai-workspace" | "debug" | "testing" | "database">("ai-chat")
 
   // ── Context menus ──
   const [contextMenu, setContextMenu] = createSignal<{ x: number; y: number; path: string; isDir: boolean } | null>(null)
@@ -331,23 +331,6 @@ export default function FullIde() {
   const [creating, setCreating] = createSignal<"file" | "directory" | null>(null)
   const [createParent, setCreateParent] = createSignal("")
   const [deleteTarget, setDeleteTarget] = createSignal<{ path: string; isDir: boolean } | null>(null)
-  const [compareFilePath, setCompareFilePath] = createSignal<string | null>(null)
-  let menuRef: HTMLDivElement | undefined
-
-  createEffect(() => {
-    if (contextMenu()) {
-      requestAnimationFrame(() => {
-        if (!menuRef) return
-        const rect = menuRef.getBoundingClientRect()
-        let x = contextMenu()!.x
-        let y = contextMenu()!.y
-        if (x + rect.width > window.innerWidth - 8) x = window.innerWidth - rect.width - 8
-        if (y + rect.height > window.innerHeight - 8) y = window.innerHeight - rect.height - 8
-        menuRef.style.left = `${Math.max(8, x)}px`
-        menuRef.style.top = `${Math.max(8, y)}px`
-      })
-    }
-  })
 
   const dir = createMemo(() => decode64(params.dir) ?? "")
   const [dirStore] = createMemo(() => serverSync().child(dir(), { bootstrap: true }))()
@@ -533,7 +516,7 @@ export default function FullIde() {
     }
   }
 
-  const toggleRightPanel = (tab: string) => {
+  const toggleRightPanel = (tab: "ai-chat" | "ai-workspace" | "debug" | "testing" | "database") => {
     const pos = panelManager.panels().find((p) => p.position === "right" && p.visible)
     if (pos?.id === tab) {
       panelManager.hidePanel(tab)
@@ -586,15 +569,14 @@ export default function FullIde() {
       void (async () => {
         await file.load(path)
         const state = file.get(path)
-        if (state?.content?.type === "text" && state.content.content) {
-          const c = state.content.content
-          dialog.show(() => (
-            <MarkdownPreview
-              content={c}
-              filename={getFilename(path)}
-              onClose={() => dialog.close()}
-            />
-          ))
+        if (state?.content?.type === "text") {
+          const current = editor.activeFile()
+          if (current) editor.closeFile(current)
+          workspace.openFile(path, state.content.content)
+          setDiffMode(false)
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("open-markdown-preview", { detail: { path } }))
+          }, 50)
         }
       })()
     } else if (isPdfPath(path)) {
@@ -644,7 +626,6 @@ export default function FullIde() {
       }
       const content = state.content
       if (!content) {
-        // Empty file — open with empty content
         editor.openFile(path, "")
         setDiffMode(false)
         return
@@ -730,6 +711,10 @@ export default function FullIde() {
   }
 
   const closeContextMenu = () => { setContextMenu(null); setRenaming(null); setCreating(null) }
+  const copyToClipboard = async (text: string) => {
+    if (!navigator.clipboard) { showToast({ title: "Clipboard unavailable", description: "HTTPS required" }); return }
+    try { await navigator.clipboard.writeText(text) } catch { showToast({ title: "Clipboard error", description: "Failed to copy" }) }
+  }
   const startRename = (path: string) => { setRenaming(path); setRenameValue(getFilename(path)); setContextMenu(null) }
 
   const confirmRename = async () => {
@@ -998,50 +983,11 @@ export default function FullIde() {
     if (isMod && e.shiftKey && e.key === "F") { e.preventDefault(); toggleLeftPanel("search") }
     if (isMod && e.shiftKey && e.key === "G") { e.preventDefault(); toggleLeftPanel("source-control") }
 
-    if (isMod && e.shiftKey && e.key === "I") { e.preventDefault(); toggleRightPanel("ai-chat") }
-    if (isMod && e.shiftKey && e.key === "D") { e.preventDefault(); toggleLeftPanel("run-debug") }
-    if (isMod && e.shiftKey && e.key === "T") { e.preventDefault(); toggleLeftPanel("testing") }
+    if (isMod && e.shiftKey && e.key === "I") { e.preventDefault(); toggleRightPanel(rightTab() === "ai-chat" ? "ai-workspace" : "ai-chat") }
+    if (isMod && e.shiftKey && e.key === "D") { e.preventDefault(); toggleRightPanel("debug") }
+    if (isMod && e.shiftKey && e.key === "T") { e.preventDefault(); toggleRightPanel("testing") }
     if (isMod && e.key === ",") { e.preventDefault(); toggleSettings() }
-
-    // Go to Line — only when focus is NOT in an editor (Monaco handles Ctrl+G natively)
-    if (isMod && !e.shiftKey && e.key === "g" && !isInput) { e.preventDefault(); setCommandPaletteOpen(true) }
-
-    // Markdown preview — Ctrl+Shift+V
-    if (isMod && e.shiftKey && e.key === "v") {
-      e.preventDefault()
-      const active = editor.activeFile()
-      if (active && isMarkdownPath(active)) {
-        void (async () => {
-          const state = file.get(active)
-          if (state?.content?.type === "text" && state.content.content) {
-            const c = state.content.content
-            dialog.show(() => (
-              <MarkdownPreview
-                content={c}
-                filename={getFilename(active)}
-                onClose={() => dialog.close()}
-              />
-            ))
-          }
-        })()
-      }
-    }
-
-    // Note: Ctrl+F, Ctrl+H, Ctrl+/, Shift+Alt+F are handled natively by Monaco when focus is in the editor.
-
-    // Toggle word wrap — Alt+Z only when not in editor (Monaco handles its own)
-    if (e.altKey && !isMod && e.key === "z" && !isInput) {
-      e.preventDefault()
-      setWordWrap(w => w === "off" ? "on" : "off")
-    }
-
-    // Fullscreen — F11
-    if (e.key === "F11") {
-      e.preventDefault()
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { })
-      else document.exitFullscreen().catch(() => { })
-    }
-
+    
     if (isMod && !e.shiftKey && e.key === "z" && !isInput) { e.preventDefault(); void undoFileAction(sdk()) }
     if (isMod && (e.key === "y" || (e.shiftKey && e.key === "Z")) && !isInput) { e.preventDefault(); void redoFileAction(sdk()) }
 
@@ -1054,8 +1000,8 @@ export default function FullIde() {
   const paletteActions: PaletteAction[] = [
     { id: "file.save", title: "Save File", description: "Save the current file", category: "files", keybind: "Ctrl+S", icon: "arrow-down-to-line", onSelect: () => { void saveFile() } },
     { id: "file.open", title: "Quick Open", description: "Search and open files", category: "files", keybind: "Ctrl+P", icon: "open-file", onSelect: () => setCommandPaletteOpen(true) },
-    { id: "file.newFile", title: "New File", description: "Create a new file", category: "files", icon: "plus", onSelect: () => startCreate("file", dir()) },
-    { id: "file.newFolder", title: "New Folder", description: "Create a new folder", category: "files", icon: "folder", onSelect: () => startCreate("directory", dir()) },
+    { id: "file.newFile", title: "New File", description: "Create a new file", category: "files", icon: "plus", onSelect: () => startCreate("file", "") },
+    { id: "file.newFolder", title: "New Folder", description: "Create a new folder", category: "files", icon: "folder", onSelect: () => startCreate("directory", "") },
     { id: "file.openFolder", title: "Open Folder...", description: "Open a project folder", category: "files", icon: "folder-add-left", onSelect: () => handleOpenFolder() },
     { id: "editor.format", title: "Format Document", description: "Format the current document", category: "editor", keybind: "Shift+Alt+F", icon: "code", onSelect: () => setFormatTrigger(formatTrigger() + 1) },
     { id: "editor.wordWrap", title: "Toggle Word Wrap", description: "Toggle word wrapping", category: "editor", icon: "align-right", onSelect: () => setWordWrap(wordWrap() === "off" ? "on" : "off") },
@@ -1064,8 +1010,8 @@ export default function FullIde() {
     { id: "view.sourceControl", title: "Toggle Source Control", description: "Show/hide git panel", category: "view", keybind: "Ctrl+Shift+G", icon: "branch", onSelect: () => toggleLeftPanel("source-control") },
 
     { id: "view.aiChat", title: "Toggle AI Chat", description: "Show/hide AI chat panel", category: "view", icon: "comment", onSelect: () => toggleRightPanel("ai-chat") },
-    { id: "view.debug", title: "Toggle Debug", description: "Show/hide debug panel", category: "view", keybind: "Ctrl+Shift+D", icon: "bug", onSelect: () => toggleLeftPanel("run-debug") },
-    { id: "view.testing", title: "Toggle Testing", description: "Show/hide testing panel", category: "view", keybind: "Ctrl+Shift+T", icon: "beaker", onSelect: () => toggleLeftPanel("testing") },
+    { id: "view.debug", title: "Toggle Debug", description: "Show/hide debug panel", category: "view", keybind: "Ctrl+Shift+D", icon: "bug", onSelect: () => toggleRightPanel("debug") },
+    { id: "view.testing", title: "Toggle Testing", description: "Show/hide testing panel", category: "view", keybind: "Ctrl+Shift+T", icon: "beaker", onSelect: () => toggleRightPanel("testing") },
     { id: "view.terminal", title: "Toggle Terminal", description: "Show/hide terminal panel", category: "view", keybind: "Ctrl+`", icon: "terminal", onSelect: () => toggleBottomPanel("terminal-area") },
     { id: "view.problems", title: "Toggle Problems", description: "Show/hide problems panel", category: "view", keybind: "Ctrl+Shift+M", icon: "circle-x", onSelect: () => toggleBottomPanel("problems") },
     { id: "ai.newSession", title: "New AI Chat Session", description: "Start a new AI conversation", category: "ai", icon: "comment", onSelect: () => { void handleNewSession() } },
@@ -1082,7 +1028,6 @@ export default function FullIde() {
 
   const ideActions: Partial<IdeActions> = {
     // File
-    newTextFile: () => startCreate("file", dir()),
     newFile: () => startCreate("file", dir()),
     newWindow: () => window.open(window.location.href, "_blank"),
     openFile: () => handleOpenFolder(),
@@ -1105,24 +1050,7 @@ export default function FullIde() {
       }
     },
     saveAs: () => { showToast({ title: "Save As", description: "Save As dialog coming soon" }) },
-    saveAll: async () => {
-      const group = workspace.getActiveGroup()
-      if (!group) return
-      let saved = 0
-      for (const fileEntry of group.files) {
-        if (!fileEntry.dirty) continue
-        try {
-          await sdk().client.v2.fs.write({ path: fileEntry.path, content: fileEntry.content })
-          workspace.markClean(fileEntry.path, group.id)
-          saved++
-        } catch (e) {
-          showToast({ variant: "error", title: "Save failed", description: getFilename(fileEntry.path) })
-        }
-      }
-      if (saved > 0) {
-        showToast({ variant: "success", title: "Files saved", description: `${saved} file${saved !== 1 ? "s" : ""} saved` })
-      }
-    },
+    saveAll: () => { showToast({ title: "Save All", description: "Save All functionality coming soon" }) },
     closeEditor: () => {
       const activeFile = editor.activeFile()
       if (activeFile) {
@@ -1142,47 +1070,25 @@ export default function FullIde() {
     },
     closeFolder: () => { navigate("/ide") },
     closeWindow: () => window.close(),
-    exit: () => window.close(),
 
     // Edit
-    undo: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "undo" } })) },
-    redo: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "redo" } })) },
+    undo: () => document.execCommand("undo"),
+    redo: () => document.execCommand("redo"),
     cut: () => document.execCommand("cut"),
     copy: () => document.execCommand("copy"),
     paste: () => document.execCommand("paste"),
-    find: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "actions.find" } })) },
-    replace: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.startReplace" } })) },
+    find: () => { setCommandPaletteOpen(false); /* find logic */ },
+    replace: () => { /* replace logic */ },
     findInFiles: () => toggleLeftPanel("search"),
-    replaceInFiles: () => toggleLeftPanel("search"),
-    toggleLineComment: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.commentLine" } })) },
-    toggleBlockComment: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.blockComment" } })) },
-    emmetExpandAbbreviation: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.emmet.action.expandAbbreviation" } })) },
-
-    // Selection
-    selectAll: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.selectAll" } })) },
-    expandSelection: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.smartSelect.expand" } })) },
-    shrinkSelection: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.smartSelect.shrink" } })) },
-    selectAllOccurrences: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.selectHighlights" } })) },
-    addCursorAbove: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.insertCursorAbove" } })) },
-    addCursorBelow: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.insertCursorBelow" } })) },
-    copyLineUp: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.copyLinesUpAction" } })) },
-    copyLineDown: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.copyLinesDownAction" } })) },
-    moveLineUp: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.moveLinesUpAction" } })) },
-    moveLineDown: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.moveLinesDownAction" } })) },
-    duplicateSelection: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.duplicateSelection" } })) },
+    toggleLineComment: () => { /* trigger editor format */ },
+    toggleBlockComment: () => { /* trigger editor format */ },
+    formatDocument: () => setFormatTrigger(f => f + 1),
 
     // View
     toggleExplorer: () => toggleLeftPanel("explorer"),
     toggleSearch: () => toggleLeftPanel("search"),
     toggleSourceControl: () => toggleLeftPanel("source-control"),
-    toggleRun: () => toggleLeftPanel("run-debug"),
-    toggleExtensions: () => { showToast({ title: "Extensions", description: "Extensions panel coming soon" }) },
-    toggleChat: () => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") },
-    toggleProblems: () => toggleBottomPanel("problems"),
-    toggleOutput: () => toggleBottomPanel("output"),
-    toggleDebugConsole: () => toggleBottomPanel("debug-console"),
     commandPalette: () => setCommandPaletteOpen(true),
-    openView: () => setCommandPaletteOpen(true),
     zoomIn: () => setFontSize(s => s + 1),
     zoomOut: () => setFontSize(s => Math.max(8, s - 1)),
     resetZoom: () => setFontSize(13),
@@ -1193,28 +1099,23 @@ export default function FullIde() {
     toggleZenMode: () => { showToast({ title: "Zen Mode", description: "Coming soon" }) },
     togglePanel: () => toggleBottomPanel("terminal-area"),
     toggleSecondarySideBar: () => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") },
-    toggleWordWrap: () => setWordWrap(w => w === "off" ? "on" : "off"),
 
     // Go
     goToFile: () => setCommandPaletteOpen(true),
     goToSymbolWorkspace: () => setCommandPaletteOpen(true),
     goToSymbolEditor: () => setCommandPaletteOpen(true),
     goToLine: () => setCommandPaletteOpen(true),
-    goToBracket: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.jumpToBracket" } })) },
-    goToDefinition: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.revealDefinition" } })) },
-    goToDeclaration: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.revealDeclaration" } })) },
-    goToTypeDefinition: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.goToTypeDefinition" } })) },
-    goToImplementation: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.goToImplementation" } })) },
-    goToReferences: () => { window.dispatchEvent(new CustomEvent("editor-action", { detail: { action: "editor.action.goToReferences" } })) },
+    goToDefinition: () => { showToast({ title: "Go to Definition", description: "Coming soon" }) },
+    goToDeclaration: () => { showToast({ title: "Go to Declaration", description: "Coming soon" }) },
+    goToTypeDefinition: () => { showToast({ title: "Go to Type Definition", description: "Coming soon" }) },
+    goToImplementation: () => { showToast({ title: "Go to Implementation", description: "Coming soon" }) },
     goBack: () => history.back(),
     goForward: () => history.forward(),
 
     // Run
     runWithoutDebugging: () => toggleLeftPanel("run-debug"),
     startDebugging: () => toggleLeftPanel("run-debug"),
-    stopDebugging: () => { showToast({ title: "Stop Debugging", description: "No active debugging session" }) },
 
-    // Terminal
     newTerminal: () => { terminal.new(); panelManager.showPanel("terminal-area") },
     splitTerminal: () => {
       const activeId = terminal.active()
@@ -1243,27 +1144,7 @@ export default function FullIde() {
       panelManager.showPanel("terminal-area")
     },
     runTask: () => { terminal.new(); panelManager.showPanel("terminal-area") },
-    selectDefaultShell: () => setDefaultShellModalOpen(true),
-
-    // Help & Settings
-    preferences: () => {
-      void import("@/components/dialog-settings").then((x) => {
-        dialog.show(() => <x.DialogSettings />)
-      })
-    },
-    settings: () => {
-      void import("@/components/dialog-settings").then((x) => {
-        dialog.show(() => <x.DialogSettings />)
-      })
-    },
-    themes: () => { showToast({ title: "Themes", description: "Theme selector coming soon" }) },
-    about: () => { showToast({ title: "About OpenCode Web", description: "Version 1.0.0" }) },
-    welcome: () => window.open("https://opencode.ai", "_blank"),
-    documentation: () => window.open("https://opencode.ai/docs", "_blank"),
-    reportIssue: () => window.open("https://github.com/anomalyco/opencode/issues", "_blank"),
-    checkForUpdates: () => { showToast({ title: "Check for Updates", description: "You're on the latest version" }) },
-    toggleDeveloperTools: () => { window.open("devtools://devtools/bundled/inspector.html", "_blank") },
-    keyboardShortcuts: () => setShowKeybindings(true),
+    selectDefaultShell: () => setDefaultShellModalOpen(true)
   }
 
   return (
@@ -1718,67 +1599,56 @@ export default function FullIde() {
 
       {/* ── Context Menu ── */}
       <Show when={contextMenu()}>
-        <div ref={menuRef} class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 max-h-[min(480px,calc(100dvh-32px))] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px` }} onClick={(e) => e.stopPropagation()}>
+        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px` }} onClick={(e) => e.stopPropagation()}>
           <Show when={!contextMenu()!.isDir}>
-            {/* === Open Actions === */}
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; handleFileClick({ path: ctx.path, type: "file" }); closeContextMenu() }}>Open</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { workspace.openFile(ctx.path, state.content.content); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side<span class="text-11-regular ml-6 opacity-70">Ctrl+Enter</span></button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>
             <Show when={isPreviewablePath(contextMenu()!.path)}>
-              <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; openPreview(ctx.path); closeContextMenu() }}><Icon name="eye" class="size-4" /> Open Preview<span class="text-11-regular ml-6 opacity-70">Ctrl+Shift+V</span></button>
+              <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; openPreview(ctx.path); closeContextMenu() }}><Icon name="eye" class="size-4" /> Open Preview</button>
             </Show>
             <div class="h-px bg-border-base my-1" />
-            {/* === File Operations === */}
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path); showToast({ title: "Revealing", description: getFilename(ctx.path) }) }}>Reveal in File Explorer<span class="text-11-regular ml-6 opacity-70">Shift+Alt+R</span></button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); terminal.newShell({ title: "Terminal", command: "cd" }); panelManager.showPanel("terminal-area"); }}><Icon name="terminal" class="size-4" /> Open in Integrated Terminal</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); setActiveSessionId(null); panelManager.showPanel("ai-chat"); setTimeout(() => { window.dispatchEvent(new CustomEvent("add-file-to-chat", { detail: { path: ctx.path } })) }, 100) }}><Icon name="comment" class="size-4" /> Attach to OpenChamber Chat</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Reveal in File Explorer coming soon" }); }}>Reveal in File Explorer</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); terminal.newShell({ title: "Terminal", command: "cd" }); panelManager.showPanel("terminal-area"); }}>Open in Integrated Terminal</button>
             <div class="h-px bg-border-base my-1" />
-            {/* === Context === */}
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); window.dispatchEvent(new CustomEvent("add-file-to-chat", { detail: { path: ctx.path } })); showToast({ title: "Added as Context", description: getFilename(ctx.path) }) }}><Icon name="plus" class="size-4" /> Add File to Chat</button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Cut coming soon" }); }}>Cut<span class="text-11-regular ml-6 opacity-70">Ctrl+X</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Copy coming soon" }); }}>Copy<span class="text-11-regular ml-6 opacity-70">Ctrl+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Paste coming soon" }); }}>Paste<span class="text-11-regular ml-6 opacity-70">Ctrl+V</span></button>
             <div class="h-px bg-border-base my-1" />
-            {/* === Share === */}
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); if (navigator.share) { navigator.share({ title: getFilename(ctx.path), text: ctx.path }).catch(() => {}) } else { navigator.clipboard.writeText(ctx.path); showToast({ title: "Link copied", description: "Share link copied to clipboard" }) } }}>Share...<span class="text-11-regular ml-6 opacity-70">Ctrl+Shift+S</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(ctx.path) }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(getFilename(ctx.path)) }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
             <div class="h-px bg-border-base my-1" />
-            {/* === Compare / Changes === */}
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); const existing = compareFilePath(); if (existing && existing !== ctx.path) { setDiffMode(true); showToast({ title: "Comparing", description: `${getFilename(existing)} ↔ ${getFilename(ctx.path)}` }) } else { setCompareFilePath(ctx.path); showToast({ title: "Selected for Compare", description: getFilename(ctx.path) }) } }}><Icon name="branch" class="size-4" /> Select for Compare</button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Find File References coming soon" }); }}>Find File References<span class="text-11-regular ml-6 opacity-70">Shift+Alt+F12</span></button>
+            <div class="h-px bg-border-base my-1" />
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Select for Compare coming soon" }); }}>Select for Compare</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { const state = workspace.getFileState(ctx.path); if (state?.dirty && state.originalContent) { setDiffMode(true); } else { showToast({ title: "No Changes", description: "File has no uncommitted changes" }); } })() }}><Icon name="reset" class="size-4" /> Open Changes</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); remoteConnection() ? showToast({ title: "Opening on Remote", description: ctx.path }) : setRemoteModalOpen(true) }}><Icon name="server" class="size-4" /> Open on Remote (Web)</button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "File History view coming soon" }); }}>File History<span class="text-11-regular ml-6 opacity-70">Ctrl+G H</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Open Timeline view coming soon" }); }}>Open Timeline</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Open on Remote (Web) coming soon" }); }}><Icon name="server" class="size-4" /> Open on Remote (Web)</button>
             <div class="h-px bg-border-base my-1" />
-            {/* === History === */}
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); showToast({ title: "File History", description: `Viewing history for ${getFilename(ctx.path)}` }) }}>File History<span class="text-11-regular ml-6 opacity-70">Ctrl+G H</span></button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); showToast({ title: "Timeline", description: `Opening timeline for ${getFilename(ctx.path)}` }) }}><Icon name="task" class="size-4" /> Open Timeline</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startRename(ctx.path); }}><Icon name="edit-small-2" class="size-4" /> Rename...</button>
             <div class="h-px bg-border-base my-1" />
-            {/* === Clipboard === */}
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") await navigator.clipboard.writeText(state.content.content); showToast({ title: "Cut", description: `${getFilename(ctx.path)} copied to clipboard` }) })() }}>Cut<span class="text-11-regular ml-6 opacity-70">Ctrl+X</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") await navigator.clipboard.writeText(state.content.content); showToast({ title: "Copied", description: `${getFilename(ctx.path)} copied to clipboard` }) })() }}>Copy<span class="text-11-regular ml-6 opacity-70">Ctrl+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); void navigator.clipboard.readText().then(text => { const path = editor.activeFile(); if (path) { file.write(path, text); showToast({ title: "Pasted", description: "Content pasted from clipboard" }) } else { showToast({ title: "No file open", description: "Open a file to paste content" }) } }) }}>Paste<span class="text-11-regular ml-6 opacity-70">Ctrl+V</span></button>
-            <div class="h-px bg-border-base my-1" />
-            {/* === Path Operations === */}
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path) }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(getFilename(ctx.path)) }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K Ctrl+Shift+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); const remoteUrl = remoteConnection() ? `${remoteConnection()}/${ctx.path}` : ctx.path; navigator.clipboard.writeText(remoteUrl); showToast({ title: "Remote URL copied", description: remoteUrl }) }}>Copy Remote File URL</button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); showToast({ title: "Select source", description: "Choose remote to copy URL from" }) }}><Icon name="server" class="size-4" /> Copy Remote File URL From...</button>
-            <div class="h-px bg-border-base my-1" />
-            {/* === Rename / Delete === */}
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startRename(ctx.path); }}><Icon name="edit-small-2" class="size-4" /> Rename...<span class="text-11-regular ml-6 opacity-70">F2</span></button>
-            <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete<span class="text-11-regular ml-auto opacity-70">Del</span></button>
           </Show>
           <Show when={contextMenu()!.isDir}>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}><Icon name="open-file" class="size-4" /> Open</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { const current = editor.activeFile(); if (current) editor.closeFile(current); workspace.openFile(ctx.path, state.content.content); setDiffMode(false); } })() }}>Open</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startCreate("file", ctx.path); }}><Icon name="open-file" class="size-4" /> New File</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startCreate("directory", ctx.path); }}><Icon name="folder" class="size-4" /> New Folder</button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path); showToast({ title: "Revealing", description: getFilename(ctx.path) }) }}><Icon name="magnifying-glass" class="size-4" /> Reveal in File Explorer<span class="text-11-regular ml-6 opacity-70">Shift+Alt+R</span></button>
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); terminal.newShell({ title: "Terminal", command: "cd" }); panelManager.showPanel("terminal-area"); }}><Icon name="terminal" class="size-4" /> Open in Integrated Terminal</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Reveal in File Explorer coming soon" }); }}>Reveal in File Explorer</button>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); terminal.newShell({ title: "Terminal", command: "cd" }); panelManager.showPanel("terminal-area"); }}>Open in Integrated Terminal</button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); navigator.clipboard.writeText(ctx.path); showToast({ title: "Cut", description: `Path copied: ${ctx.path}` }) }}>Cut<span class="text-11-regular ml-6 opacity-70">Ctrl+X</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); navigator.clipboard.writeText(ctx.path); showToast({ title: "Copied", description: `Path: ${ctx.path}` }) }}>Copy<span class="text-11-regular ml-6 opacity-70">Ctrl+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Paste", description: "Select a location to paste" }) }}>Paste<span class="text-11-regular ml-6 opacity-70">Ctrl+V</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Cut coming soon" }); }}>Cut<span class="text-11-regular ml-6 opacity-70">Ctrl+X</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Copy coming soon" }); }}>Copy<span class="text-11-regular ml-6 opacity-70">Ctrl+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { closeContextMenu(); showToast({ title: "Coming soon", description: "Paste coming soon" }); }}>Paste<span class="text-11-regular ml-6 opacity-70">Ctrl+V</span></button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(ctx.path) }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
-            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void navigator.clipboard.writeText(getFilename(ctx.path)) }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K Ctrl+Shift+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(ctx.path) }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
+            <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(getFilename(ctx.path)) }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
             <div class="h-px bg-border-base my-1" />
-            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete Folder<span class="text-11-regular ml-auto opacity-70">Del</span></button>
+          </Show>
+          <Show when={!contextMenu()!.isDir}>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete</button>
+          </Show>
+          <Show when={contextMenu()!.isDir}>
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-danger-base hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); promptDelete(ctx.path, ctx.isDir); }}><Icon name="trash" class="size-4" /> Delete Folder</button>
           </Show>
         </div>
         <div class="fixed inset-0 z-40" onClick={closeContextMenu} />
@@ -1853,11 +1723,6 @@ export default function FullIde() {
         open={commandPaletteOpen()}
         onClose={() => setCommandPaletteOpen(false)}
         commands={paletteActions}
-        onGoToLine={(line) => {
-          window.dispatchEvent(new CustomEvent("navigate-to-line", {
-            detail: { path: editor.activeFile(), line, column: 1 }
-          }))
-        }}
         onFileSearch={async (query) => {
           try {
             return await file.searchFiles(query)

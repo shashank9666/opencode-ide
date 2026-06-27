@@ -187,17 +187,21 @@ export function SessionSidePanel(props: {
 
   const closeContextMenu = () => setStore("contextMenu", undefined)
 
+  const copyToClipboard = (text: string) => {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(text) } catch {}
+  }
+
   const copyPath = () => {
     const node = store.contextMenu?.node
     if (!node) return
-    navigator.clipboard.writeText(node.path)
+    copyToClipboard(node.path)
     closeContextMenu()
   }
 
   const copyRelativePath = () => {
     const node = store.contextMenu?.node
     if (!node) return
-    navigator.clipboard.writeText(node.path)
+    copyToClipboard(node.path)
     closeContextMenu()
   }
 

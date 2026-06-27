@@ -17,6 +17,10 @@ import { BrowserPreviewPanel } from "./BrowserPreviewPanel";
 
 let draggedTab: { path: string; sourceGroupId: string } | null = null
 
+const copyToClipboard = (text: string) => {
+  try { if (navigator.clipboard) navigator.clipboard.writeText(text) } catch {}
+}
+
 const ZOOM_STEP = 0.25
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 5
@@ -388,13 +392,13 @@ if (dt) {
                       </div>
                     </ContextMenu.Item>
                     <ContextMenu.Separator />
-                    <ContextMenu.Item onSelect={() => void navigator.clipboard.writeText(openFile.path)}>
+                    <ContextMenu.Item onSelect={() => copyToClipboard(openFile.path)}>
                       <div class="flex items-center justify-between w-full">
                         <ContextMenu.ItemLabel>Copy Path</ContextMenu.ItemLabel>
                         <span class="text-12-regular text-text-weak">Shift+Alt+C</span>
                       </div>
                     </ContextMenu.Item>
-                    <ContextMenu.Item onSelect={() => void navigator.clipboard.writeText(getFilename(openFile.path))}>
+                    <ContextMenu.Item onSelect={() => copyToClipboard(getFilename(openFile.path))}>
                       <div class="flex items-center justify-between w-full">
                         <ContextMenu.ItemLabel>Copy Relative Path</ContextMenu.ItemLabel>
                         <span class="text-12-regular text-text-weak">Ctrl+K Ctrl+Shift+C</span>
