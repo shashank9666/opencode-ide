@@ -1682,10 +1682,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                       variant="primary" 
                       size="small" 
                       onClick={() => {
-                        window.open("http://localhost:3000", "_blank")
+                        window.dispatchEvent(new CustomEvent("toggle-panel", { detail: "browser" }))
                       }}
                     >
-                      Launch
+                      Open Browser
                     </Button>
                   </div>
                 </div>

@@ -196,7 +196,7 @@ export function BrowserPreviewPanel() {
 
   // ── Playwright Browser Launch ──
   const launchPlaywright = (targetUrl?: string) => {
-    const launchUrl = targetUrl || url() || "http://localhost:3000"
+    const launchUrl = targetUrl || url()
     const newId = `browser-${Date.now()}`
     const nextNumber = browserInstances().length + 1
 
@@ -293,7 +293,7 @@ export function BrowserPreviewPanel() {
               }
             }}
             class="flex-1 bg-transparent border-none outline-none text-text-strong"
-            placeholder="Enter URL or port number (e.g. localhost:3000)"
+            placeholder="Enter a URL (e.g. http://localhost:5173)"
           />
           <Show when={url()}>
             <IconButton
