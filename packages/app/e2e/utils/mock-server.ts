@@ -40,7 +40,7 @@ export async function mockOpenCodeServer(page: Page, config: MockServerConfig) {
 
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url())
-    const targetPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4096"
+    const targetPort = process.env.PLAYWRIGHT_SERVER_PORT ?? "4098"
     if (url.port !== targetPort) return route.fallback()
 
     const path = url.pathname
