@@ -20,11 +20,13 @@
 
 ## Browser Automation
 
-Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+Use the Playwright MCP tools for web automation (NOT `agent-browser` CLI which opens new OS windows).
 
 Core workflow:
 
-1. `agent-browser open <url>` - Navigate to page
-2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
-3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
+1. `playwright_browser_navigate` with `url: "<url>"` - Navigate to page
+2. `playwright_browser_snapshot` - Get interactive elements
+3. `playwright_browser_click` / `playwright_browser_fill_form` / `playwright_browser_type` - Interact using element refs
 4. Re-snapshot after page changes
+
+Always open new pages via `playwright_browser_tabs` with `action: "new"` rather than launching a new browser. This keeps all browsing in one place.

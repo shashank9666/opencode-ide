@@ -93,6 +93,8 @@ export function BrowserPreviewPanel() {
   const [showBrowserList, setShowBrowserList] = createSignal(false)
   const [activeBrowserId, setActiveBrowserId] = createSignal<string | null>(null)
   const [sessionStartTime] = createSignal(Date.now())
+  const [urlStack, setUrlStack] = createSignal<string[]>([])
+  const [urlIndex, setUrlIndex] = createSignal(-1)
 
   // DevTools state
   const [showDevTools, setShowDevTools] = createSignal(false)
@@ -176,6 +178,12 @@ export function BrowserPreviewPanel() {
   })
 
   const navigate = (newUrl: string) => {
+    const stack = urlStack()
+    const idx = urlIndex()
+    const trimmed = stack.slice(0, idx + 1)
+    trimmed.push(newUrl)
+    setUrlStack(trimmed)
+    setUrlIndex(trimmed.length - 1)
     setUrl(newUrl)
     setShowHistory(false)
     setShowQuickConnect(false)
@@ -184,19 +192,33 @@ export function BrowserPreviewPanel() {
 
   const reload = () => {
     const current = url()
+    if (!current) return
     setUrl("")
     setTimeout(() => setUrl(current), 50)
     addLog("log", "Reloading page")
   }
 
   const goBack = () => {
-    addLog("log", "Navigating back")
-    setUrl("")
+    const idx = urlIndex()
+    if (idx <= 0) return
+    const prev = urlStack()[idx - 1]
+    setUrlIndex(idx - 1)
+    setUrl(prev ?? "")
+    addLog("log", `Navigating back to ${prev}`)
   }
 
   const goForward = () => {
-    addLog("log", "Navigating forward")
+    const stack = urlStack()
+    const idx = urlIndex()
+    if (idx >= stack.length - 1) return
+    const next = stack[idx + 1]
+    setUrlIndex(idx + 1)
+    setUrl(next ?? "")
+    addLog("log", `Navigating forward to ${next}`)
   }
+
+  const canGoBack = () => urlIndex() > 0
+  const canGoForward = () => urlIndex() < urlStack().length - 1
 
   const formatTime = (ms: number) => {
     if (ms < 1000) return `${ms}ms`
@@ -317,8 +339,8 @@ export function BrowserPreviewPanel() {
         onForward={goForward}
         onReload={reload}
         onClear={() => { setUrl(""); setStatus("idle"); setLoadTime(null) }}
-        canGoBack={true}
-        canGoForward={true}
+        canGoBack={canGoBack()}
+        canGoForward={canGoForward()}
         statusIcon={statusIcon()}
         statusColor={statusColor()}
         showDevTools={showDevTools()}
@@ -435,7 +457,7 @@ export function BrowserPreviewPanel() {
               title="Browser Preview"
               onLoad={handleIframeLoad}
               onError={handleIframeError}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
             />
           </div>
         ) : (
@@ -448,14 +470,20 @@ export function BrowserPreviewPanel() {
               <p class="text-12-regular text-text-weaker">Enter a URL or port number to preview your app</p>
             </div>
 
-            {/* Launch Playwright Button */}
+            {/* Launch in OS Browser */}
             <button
               type="button"
               class="flex items-center gap-2 px-4 py-2 text-13-medium bg-accent-base text-white rounded-lg hover:bg-accent-base-hover transition-colors mt-2"
-              onClick={() => launchPlaywright()}
+              onClick={() => {
+                const current = iframeSrc()
+                if (current) {
+                  window.open(current, "_blank")
+                  launchPlaywright(current)
+                }
+              }}
             >
               <Icon name="play" size="small" />
-              Launch Browser
+              Open in Browser
             </button>
 
             <div class="flex flex-col gap-1.5 mt-2 w-full max-w-xs">
