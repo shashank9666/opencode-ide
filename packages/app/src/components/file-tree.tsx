@@ -202,6 +202,7 @@ export default function FileTree(props: {
   onContextMenu?: (e: MouseEvent, node: FileNode) => void
   kinds?: ReadonlyMap<string, Kind>
   draggable?: boolean
+  sortMode?: "name" | "type" | "modified"
 
   _filter?: Filter
   _marks?: Set<string>
@@ -326,9 +327,24 @@ export default function FileTree(props: {
   )
 
   const nodes = createMemo(() => {
-    const nodes = file.tree.children(props.path)
+    const nodes = file.tree.children(props.path).slice()
     const current = filter()
-    if (!current) return nodes
+
+    const sortNodes = (arr: FileNode[]) => {
+      const sortMode = props.sortMode ?? "name"
+      arr.sort((a, b) => {
+        if (a.type !== b.type) return a.type === "directory" ? -1 : 1
+        if (sortMode === "type") {
+          const extA = a.name.includes(".") ? a.name.split(".").pop()! : ""
+          const extB = b.name.includes(".") ? b.name.split(".").pop()! : ""
+          if (extA !== extB) return extA.localeCompare(extB)
+        }
+        return a.name.localeCompare(b.name)
+      })
+      return arr
+    }
+
+    if (!current) return sortNodes(nodes)
 
     const parent = (path: string) => {
       const idx = path.lastIndexOf("/")
@@ -374,14 +390,7 @@ export default function FileTree(props: {
       seen.add(item)
     }
 
-    out.sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type === "directory" ? -1 : 1
-      }
-      return a.name.localeCompare(b.name)
-    })
-
-    return out
+    return sortNodes(out)
   })
 
   return (
@@ -445,6 +454,7 @@ export default function FileTree(props: {
                         kinds={props.kinds}
                         active={props.active}
                         draggable={props.draggable}
+                        sortMode={props.sortMode}
                         onFileClick={props.onFileClick}
                         onContextMenu={props.onContextMenu}
                         _filter={filter()}

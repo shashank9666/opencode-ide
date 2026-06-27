@@ -15,6 +15,7 @@ import { useSDK } from "@/context/sdk";
 import { Button } from "@opencode-ai/ui/button";
 import { BrowserPreviewPanel } from "./BrowserPreviewPanel";
 import { MarkdownPreviewPanel } from "./previews";
+import { ReviewChangesPanel } from "./ReviewChangesPanel";
 
 let draggedTab: { path: string; sourceGroupId: string } | null = null
 
@@ -485,10 +486,13 @@ if (dt) {
       <Show when={isBrowserPreview()}>
         <BrowserPreviewPanel />
       </Show>
-      <Show when={activeFile()?.startsWith("preview://")}>
+      <Show when={activeFile() === "review://changes"}>
+        <ReviewChangesPanel workspace={props.workspace} />
+      </Show>
+      <Show when={activeFile()?.startsWith("preview://") && activeFile() !== "review://changes"}>
         <MarkdownPreviewPanel content={activeFileState()?.content ?? ""} filename={getFilename(activeFile()!.slice(10))} />
       </Show>
-      <Show when={!isBrowserPreview() && !activeFile()?.startsWith("preview://")}>
+      <Show when={!isBrowserPreview() && !activeFile()?.startsWith("preview://") && activeFile() !== "review://changes"}>
         <Show when={activeFileState()} fallback={
           <div class="flex-1 flex flex-col items-center justify-center text-text-weak gap-3 select-none">
             <Icon name="open-file" size="large" class="text-icon-weaker opacity-30" style={{ "font-size": "48px" }} />
@@ -650,30 +654,7 @@ Completion:`;
                     onReject={props.onRejectDiff}
                     onChange={(v) => props.workspace.setContent(state().path, v, group().id)}
                   />
-                  <Show when={props.previewDiff && (props.onAcceptDiff || props.onRejectDiff)}>
-                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-raised-base border border-border-base shadow-lg backdrop-blur-sm">
-                      <Show when={props.onAcceptDiff}>
-                        <Button variant="primary" size="normal" onClick={props.onAcceptDiff}>
-                          <span class="flex items-center gap-1.5">
-                            Accept Changes <span class="opacity-70 text-11-regular">Ctrl+Enter</span>
-                          </span>
-                        </Button>
-                      </Show>
-                      <Show when={props.onRejectDiff}>
-                        <Button variant="ghost" size="normal" onClick={props.onRejectDiff}>
-                          <span class="flex items-center gap-1.5">
-                            Reject <span class="opacity-70 text-11-regular">Ctrl+⌫</span>
-                          </span>
-                        </Button>
-                      </Show>
-                      <div class="w-px h-4 bg-border-base mx-1" />
-                      <div class="flex items-center gap-1 text-text-weak text-12-regular">
-                        <Icon name="arrow-up" size="small" />
-                        <Icon name="chevron-down" size="small" />
-                        <span class="opacity-70">Alt+J</span>
-                      </div>
-                    </div>
-                  </Show>
+
                 </>
               </Show>
               </div>

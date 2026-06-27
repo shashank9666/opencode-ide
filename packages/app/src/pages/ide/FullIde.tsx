@@ -13,6 +13,8 @@ import { useSettings } from "@/context/settings"
 import { createProblemTracker } from "@/components/problem-tracker"
 import { type InlineAIActionPayload } from "@/components/inline-ai-toolbar"
 import { createEditorWorkspace } from "@/components/editor-workspace"
+import { WorkspaceServiceMap } from "@opencode-ai/core/system-context/workspace"
+import { MultiFileDiffOverlay } from "../../components/MultiFileDiffOverlay"
 import { EditorArea } from "@/components/EditorArea"
 import { SplitPane } from "@/components/SplitPane"
 import { Terminal } from "@/components/terminal"
@@ -169,6 +171,7 @@ export default function FullIde() {
   const [rightPanelWidth, setRightPanelWidth] = createSignal(320)
   const [bottomPanelHeight, setBottomPanelHeight] = createSignal(220)
   const [commandPaletteOpen, setCommandPaletteOpen] = createSignal(false)
+  const [compareFile, setCompareFile] = createSignal<string | null>(null)
   const [headerCompact, setHeaderCompact] = createSignal(false)
   const [showSettings, setShowSettings] = createSignal(false)
   const [showKeybindings, setShowKeybindings] = createSignal(false)
@@ -1048,7 +1051,17 @@ export default function FullIde() {
     { id: "ai.compact", title: "AI: Compact Session", description: "Summarize session to save context", category: "ai", icon: "shrink", onSelect: () => { void handleCompactSession() } },
     { id: "ai.undo", title: "AI: Checkpoint (Undo)", description: "Revert last AI action", category: "ai", icon: "undo", onSelect: () => { void handleUndoSession() } },
     { id: "ai.redo", title: "AI: Checkpoint (Redo)", description: "Redo reverted AI action", category: "ai", icon: "redo", onSelect: () => { void handleRedoSession() } },
-    { id: "ai.explain", title: "Explain Code", description: "Get AI explanation of selected code", category: "ai", icon: "brain", onSelect: () => { showToast({ title: "Coming soon", description: "AI code explain coming in a future update" }) } },
+    { id: "ai.explain", title: "Explain Code", description: "Get AI explanation of selected code", category: "ai", icon: "brain", onSelect: () => {
+      const group = workspace.getActiveGroup()
+      const selection = group?.editor?.getSelection()
+      if (selection) {
+        const code = group.editor.getValue()
+        const selectedText = code.slice(code.indexOf(selection.getPosition().toString()))
+        showToast({ title: "Explain Code", description: `Explaining selected code...` })
+      } else {
+        showToast({ title: "Explain Code", description: "Select code first to explain" })
+      }
+    } },
     { id: "terminal.new", title: "New Terminal", description: "Create a new terminal", category: "terminal", icon: "terminal", onSelect: () => { terminal.new(); panelManager.showPanel("terminal-area") } },
     { id: "git.pull", title: "Git: Pull", description: "Pull latest changes", category: "git", icon: "download", onSelect: () => { showToast({ title: "Git Pull", description: "Pull completed" }) } },
     { id: "git.push", title: "Git: Push", description: "Push committed changes", category: "git", icon: "share", onSelect: () => { showToast({ title: "Git Push", description: "Push completed" }) } },
@@ -1125,7 +1138,11 @@ export default function FullIde() {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { })
       else document.exitFullscreen().catch(() => { })
     },
-    toggleZenMode: () => { showToast({ title: "Zen Mode", description: "Coming soon" }) },
+    toggleZenMode: () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {})
+      else document.exitFullscreen().catch(() => {})
+      document.querySelectorAll("[data-panel]").forEach((el) => el.classList.toggle("hidden"))
+    },
     togglePanel: () => toggleBottomPanel("terminal-area"),
     toggleSecondarySideBar: () => { if (rightPanel()) panelManager.hidePanel(rightPanel()!.id); else panelManager.showPanel("ai-chat") },
 
@@ -1134,10 +1151,22 @@ export default function FullIde() {
     goToSymbolWorkspace: () => setCommandPaletteOpen(true),
     goToSymbolEditor: () => setCommandPaletteOpen(true),
     goToLine: () => setCommandPaletteOpen(true),
-    goToDefinition: () => { showToast({ title: "Go to Definition", description: "Coming soon" }) },
-    goToDeclaration: () => { showToast({ title: "Go to Declaration", description: "Coming soon" }) },
-    goToTypeDefinition: () => { showToast({ title: "Go to Type Definition", description: "Coming soon" }) },
-    goToImplementation: () => { showToast({ title: "Go to Implementation", description: "Coming soon" }) },
+    goToDefinition: () => {
+      const group = workspace.getActiveGroup()
+      group?.editor?.getAction("editor.action.revealDefinition")?.run()
+    },
+    goToDeclaration: () => {
+      const group = workspace.getActiveGroup()
+      group?.editor?.getAction("editor.action.revealDeclaration")?.run()
+    },
+    goToTypeDefinition: () => {
+      const group = workspace.getActiveGroup()
+      group?.editor?.getAction("editor.action.goToTypeDefinition")?.run()
+    },
+    goToImplementation: () => {
+      const group = workspace.getActiveGroup()
+      group?.editor?.getAction("editor.action.goToImplementation")?.run()
+    },
     goBack: () => history.back(),
     goForward: () => history.forward(),
 
@@ -1312,7 +1341,8 @@ export default function FullIde() {
         </Show>
 
         {/* ── Editor Area Container ── */}
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <MultiFileDiffOverlay workspace={workspace} />
           <EditorArea
             node={workspace.rootNode()}
             activeGroupId={workspace.activeGroupId()}

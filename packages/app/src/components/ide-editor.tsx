@@ -462,12 +462,20 @@ export function IdeDiffEditor(props: {
       showUnused: true,
       showFoldingControls: "mouseover",
       roundedSelection: false,
-      ignoreTrimWhitespace: false,
-    })
+      ignoreTrimWhitespace: true,
+      hideUnchangedRegions: {
+        enabled: true,
+        revealLineCount: 10,
+        minimumLineCount: 10
+      }
+    } as any) // Typecast for compatibility if hideUnchangedRegions isn't in older typings
+
+    const normOriginal = (props.original || "").replace(/\r\n/g, "\n")
+    const normModified = (props.modified || "").replace(/\r\n/g, "\n")
 
     diffEditor.setModel({
-      original: monaco.editor.createModel(props.original, lang),
-      modified: monaco.editor.createModel(props.modified, lang),
+      original: monaco.editor.createModel(normOriginal, lang),
+      modified: monaco.editor.createModel(normModified, lang),
     })
 
     diffEditor.getModifiedEditor().onDidChangeModelContent(() => {
@@ -475,6 +483,33 @@ export function IdeDiffEditor(props: {
     })
 
     let contentWidget: monaco.editor.IContentWidget | undefined
+
+    const nextDiff = () => {
+      const changes = diffEditor?.getLineChanges()
+      if (!changes || changes.length === 0) return
+      const currentLine = diffEditor?.getModifiedEditor().getPosition()?.lineNumber || 1
+      const next = changes.find(c => (c.modifiedStartLineNumber || c.modifiedEndLineNumber) > currentLine) || changes[0]
+      if (next) {
+        const line = next.modifiedStartLineNumber || next.modifiedEndLineNumber || 1
+        diffEditor?.getModifiedEditor().revealLineInCenter(line)
+        diffEditor?.getModifiedEditor().setPosition({ lineNumber: line, column: 1 })
+      }
+    }
+
+    const prevDiff = () => {
+      const changes = diffEditor?.getLineChanges()
+      if (!changes || changes.length === 0) return
+      const currentLine = diffEditor?.getModifiedEditor().getPosition()?.lineNumber || 1
+      const prev = [...changes].reverse().find(c => (c.modifiedEndLineNumber || c.modifiedStartLineNumber) < currentLine) || changes[changes.length - 1]
+      if (prev) {
+        const line = prev.modifiedStartLineNumber || prev.modifiedEndLineNumber || 1
+        diffEditor?.getModifiedEditor().revealLineInCenter(line)
+        diffEditor?.getModifiedEditor().setPosition({ lineNumber: line, column: 1 })
+      }
+    }
+
+    diffEditor.getModifiedEditor().addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyJ, nextDiff)
+    diffEditor.getOriginalEditor().addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyJ, nextDiff)
 
     diffEditor.onDidUpdateDiff(() => {
       const changes = diffEditor?.getLineChanges()
@@ -490,24 +525,26 @@ export function IdeDiffEditor(props: {
         const maxLine = Math.max(...changes.map(c => c.modifiedEndLineNumber || c.modifiedStartLineNumber))
         
         const widgetNode = document.createElement("div")
-        widgetNode.className = "flex items-center z-50 overflow-hidden rounded-md shadow-lg border border-border-base bg-surface-raised-base p-1 gap-1"
+        widgetNode.className = "flex items-center z-50 overflow-hidden rounded-md shadow-lg border border-border-base bg-surface-raised-base px-3 py-1.5 gap-3"
         
         render(() => (
           <>
             {props.onAccept && (
-              <Button size="small" variant="primary" class="h-6 px-2 text-11-medium" onClick={props.onAccept}>
-                <span class="flex items-center gap-1">
-                  Accept <span class="opacity-70 text-[10px]">Alt+Enter</span>
-                </span>
-              </Button>
+              <button class="flex items-center gap-1.5 text-12-medium text-text-strong hover:text-accent-base transition-colors" onClick={props.onAccept}>
+                Accept Changes <span class="opacity-60 text-11-regular">Ctrl+Enter</span>
+              </button>
             )}
             {props.onReject && (
-              <Button size="small" variant="ghost" class="h-6 px-2 text-11-medium text-text-weak hover:text-text-base" onClick={props.onReject}>
-                <span class="flex items-center gap-1">
-                  Reject <span class="opacity-70 text-[10px]">Shift+Alt+⌫</span>
-                </span>
-              </Button>
+              <button class="flex items-center gap-1.5 text-12-medium text-text-weak hover:text-text-base transition-colors" onClick={props.onReject}>
+                Reject <span class="opacity-60 text-11-regular">Ctrl+⌫</span>
+              </button>
             )}
+            <div class="w-px h-3 bg-border-base mx-1" />
+            <div class="flex items-center gap-1 text-text-weak text-11-regular">
+              <Icon name="arrow-up" class="size-3 cursor-pointer hover:text-text-base" onClick={prevDiff} />
+              <Icon name="arrow-down" class="size-3 cursor-pointer hover:text-text-base" onClick={nextDiff} />
+              <span class="opacity-60 ml-1">Alt+J</span>
+            </div>
           </>
         ), widgetNode)
 
@@ -529,8 +566,10 @@ export function IdeDiffEditor(props: {
     const lang = languageFromPath(props.path)
     const model = diffEditor.getModel()
     if (!model) return
-    if (model.original.getValue() !== props.original) model.original.setValue(props.original)
-    if (model.modified.getValue() !== props.modified) model.modified.setValue(props.modified)
+    const normOriginal = (props.original || "").replace(/\r\n/g, "\n")
+    const normModified = (props.modified || "").replace(/\r\n/g, "\n")
+    if (model.original.getValue() !== normOriginal) model.original.setValue(normOriginal)
+    if (model.modified.getValue() !== normModified) model.modified.setValue(normModified)
     monaco.editor.setModelLanguage(model.original, lang)
     monaco.editor.setModelLanguage(model.modified, lang)
   })

@@ -1,7 +1,10 @@
 import { createSignal, For, Show } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { InlineInput } from "@opencode-ai/ui/inline-input"
 import Session from "@/pages/session"
+import { useSDK } from "@/context/sdk"
+import { showToast } from "@/utils/toast"
 
 export default function AIWorkspacePanel(props: {
   onFloat?: () => void
@@ -17,10 +20,33 @@ export default function AIWorkspacePanel(props: {
   canCompact?: boolean
 }) {
   const [hoveredSession, setHoveredSession] = createSignal<string | null>(null)
+  const [renamingSessionId, setRenamingSessionId] = createSignal<string | null>(null)
+  const [renameDraft, setRenameDraft] = createSignal("")
+  const sdk = useSDK()
 
   const getSessionIndex = (id: string) => {
     const idx = props.recentSessions.findIndex((s) => s.id === id)
     return idx >= 0 ? idx : 0
+  }
+
+  const startRename = (session: { id: string; title?: string }) => {
+    setRenamingSessionId(session.id)
+    setRenameDraft(session.title || "New session")
+  }
+
+  const saveRename = async () => {
+    const id = renamingSessionId()
+    if (!id) return
+    const next = renameDraft().trim()
+    if (!next) { setRenamingSessionId(null); return }
+    try {
+      await sdk().client.session.update({ sessionID: id, title: next })
+    } catch (e) { showToast({ variant: "error", title: "Rename failed", description: String(e) }) }
+    setRenamingSessionId(null)
+  }
+
+  const cancelRename = () => {
+    setRenamingSessionId(null)
   }
 
   return (
@@ -107,24 +133,44 @@ export default function AIWorkspacePanel(props: {
 
                       {/* Session title */}
                       <div class="flex-1 min-w-0">
-                        <p class="text-12-regular text-text-strong truncate">
-                          {session.title || "New session"}
-                        </p>
+                        <Show
+                          when={renamingSessionId() === session.id}
+                          fallback={
+                            <p class="text-12-regular text-text-strong truncate">
+                              {session.title || "New session"}
+                            </p>
+                          }
+                        >
+                          <InlineInput
+                            value={renameDraft()}
+                            class="text-12-regular text-text-strong w-full rounded-[4px] px-1 -ml-1"
+                            style={{ "--inline-input-shadow": "var(--shadow-xs-border-select)" }}
+                            onInput={(e) => setRenameDraft(e.currentTarget.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation()
+                              if (e.key === "Enter") { e.preventDefault(); void saveRename() }
+                              if (e.key === "Escape") { e.preventDefault(); cancelRename() }
+                            }}
+                            onBlur={saveRename}
+                          />
+                        </Show>
                       </div>
 
                       <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
                         {/* Edit button */}
-                        <IconButton
-                          icon="edit"
-                          variant="ghost"
-                          size="small"
-                          class="size-5 rounded"
-                          onClick={(e: MouseEvent) => {
-                            e.stopPropagation()
-                            window.dispatchEvent(new CustomEvent("toast", { detail: { title: "Rename Session", description: "Coming soon" } }))
-                          }}
-                          aria-label="Rename session"
-                        />
+                        <Show when={renamingSessionId() !== session.id}>
+                          <IconButton
+                            icon="edit"
+                            variant="ghost"
+                            size="small"
+                            class="size-5 rounded"
+                            onClick={(e: MouseEvent) => {
+                              e.stopPropagation()
+                              startRename(session)
+                            }}
+                            aria-label="Rename session"
+                          />
+                        </Show>
                         {/* Delete button */}
                         <IconButton
                           icon="trash"

@@ -166,6 +166,7 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
           </div>
           <FileTree
             path=""
+            sortMode={sortMode()}
             active={props.activeFile}
             onFileClick={props.onFileClick}
             onContextMenu={props.onFileContextMenu}
