@@ -34,28 +34,24 @@ const WALLPAPER_PRESETS: WallpaperPreset[] = [
   {
     id: "anime-chilling",
     name: "Anime-chilling",
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80",
+    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=80",
   },
   {
     id: "anime-room",
     name: "Anime-room",
-    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=80",
+    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=400&q=80",
   },
   {
     id: "rainy-neon",
     name: "Rainy Neon Tokyo",
-    url: "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=400&q=80",
+    url: "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?auto=format&fit=crop&w=400&q=80",
   },
   {
     id: "space-theme",
     name: "Space Theme",
-    url: "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=400&q=80",
+    url: "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?auto=format&fit=crop&w=400&q=80",
   },
-  {
-    id: "weathering-with-you",
-    name: "Weathering With You",
-    url: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=400&q=80",
-  },
+
 ]
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -432,11 +428,11 @@ export const SettingsWallpaperV2: Component = () => {
                     src={settings.appearance.wallpaperUrl()}
                     alt="Current wallpaper"
                     class="wallpaper-preview-thumb"
-                    onError={(e) => {
-                      const target = e.currentTarget
+                    onError={(e: Event) => {
+                      const target = e.currentTarget as HTMLElement
                       target.style.display = "none"
                       const fallback = target.parentElement?.querySelector(".wallpaper-preview-error")
-                      if (fallback) fallback.style.display = "flex"
+                      if (fallback) (fallback as HTMLElement).style.display = "flex"
                     }}
                   />
                   <div class="wallpaper-preview-error" style="display: none;">
