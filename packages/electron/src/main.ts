@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron"
 import path from "node:path"
 import url from "node:url"
 import { spawn, type ChildProcess } from "node:child_process"
+import fs from "node:fs"
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
@@ -10,33 +11,58 @@ const isDev = !app.isPackaged
 let backendProcess: ChildProcess | null = null
 let frontendProcess: ChildProcess | null = null
 
+function getBackendExecutablePath() {
+  const platform = process.platform === "win32" ? "windows" : process.platform;
+  const arch = process.arch;
+  const binaryName = process.platform === "win32" ? "opencode.exe" : "opencode";
+  
+  const names = [
+    `opencode-${platform}-${arch}`,
+    `opencode-${platform}-${arch}-baseline`
+  ]
+
+  for (const name of names) {
+    const fullPath = path.join(process.resourcesPath, "backend-binaries", name, "bin", binaryName)
+    if (fs.existsSync(fullPath)) {
+      return fullPath
+    }
+  }
+  return null;
+}
+
 function startServers() {
-  const rootDir = isDev 
-    ? path.join(__dirname, "../../..") 
-    : path.join(process.resourcesPath, "..") // Fallback for production if needed
-
-  // Start Backend
-  console.log("Starting backend server...")
-  backendProcess = spawn("bun", ["run", "./packages/opencode/src/index.ts", "serve", "--port", "4098"], {
-    cwd: rootDir,
-    shell: true,
-    stdio: "pipe"
-  })
-
-  backendProcess.stdout?.on("data", (data) => console.log(`[Backend]: ${data}`))
-  backendProcess.stderr?.on("data", (data) => console.error(`[Backend ERR]: ${data}`))
-
-  // Start Frontend dev server only in development
   if (isDev) {
+    const rootDir = path.join(__dirname, "../../..")
+    console.log("Starting backend server...")
+    backendProcess = spawn("bun", ["run", "./packages/opencode/src/index.ts", "serve", "--port", "4098"], {
+      cwd: rootDir,
+      shell: true,
+      stdio: "pipe"
+    })
+    backendProcess.stdout?.on("data", (data) => console.log(`[Backend]: ${data}`))
+    backendProcess.stderr?.on("data", (data) => console.error(`[Backend ERR]: ${data}`))
+
     console.log("Starting frontend server...")
     frontendProcess = spawn("bun", ["--cwd", "packages/app", "dev", "--", "--port", "4444"], {
       cwd: rootDir,
       shell: true,
       stdio: "pipe"
     })
-    
     frontendProcess.stdout?.on("data", (data) => console.log(`[Frontend]: ${data}`))
     frontendProcess.stderr?.on("data", (data) => console.error(`[Frontend ERR]: ${data}`))
+  } else {
+    const backendPath = getBackendExecutablePath();
+    if (backendPath) {
+      console.log("Starting packaged backend server at:", backendPath)
+      backendProcess = spawn(backendPath, ["serve", "--port", "4098"], {
+        cwd: path.join(process.resourcesPath, ".."),
+        stdio: "pipe"
+      })
+      backendProcess.stdout?.on("data", (data) => console.log(`[Backend]: ${data}`))
+      backendProcess.stderr?.on("data", (data) => console.error(`[Backend ERR]: ${data}`))
+    } else {
+      console.error("CRITICAL ERROR: Packaged backend binary not found!")
+    }
   }
 }
 
@@ -59,7 +85,7 @@ function createWindow() {
       mainWindow.webContents.openDevTools()
     }, 2000)
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../../app/dist/index.html"))
+    mainWindow.loadFile(path.join(process.resourcesPath, "app-dist/index.html"))
   }
 }
 
