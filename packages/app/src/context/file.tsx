@@ -212,6 +212,27 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
 
     const justWritten = new Map<string, number>()
 
+    let pendingWatcherEvents: any[] = [];
+    let watcherDebounceTimer: any = null;
+
+    const processWatcherEvents = (events: any[]) => {
+      for (const details of events) {
+        invalidateFromWatcher(details, {
+          normalize: path.normalize,
+          hasFile: (file) => Boolean(store.file[file]),
+          isOpen: (file) => tabs.all().some((tab) => path.pathFromTab(tab) === file),
+          loadFile: (file) => {
+            void load(file, { force: true })
+          },
+          node: tree.node,
+          isDirLoaded: tree.isLoaded,
+          refreshDir: (dir) => {
+            void tree.listDir(dir, { force: true })
+          },
+        })
+      }
+    }
+
     const stop = sdk().event.listen((e) => {
       if (e.details?.type === "file.watcher.updated") {
         const props = e.details.properties as any
@@ -222,20 +243,17 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
             return
           }
         }
+        
+        pendingWatcherEvents.push(e.details);
+        if (watcherDebounceTimer) clearTimeout(watcherDebounceTimer);
+        watcherDebounceTimer = setTimeout(() => {
+          const events = pendingWatcherEvents;
+          pendingWatcherEvents = [];
+          processWatcherEvents(events);
+        }, 100);
+      } else {
+        processWatcherEvents([e.details]);
       }
-      invalidateFromWatcher(e.details, {
-        normalize: path.normalize,
-        hasFile: (file) => Boolean(store.file[file]),
-        isOpen: (file) => tabs.all().some((tab) => path.pathFromTab(tab) === file),
-        loadFile: (file) => {
-          void load(file, { force: true })
-        },
-        node: tree.node,
-        isDirLoaded: tree.isLoaded,
-        refreshDir: (dir) => {
-          void tree.listDir(dir, { force: true })
-        },
-      })
     })
 
     const write = async (input: string, content: string) => {

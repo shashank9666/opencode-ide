@@ -7,6 +7,7 @@ import {
   onCleanup,
   Show,
   Switch,
+  lazy,
 } from "solid-js"
 import { useFile } from "@/context/file"
 import { useSettings } from "@/context/settings"
@@ -60,13 +61,13 @@ import { createPanelManager, FloatingPanel, type PanelState } from "./DockablePa
 import { type IdeActions } from "./MenuBar"
 
 // ── Extra panels (new) ──
-import DebugPanel from "./DebugPanel"
-import TestingPanel from "./TestingPanel"
-import SettingsPanel from "./SettingsPanel"
-import KeybindingsPanel from "./KeybindingsPanel"
-import RemotePanel from "./RemotePanel"
+const DebugPanel = lazy(() => import("./DebugPanel"))
+const TestingPanel = lazy(() => import("./TestingPanel"))
+const SettingsPanel = lazy(() => import("./SettingsPanel"))
+const KeybindingsPanel = lazy(() => import("./KeybindingsPanel"))
+const RemotePanel = lazy(() => import("./RemotePanel"))
 import { useRemote } from "@/context/remote"
-import DatabasePanel from "./DatabasePanel"
+const DatabasePanel = lazy(() => import("./DatabasePanel"))
 import RemoteConnectionModal from "./RemoteConnectionModal"
 import DefaultShellModal from "./DefaultShellModal"
 import { AboutDialog } from "@/components/about-dialog"

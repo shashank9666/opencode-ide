@@ -88,12 +88,17 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    show: false,
     icon: path.join(__dirname, "../assets/icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
     },
+  })
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show()
   })
 
   if (isDev) {
