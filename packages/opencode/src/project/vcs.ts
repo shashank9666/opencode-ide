@@ -381,7 +381,7 @@ export const layer: Layer.Layer<Service, never, Git.Service | EventV2Bridge.Serv
         const ctx = yield* InstanceState.context
         if (ctx.project.vcs !== "git") return ""
         if (!(yield* git.hasHead(ctx.directory))) return ""
-        return yield* git.show(ctx.directory, ref, path).pipe(Effect.catchAll(() => Effect.succeed("")))
+        return yield* git.show(ctx.directory, ref, path).pipe(Effect.catch(() => Effect.succeed("")))
       }),
       diff: Effect.fn("Vcs.diff")(function* (mode: Mode, options?: DiffOptions) {
         const value = yield* InstanceState.get(state)

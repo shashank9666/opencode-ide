@@ -1,0 +1,1 @@
+Run the project's linter or formatter on a specific file and automatically fix fixable issues (like prettier formatting or eslint auto-fixes). Use this tool after making code edits to ensure the file is perfectly formatted.

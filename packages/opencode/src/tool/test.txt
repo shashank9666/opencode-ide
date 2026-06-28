@@ -1,0 +1,1 @@
+Run the test suite using a specific command and automatically capture, format, and truncate the output. Useful for verifying logic changes without overwhelming the context window with massive test logs.
