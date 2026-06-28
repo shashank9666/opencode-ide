@@ -67,7 +67,6 @@ import KeybindingsPanel from "./KeybindingsPanel"
 import RemotePanel from "./RemotePanel"
 import { useRemote } from "@/context/remote"
 import DatabasePanel from "./DatabasePanel"
-import ExtensionsPanel from "./ExtensionsPanel"
 import RemoteConnectionModal from "./RemoteConnectionModal"
 import DefaultShellModal from "./DefaultShellModal"
 import { AboutDialog } from "@/components/about-dialog"
@@ -77,7 +76,6 @@ const MERGED_DEFAULT: PanelState[] = [
   { id: "search", label: "Search", icon: "magnifying-glass", position: "left", visible: false, width: 280, order: 1 },
   { id: "source-control", label: "Source Control", icon: "branch", position: "left", visible: false, width: 300, order: 2 },
   { id: "run-debug", label: "Run & Debug", icon: "bug", position: "left", visible: false, width: 300, order: 3 },
-  { id: "extensions", label: "Extensions", icon: "sliders", position: "left", visible: false, width: 300, order: 4 },
 
   { id: "ai-chat", label: "AI Assistant", icon: "brain", position: "right", visible: true, width: 320, order: 5 },
   { id: "database", label: "Database", icon: "database", position: "left", visible: false, width: 320, order: 6 },
@@ -1434,10 +1432,6 @@ export default function FullIde() {
 
             <Show when={leftPanel()?.id === "testing"}>
               <TestingPanel onClose={() => panelManager.hidePanel("testing")} />
-            </Show>
-
-            <Show when={leftPanel()?.id === "extensions"}>
-              <ExtensionsPanel />
             </Show>
 
             <Show when={leftPanel()?.id === "database"}>
