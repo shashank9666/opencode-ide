@@ -152,7 +152,7 @@ export function createEditorWorkspace() {
     setActiveGroupId(groupId);
   };
 
-  const setOriginalContent = (path: string, originalContent: string) => {
+  const setOriginalContent = (path: string, originalContent?: string) => {
     setRootNode(prev => {
       const updateRec = (node: EditorNode): EditorNode => {
         if (node.type === "group") {
@@ -160,7 +160,7 @@ export function createEditorWorkspace() {
             ...node,
             group: {
               ...node.group,
-              files: node.group.files.map(f => f.path === path && f.originalContent === undefined ? { ...f, originalContent } : f)
+              files: node.group.files.map(f => f.path === path && (f.originalContent === undefined || originalContent === undefined) ? { ...f, originalContent } : f)
             }
           };
         }

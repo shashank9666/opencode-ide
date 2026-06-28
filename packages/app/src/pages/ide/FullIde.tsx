@@ -1492,7 +1492,20 @@ export default function FullIde() {
             }
             onAcceptDiff={() => {
               const req = pendingEditPermission()
-              if (!req) return
+              if (!req) {
+                // If there is no pending permission request, it might be an auto-accepted edit that is just dirty.
+                // We should clear originalContent and save the file to "accept" the diff locally.
+                const path = workspace.getActiveGroup()?.activeFile;
+                if (path) {
+                  workspace.setOriginalContent(path, undefined);
+                  const state = workspace.getFileState(path);
+                  if (state) {
+                    void file.write(path, state.content);
+                    workspace.markClean(path, workspace.activeGroupId());
+                  }
+                }
+                return;
+              }
               const args = pendingEditToolArgs()
               sdk().client.permission.respond({ sessionID: req.sessionID, permissionID: req.id, response: "once" })
                 .then(() => {
@@ -1506,7 +1519,20 @@ export default function FullIde() {
             }}
             onRejectDiff={() => {
               const req = pendingEditPermission()
-              if (!req) return
+              if (!req) {
+                const path = workspace.getActiveGroup()?.activeFile;
+                if (path) {
+                  const state = workspace.getFileState(path);
+                  if (state && state.originalContent !== undefined) {
+                    // Revert to original content
+                    void file.write(path, state.originalContent);
+                    workspace.setContent(path, state.originalContent, workspace.activeGroupId());
+                    workspace.setOriginalContent(path, undefined);
+                    workspace.markClean(path, workspace.activeGroupId());
+                  }
+                }
+                return;
+              }
               sdk().client.permission.respond({ sessionID: req.sessionID, permissionID: req.id, response: "reject" })
                 .catch((err: unknown) => {
                   showToast({ title: "Failed to reject", description: err instanceof Error ? err.message : String(err) })

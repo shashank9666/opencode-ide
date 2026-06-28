@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { For, Show, createMemo, createSignal, createEffect } from "solid-js";
 import { Icon } from "@opencode-ai/ui/icon";
 import { getFilename } from "@opencode-ai/core/util/path";
 import { IdeDiffEditor } from "./ide-editor";
@@ -7,6 +7,8 @@ import { useSync } from "@/context/sync";
 import { useSDK } from "@/context/sdk";
 import { useFile } from "@/context/file";
 
+import { diffLines } from "diff";
+
 type FileChange = {
   path: string;
   before: string;
@@ -14,19 +16,20 @@ type FileChange = {
 };
 
 function lineDiff(before: string, after: string) {
-  const beforeLines = before.split("\n");
-  const afterLines = after.split("\n");
-  let added = 0;
-  let removed = 0;
-  const maxLen = Math.max(beforeLines.length, afterLines.length);
-  for (let i = 0; i < maxLen; i++) {
-    const b = beforeLines[i];
-    const a = afterLines[i];
-    if (b === undefined) { added++; continue; }
-    if (a === undefined) { removed++; continue; }
-    if (b !== a) { added++; removed++; }
+  if (!before && !after) return { added: 0, removed: 0 };
+  try {
+    const diffs = diffLines(before, after);
+    let added = 0;
+    let removed = 0;
+    for (const part of diffs) {
+      if (part.added) added += part.count || 0;
+      else if (part.removed) removed += part.count || 0;
+    }
+    return { added, removed };
+  } catch {
+    // Fallback if diffLines fails on extreme cases
+    return { added: 0, removed: 0 };
   }
-  return { added, removed };
 }
 
 export function ReviewChangesPanel(props: { workspace: any }) {
@@ -66,7 +69,6 @@ export function ReviewChangesPanel(props: { workspace: any }) {
     return [...paths];
   });
 
-  // Also include workspace files that have originalContent set (from inline diff accept flow)
   const workspaceChangedFiles = createMemo(() => {
     if (!props.workspace) return [] as FileChange[];
     return props.workspace.getGroups().flatMap((g: any) =>
@@ -76,13 +78,15 @@ export function ReviewChangesPanel(props: { workspace: any }) {
     );
   });
 
+  const [loadingPaths, setLoadingPaths] = createSignal<Set<string>>(new Set());
+
   // Load before/after for SDK-tracked paths
-  const loadFileDiff = async (path: string) => {
+  const loadFileDiff = async (path: string, autoSelect = true) => {
     if (loadedFiles()[path]) {
-      setSelectedFile(loadedFiles()[path]!);
+      if (autoSelect) setSelectedFile(loadedFiles()[path]!);
       return;
     }
-    setLoading(true);
+    setLoadingPaths(prev => { const s = new Set(prev); s.add(path); return s; });
     try {
       await file.load(path);
       const state = file.get(path);
@@ -104,17 +108,25 @@ export function ReviewChangesPanel(props: { workspace: any }) {
           before = resp.data;
         }
       } catch {
-        // fallback: if we can't get the original from git (e.g. it's a new file or untracked),
-        // we assume the file is entirely new to show its contents in the diff.
+        // fallback
         before = "";
       }
       const change: FileChange = { path, before, after };
       setLoadedFiles(prev => ({ ...prev, [path]: change }));
-      setSelectedFile(change);
+      if (autoSelect) setSelectedFile(change);
     } finally {
-      setLoading(false);
+      setLoadingPaths(prev => { const s = new Set(prev); s.delete(path); return s; });
     }
   };
+
+  createEffect(() => {
+    // Eagerly load all missing diffs in the background
+    for (const p of changedFilePaths()) {
+      if (!loadedFiles()[p] && !loadingPaths().has(p)) {
+        void loadFileDiff(p, false);
+      }
+    }
+  });
 
   const allChanges = createMemo((): FileChange[] => {
     const wChanges = workspaceChangedFiles();

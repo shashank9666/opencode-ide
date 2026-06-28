@@ -62,7 +62,7 @@ export function SessionPermissionDock(props: {
           <div />
           <div data-slot="permission-footer-actions">
             <Button variant="ghost" size="normal" onClick={() => props.onDecide("reject")} disabled={props.responding}>
-              {language.t("ui.permission.deny")}
+              {language.t("ui.permission.deny")} <span class="opacity-70 ml-1 text-11-regular">(Backspace)</span>
             </Button>
             <Button
               variant="secondary"
@@ -73,7 +73,7 @@ export function SessionPermissionDock(props: {
               {language.t("ui.permission.allowAlways")}
             </Button>
             <Button variant="primary" size="normal" onClick={() => props.onDecide("once")} disabled={props.responding}>
-              {language.t("ui.permission.allowOnce")}
+              {language.t("ui.permission.allowOnce")} <span class="opacity-70 ml-1 text-11-regular">(Enter)</span>
             </Button>
           </div>
         </>
