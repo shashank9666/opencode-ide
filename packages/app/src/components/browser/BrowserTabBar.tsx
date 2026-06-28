@@ -53,7 +53,7 @@ export function BrowserTabBar(props: BrowserTabBarProps) {
                   }}
                   title="Close (Ctrl+W)"
                 >
-                  <Icon name="x" class="size-3" />
+                  <Icon name="close" size="small" />
                 </button>
               </div>
               {/* Active Tab Highlight Indicator */}

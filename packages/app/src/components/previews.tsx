@@ -80,7 +80,7 @@ export function MarkdownPreviewToolbar(props: {
             title="Toggle word wrap"
             onClick={props.onToggleWordWrap}
           >
-            <Icon name="wrap" size="small" />
+            <Icon name="arrow-undo-down" size="small" />
           </button>
         </Show>
 
@@ -382,7 +382,7 @@ export function MarkdownPreview(props: { content: string; filename: string; onCl
               title="Toggle word wrap"
               onClick={() => setWordWrap((p) => !p)}
             >
-              <Icon name="wrap" size="small" />
+              <Icon name="arrow-undo-down" size="small" />
             </button>
           </Show>
           <button

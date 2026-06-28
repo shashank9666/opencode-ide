@@ -1,0 +1,22 @@
+{
+  "appId": "com.opencode.app",
+  "productName": "OpenCode",
+  "directories": {
+    "output": "release",
+    "buildResources": "assets"
+  },
+  "files": [
+    "dist/**/*",
+    "../app/dist/**/*"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "assets/icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

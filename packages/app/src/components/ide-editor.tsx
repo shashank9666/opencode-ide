@@ -550,8 +550,12 @@ export function IdeDiffEditor(props: {
             )}
             <div class="w-[1px] self-stretch bg-[#3c3c3c]" />
             <div class="flex items-center gap-1.5 px-3 py-1.5 text-[#cccccc] text-12-regular">
-              <Icon name="arrow-up" class="size-3.5 cursor-pointer hover:text-white" onClick={prevDiff} title="Previous Change" />
-              <Icon name="chevron-down" class="size-3.5 cursor-pointer hover:text-white" onClick={nextDiff} title="Next Change" />
+              <button title="Previous Change" class="hover:text-white inline-flex items-center" onClick={prevDiff}>
+                <Icon name="arrow-up" class="size-3.5" />
+              </button>
+              <button title="Next Change" class="hover:text-white inline-flex items-center" onClick={nextDiff}>
+                <Icon name="chevron-down" class="size-3.5" />
+              </button>
             </div>
           </>
         ), widgetNode)

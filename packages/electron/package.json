@@ -1,0 +1,21 @@
+{
+  "name": "@opencode-ai/electron",
+  "version": "1.0.0",
+  "description": "Electron wrapper for OpenCode",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run build && electron .",
+    "build": "bun build ./src/main.ts --target node --outfile ./dist/main.js --format esm --external electron && bun build ./src/preload.ts --target node --outfile ./dist/preload.js --format esm --external electron",
+    "pack": "bun run build && electron-builder --dir",
+    "dist": "bun run build && electron-builder"
+  },
+  "dependencies": {
+    "@opencode-ai/app": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "typescript": "catalog:"
+  }
+}

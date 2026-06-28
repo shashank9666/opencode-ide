@@ -42,7 +42,7 @@ export function BrowserSidebar(props: BrowserSidebarProps) {
             title="New Browser"
           />
           <IconButton
-            icon="layout-sidebar-left-off"
+            icon="layout-left"
             variant="ghost"
             class="size-6 rounded text-[#8a8a8a] hover:text-[#cccccc] hover:bg-[#3d3d3d]"
             onClick={props.onCloseSidebar}

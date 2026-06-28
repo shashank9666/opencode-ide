@@ -47,7 +47,7 @@ export function BrowserToolbar(props: {
 
       {/* URL bar */}
       <div class="flex-1 flex items-center gap-2 bg-[#252526] border border-[#3c3c3c] hover:border-[#4c4c4c] focus-within:border-[#007AFF] focus-within:ring-1 focus-within:ring-[#007AFF] rounded-full px-4 py-1.5 transition-all max-w-4xl mx-auto">
-        <Icon name="lock" class="size-3 text-[#10b981] shrink-0" />
+        <Icon name="shield" class="size-3 text-[#10b981] shrink-0" />
         <input
           type="text"
           value={props.url}
