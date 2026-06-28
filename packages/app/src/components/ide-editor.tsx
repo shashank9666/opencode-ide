@@ -575,6 +575,11 @@ export function IdeDiffEditor(props: {
           })
         }
         diffEditor?.getModifiedEditor().addContentWidget(contentWidget)
+        
+        // Auto scroll to the changes modal
+        setTimeout(() => {
+          diffEditor?.getModifiedEditor().revealLineInCenterIfOutsideViewport(maxLine)
+        }, 50)
       }
     })
   })

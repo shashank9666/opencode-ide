@@ -1475,13 +1475,13 @@ export default function FullIde() {
                 const args = pendingEditToolArgs()
                 if (!args?.path) return undefined
                 const state = file.get(args.path)
-                if (!state?.content || state.content.type !== "text") return undefined
-                const original = state.content.content
+                if (state && state.content?.type === "binary") return undefined
+                const original = (state?.content?.type === "text") ? state.content.content : ""
                 const modified = args.oldString != null
                   ? (args.replaceAll
                     ? original.replaceAll(args.oldString, args.newString || "")
                     : original.replace(args.oldString, args.newString || ""))
-                  : args.content
+                  : (args.content || "")
                 return { path: args.path, modified, original }
               })()
             }
