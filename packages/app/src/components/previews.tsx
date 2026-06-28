@@ -144,7 +144,10 @@ export function MarkdownPreviewPanel(props: { content: string; filename: string 
   let scrollContainerRef: HTMLDivElement | undefined
 
   const tryParse = async (markdown: string): Promise<string> => {
-    const parser = markedContext as unknown
+    let parser = markedContext as unknown
+    if (parser instanceof Promise) {
+      parser = await parser
+    }
     if (typeof parser === "function") {
       return await (parser as (markdown: string) => Promise<string>)(markdown)
     }
@@ -321,7 +324,10 @@ export function MarkdownPreview(props: { content: string; filename: string; onCl
   let scrollContainerRef: HTMLDivElement | undefined
 
   const tryParse = async (markdown: string): Promise<string> => {
-    const parser = markedContext as unknown
+    let parser = markedContext as unknown
+    if (parser instanceof Promise) {
+      parser = await parser
+    }
     if (typeof parser === "function") {
       return await (parser as (markdown: string) => Promise<string>)(markdown)
     }

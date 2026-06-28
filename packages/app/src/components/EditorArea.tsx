@@ -176,12 +176,19 @@ export function EditorAreaGroup(props: {
     for (const openFile of group().files) {
       if (openFile.dirty) continue; // Don't auto-reload if user has unsaved changes
 
-      const state = file.get(openFile.path);
+      const isPreview = openFile.path.startsWith("preview://");
+      const realPath = isPreview ? openFile.path.slice(10) : openFile.path;
+      const state = file.get(realPath);
+
       if (state && state.content && state.content.type === "text") {
         const diskContent = state.content.content;
         if (diskContent !== openFile.savedContent) {
           props.workspace.reloadFileContent(openFile.path, diskContent, group().id);
         }
+      } else if (isPreview && state && !state.loaded && !state.loading) {
+        void file.load(realPath);
+      } else if (isPreview && !state) {
+        void file.load(realPath);
       }
     }
   });
