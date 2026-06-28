@@ -15,10 +15,12 @@ type FileChange = {
   after: string;
 };
 
+const norm = (s: string) => s.replace(/\r\n/g, "\n").replace(/\n+$/, "") + "\n"
+
 function lineDiff(before: string, after: string) {
   if (!before && !after) return { added: 0, removed: 0 };
   try {
-    const diffs = diffLines(before, after);
+    const diffs = diffLines(norm(before), norm(after));
     let added = 0;
     let removed = 0;
     for (const part of diffs) {

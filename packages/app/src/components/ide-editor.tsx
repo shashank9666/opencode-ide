@@ -588,6 +588,7 @@ export function IdeDiffEditor(props: {
     const model = diffEditor.getModel()
     if (model) {
       if (model.original.getValue() === normOriginal && model.modified.getValue() === normModified) return
+      diffEditor.setModel(null)
       model.original.dispose()
       model.modified.dispose()
     }
@@ -609,6 +610,7 @@ export function IdeDiffEditor(props: {
   onCleanup(() => {
     if (!diffEditor) return
     const model = diffEditor.getModel()
+    diffEditor.setModel(null)
     model?.original.dispose()
     model?.modified.dispose()
     diffEditor.dispose()
