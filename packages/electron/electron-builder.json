@@ -10,6 +10,11 @@
   ],
   "extraResources": [
     {
+      "from": "../../.opencode",
+      "to": ".opencode",
+      "filter": ["**/*"]
+    },
+    {
       "from": "../app/dist",
       "to": "app-dist",
       "filter": ["**/*"]

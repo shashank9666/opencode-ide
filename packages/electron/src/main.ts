@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron"
+import { app, BrowserWindow, ipcMain, dialog, Menu } from "electron"
 import path from "node:path"
 import url from "node:url"
 import { spawn, type ChildProcess } from "node:child_process"
@@ -84,6 +84,7 @@ function startServers() {
 }
 
 function createWindow() {
+  Menu.setApplicationMenu(null)
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
