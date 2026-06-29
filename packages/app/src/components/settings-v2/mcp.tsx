@@ -11,7 +11,12 @@ import { SettingsListV2 } from "./parts/list"
 export const SettingsMcpV2: Component = () => {
   const language = useLanguage()
   const serverSync = useServerSync()
-  const sync = useSync()
+  let sync: any
+  try {
+    sync = useSync()
+  } catch (e) {
+    // not in a sync context
+  }
   const [state, setState] = createStore({
     newName: "",
     newJson: "{\n  \"type\": \"local\",\n  \"command\": [\n    \"npx\",\n    \"-y\",\n    \"@modelcontextprotocol/server-postgres\",\n    \"postgresql://localhost/mydb\"\n  ],\n  \"enabled\": true\n}",
@@ -20,7 +25,7 @@ export const SettingsMcpV2: Component = () => {
   })
 
   const mcpServers = () => serverSync().data.config.mcp ?? {}
-  const activeMcp = () => sync().data.mcp ?? {}
+  const activeMcp = () => sync ? sync().data.mcp ?? {} : {}
 
   const combinedMcpNames = () => {
     const set = new Set<string>()

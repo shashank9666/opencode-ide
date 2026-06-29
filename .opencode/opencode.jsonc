@@ -4,7 +4,13 @@
   "plugin": [
     "opencode-dynamic-context-pruning", // prune stale tool outputs automatically
     "opencode-shell-strategy", // prevent agent from hanging on TTY commands
-    "opencode-vibeguard" // redact secrets/PII before they hit the LLM
+    "opencode-vibeguard", // redact secrets/PII before they hit the LLM
+    [
+      "opencode-helicone-session",
+      {
+        "enabled": true
+      }
+    ]
   ],
   // ─── Provider: let users bring their own key ───────────────
   // Leave provider config minimal; expose a key input in your IDE UI
@@ -17,31 +23,30 @@
     "read": "ask",
     "edit": "ask",
     "bash": "ask",
-    "browser": "allow",
+    "browser": "ask",
     "mcp": "ask"
   },
   // ─── MCP servers ───────────────────────────────────────────
   "mcp": {
-    "context7": {
-      "enabled": true,
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@upstash/context7-mcp"
-      ]
-    },
     "blender-mcp": {
       "type": "local",
       "command": [
         "uvx",
         "blender-mcp"
       ],
-      "enabled": true,
       "environment": {
         "BLENDER_HOST": "localhost",
         "BLENDER_PORT": "9876"
       }
+    },
+    "playwright": {
+      "enabled": true,
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp"
+      ]
     }
   },
   // ─── File watcher: ignore noise ────────────────────────────
