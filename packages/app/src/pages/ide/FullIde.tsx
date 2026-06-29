@@ -138,6 +138,17 @@ export default function FullIde() {
   const sync = useSync()
   const local = useLocal()
   const dialog = useDialog()
+
+  createEffect(() => {
+    const handleAiFileCreated = (e: any) => {
+      const path = e.detail?.path
+      if (path) {
+        editor.openFile(path, "")
+      }
+    }
+    window.addEventListener("ai-file-created", handleAiFileCreated)
+    onCleanup(() => window.removeEventListener("ai-file-created", handleAiFileCreated))
+  })
   const remote = useRemote()
 
   // ── Layout state ──
