@@ -1093,6 +1093,10 @@ export default function FullIde() {
     if (isMod && !e.shiftKey && e.key === "z" && !isInput) { e.preventDefault(); void undoFileAction(sdk()) }
     if (isMod && (e.key === "y" || (e.shiftKey && e.key === "Z")) && !isInput) { e.preventDefault(); void redoFileAction(sdk()) }
 
+    if (isMod && (e.key === "=" || e.key === "+")) { e.preventDefault(); setFontSize(s => s + 1) }
+    if (isMod && e.key === "-") { e.preventDefault(); setFontSize(s => Math.max(8, s - 1)) }
+    if (isMod && e.key === "0") { e.preventDefault(); setFontSize(13) }
+
     if (e.key === "Escape" && commandPaletteOpen()) setCommandPaletteOpen(false)
   }
 
