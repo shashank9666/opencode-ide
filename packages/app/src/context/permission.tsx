@@ -195,7 +195,7 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
 
       let isAllowedByGranular = false
 
-      if (action === "read" || action === "read_file" || action === "list_dir" || action === "grep_search" || action === "read_url" || action === "filesystem.read.project") {
+      if (action === "read" || action === "read_file" || action === "view_file" || action === "list_dir" || action === "grep_search" || action === "read_url" || action === "filesystem.read.project") {
         isAllowedByGranular = settings.readAllFiles || settings.readProjectFiles
       } else if (action === "edit" || action === "write" || action === "replace_file_content" || action === "write_to_file" || action === "multi_replace_file_content" || action === "filesystem.write.project") {
         isAllowedByGranular = settings.editAllFiles || settings.editProjectFiles

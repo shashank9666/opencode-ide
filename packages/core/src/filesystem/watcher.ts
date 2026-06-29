@@ -25,6 +25,7 @@ export const Event = {
     schema: {
       file: Schema.String,
       event: Schema.Literals(["add", "change", "unlink"]),
+      aiCreated: Schema.optional(Schema.Boolean),
     },
   }),
 }

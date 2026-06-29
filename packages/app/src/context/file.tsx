@@ -242,6 +242,9 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
           if (lastWrite && Date.now() - lastWrite < 2000) {
             return
           }
+          if (props.aiCreated && props.event === "add") {
+            window.dispatchEvent(new CustomEvent("ai-file-created", { detail: { path: normalizedPath } }))
+          }
         }
         
         pendingWatcherEvents.push(e.details);
