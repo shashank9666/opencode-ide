@@ -60,7 +60,7 @@ export const GenerateImageTool = Tool.define(
             output: `Successfully generated and saved image to ${filepath}`,
           }
         }).pipe(
-          Effect.catchAll((e: any) =>
+          Effect.catch((e: any) =>
             Effect.succeed({
               title: "Image Generation Error",
               output: `Error generating image: ${e.message}`,
