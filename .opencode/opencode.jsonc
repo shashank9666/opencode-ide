@@ -1,18 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
   // ─── Plugins ───────────────────────────────────────────────
   "plugin": [
     "opencode-dynamic-context-pruning", // prune stale tool outputs automatically
-    "opencode-shell-strategy",          // prevent agent from hanging on TTY commands
-    "opencode-vibeguard"                // redact secrets/PII before they hit the LLM
+    "opencode-shell-strategy", // prevent agent from hanging on TTY commands
+    "opencode-vibeguard" // redact secrets/PII before they hit the LLM
   ],
-
   // ─── Provider: let users bring their own key ───────────────
   // Leave provider config minimal; expose a key input in your IDE UI
   // and inject via env at runtime (ANTHROPIC_API_KEY, OPENAI_API_KEY etc.)
   "provider": {},
-
   // ─── Permissions: Delegate to IDE UI ───────────────────────
   // By setting these to "ask", the backend will pause and let the 
   // IDE's dynamic Auto-Approve settings decide whether to allow or block.
@@ -23,17 +20,30 @@
     "browser": "allow",
     "mcp": "ask"
   },
-
-
   // ─── MCP servers ───────────────────────────────────────────
   "mcp": {
     "context7": {
       "enabled": true,
       "type": "local",
-      "command": ["npx", "-y", "@upstash/context7-mcp"]
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "blender-mcp": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "blender-mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876"
+      }
     }
   },
-
   // ─── File watcher: ignore noise ────────────────────────────
   "watcher": {
     "ignore": [
@@ -49,19 +59,16 @@
       "*.log"
     ]
   },
-
   // ─── IDE-aware instructions ────────────────────────────────
   // These tell the agent it's running inside a full IDE context
   "instructions": [
-    ".opencode/rules/ide.md"   // create this file per project
+    ".opencode/rules/ide.md" // create this file per project
   ],
-
   // ─── Context compaction ────────────────────────────────────
   // Important for public users with long sessions
   "compaction": {
     "auto": true
   },
-
   // ─── Disable tools irrelevant to IDE users ─────────────────
   "tools": {
     "github-triage": false,
