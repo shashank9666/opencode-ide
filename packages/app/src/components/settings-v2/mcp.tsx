@@ -12,10 +12,11 @@ export const SettingsMcpV2: Component = () => {
   const language = useLanguage()
   const serverSync = useServerSync()
   let sync: any
+  let isGlobalOnly = false
   try {
     sync = useSync()
   } catch (e) {
-    // not in a sync context
+    isGlobalOnly = true
   }
   const [state, setState] = createStore({
     newName: "",
@@ -95,6 +96,10 @@ export const SettingsMcpV2: Component = () => {
           Manage your Model Context Protocol (MCP) servers. MCP servers extend the capabilities of the agent.
           <br /><br />
           <strong>Note:</strong> Playwright will be enabled by default and is recommended. Without it, browser-based testing won't work.
+          <Show when={isGlobalOnly}>
+            <br /><br />
+            <strong>Desktop View:</strong> You are currently viewing your Global settings. Any MCP servers defined specifically inside a project's <code>.opencode.jsonc</code> file will only appear here when you actually open that project in the IDE.
+          </Show>
         </p>
       </div>
 
