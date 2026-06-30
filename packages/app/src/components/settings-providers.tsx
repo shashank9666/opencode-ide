@@ -11,6 +11,7 @@ import { useServerSync } from "@/context/server-sync"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { DialogSelectProvider } from "./dialog-select-provider"
 import { DialogCustomProvider } from "./dialog-custom-provider"
+import { DialogDetectLocalProviders } from "./dialog-detect-local-providers"
 import { SettingsList } from "./settings-list"
 import { SettingsServerPicker, SettingsServerScope } from "./settings-server-picker"
 
@@ -256,6 +257,22 @@ const SettingsProvidersContent: Component = () => {
           >
             {language.t("dialog.provider.viewAll")}
           </Button>
+
+          <div class="mt-6 pt-4 border-t border-border-weak-base">
+            <Button
+              variant="secondary"
+              icon="plus-small"
+              class="w-auto"
+              onClick={() => {
+                dialog.show(() => <DialogDetectLocalProviders />)
+              }}
+            >
+              Detect local providers
+            </Button>
+            <p class="text-12-regular text-text-weak mt-2">
+              Auto-detect Ollama, LM Studio, and other local AI providers running on your machine.
+            </p>
+          </div>
         </div>
       </div>
     </div>
