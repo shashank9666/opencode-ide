@@ -7,9 +7,10 @@
 - [x] VS Code-level UI/UX polish
 - [x] Better onboarding for first-time users
 - [x] Reliability improvements around permissions and providers
-- [/] Stronger debugging tools
+- [x] Stronger debugging tools
   - Debug panel with breakpoints, variables, call stack, watch expressions exists (`DebugPanel.tsx`)
-  - AI-suggested fix for runtime errors still missing
+  - AI-suggested fix button added to error page
+  - Real AI integration added via SDK in `packages/app/src/pages/error.tsx`
 
 ## High Priority — Developer Experience
 
@@ -29,7 +30,14 @@
 ## Medium Priority — Agent & Workflow
 
 - [ ] Multi-agent orchestration
-- [ ] Better agent planning/execution visualization
+- [x] Better agent planning/execution visualization
+  - Real-time Execution Flow panel added to session side panel (`execution-flow-panel.tsx`, `execution-flow.tsx`)
+  - Shows full execution timeline: user messages, reasoning, tool calls, results, step metrics, agent switches, sub-agent spawns
+  - Each node is expandable with full detail (thinking content, tool I/O, token/cost metrics)
+  - Active nodes show spinner with pulsing border during execution
+  - Aggregate metrics bar: total steps, tokens (in/out/thinking), cache hits, cost
+  - Search filtering, agent indicator badge, empty state handling
+  - Wired into session side panel as a new "Flow" tab
 - [ ] Background autonomous tasks
 
 ## Medium Priority — Editor & Extensions

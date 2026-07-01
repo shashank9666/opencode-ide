@@ -6,8 +6,10 @@ import { Component, createSignal, onMount, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
+import { useSDK } from "@/context/sdk"
 import { Icon } from "@opencode-ai/ui/icon"
 import { errorDescriptionKey } from "./error-description"
+import { showToast } from "@/utils/toast"
 
 export type InitError = {
   name: string
@@ -227,6 +229,8 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
   const [store, setStore] = createStore({
     actionError: undefined as string | undefined,
   })
+  const [aiSuggestion, setAiSuggestion] = createSignal<string | undefined>(undefined)
+  const [loadingSuggestion, setLoadingSuggestion] = createSignal(false)
 
   function ensureFatalErrorRecorded() {
     recordedFatalError ??=
@@ -247,6 +251,33 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
   async function checkForUpdates() {
     const state = await platform.updater?.check()
     setStore("actionError", state?.status === "error" ? state.message : undefined)
+  }
+
+  async function requestAiSuggestion() {
+    setLoadingSuggestion(true)
+    setAiSuggestion(undefined)
+    try {
+      const sdk = useSDK()
+      const client = sdk().client
+      const summary = typeof props.error === "string" ? props.error : JSON.stringify(props.error, null, 2)
+      const session = await client.session.create().catch(() => undefined)
+      if (!session?.data) {
+        setAiSuggestion("Unable to create a temporary session for AI analysis.")
+        return
+      }
+      const created = session.data
+      await client.session.promptAsync({
+        sessionID: created.id,
+        agent: "build",
+        model: { providerID: "", modelID: "" },
+        parts: [{ type: "text", content: `Analyze this error and suggest a practical fix:\n\n${summary.slice(0, 4000)}` }],
+      })
+      setAiSuggestion("Request sent. If supported, the assistant reply should appear in this session.")
+    } catch (err) {
+      setAiSuggestion(formatError(err, language.t))
+    } finally {
+      setLoadingSuggestion(false)
+    }
   }
 
   async function installUpdate() {
@@ -301,6 +332,9 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
               {language.t("error.page.action.exportLogs")}
             </Button>
           </Show>
+          <Button size="large" variant="secondary" onClick={requestAiSuggestion} disabled={loadingSuggestion()}>
+            {loadingSuggestion() ? "Analyzing..." : "AI Suggest Fix"}
+          </Button>
           <Show when={Sentry.isEnabled}>
             {(_) => {
               const [reported, setReported] = createSignal(false)
@@ -342,9 +376,17 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
             </Show>
           </Show>
         </div>
-        <Show when={store.actionError}>
-          {(message) => <p class="text-xs text-text-danger-base text-center max-w-2xl">{message()}</p>}
-        </Show>
+          <Show when={store.actionError}>
+            {(message) => <p class="text-xs text-text-danger-base text-center max-w-2xl">{message()}</p>}
+          </Show>
+          <Show when={aiSuggestion}>
+            {(suggestion) => (
+              <div class="w-full max-w-3xl rounded-lg border border-border-base bg-surface-raised-base p-3 text-left">
+                <div class="text-xs font-semibold uppercase tracking-wider text-text-weak mb-1">AI Suggested Fix</div>
+                <div class="text-sm whitespace-pre-wrap text-text-strong">{suggestion()}</div>
+              </div>
+            )}
+          </Show>
         <div class="flex flex-col items-center gap-2">
           <div class="flex items-center justify-center gap-1">
             {language.t("error.page.report.prefix")}

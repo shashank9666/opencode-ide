@@ -19,6 +19,8 @@ import { SessionContextUsage } from "@/components/session-context-usage"
 import { ToolTimeline } from "@/components/session/tool-timeline"
 import { AgentCapabilities } from "@/components/session/agent-capabilities"
 import { AgentCapabilitiesProvider } from "@/context/agent-capabilities"
+import { ExecutionFlowPanel } from "@/components/session/execution-flow-panel"
+import { ExecutionFlowProvider } from "@/context/execution-flow"
 import { KnowledgePanel } from "@/components/session/knowledge-panel"
 import { ProductionFeatures } from "@/components/session/production-features"
 import { BackgroundTasksPanel } from "@/components/session/background-tasks"
@@ -414,6 +416,12 @@ export function SessionSidePanel(props: {
                             <div>Tools</div>
                           </div>
                         </Tabs.Trigger>
+                        <Tabs.Trigger value="flow">
+                          <div class="flex items-center gap-1.5">
+                            <Icon name="task" size="small" />
+                            <div>Flow</div>
+                          </div>
+                        </Tabs.Trigger>
                         <Tabs.Trigger value="capabilities">
                           <div class="flex items-center gap-1.5">
                             <Icon name="sliders" size="small" />
@@ -521,6 +529,14 @@ export function SessionSidePanel(props: {
                     <Tabs.Content value="tools" class="flex flex-col h-full overflow-hidden contain-strict">
                       <Show when={activeTab() === "tools"}>
                         <ToolTimeline />
+                      </Show>
+                    </Tabs.Content>
+
+                    <Tabs.Content value="flow" class="flex flex-col h-full overflow-hidden contain-strict">
+                      <Show when={activeTab() === "flow"}>
+                        <ExecutionFlowProvider>
+                          <ExecutionFlowPanel />
+                        </ExecutionFlowProvider>
                       </Show>
                     </Tabs.Content>
 
