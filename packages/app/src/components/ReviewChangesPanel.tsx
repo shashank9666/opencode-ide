@@ -115,6 +115,7 @@ export function ReviewChangesPanel(props: { workspace: any }) {
       const after = state?.content?.type === "text" ? state.content.content : "";
       // Try to get git original via vcsFile
       let before = after;
+      let gotHead = false;
       try {
         let relPath = path;
         const dir = sdk().directory;
@@ -128,15 +129,26 @@ export function ReviewChangesPanel(props: { workspace: any }) {
         const resp = await sdk().client.vcs.file({ path: relPath, ref: "HEAD" });
         if (resp && typeof resp.data === "string") {
           before = resp.data;
+          gotHead = true;
         }
       } catch {
-        // fallback
+        // git HEAD lookup failed
+      }
+      if (!gotHead) {
+        // Fallback: use workspace originalContent if available
         const wfile = props.workspace?.getGroups()
           .flatMap((g: any) => g.files)
           .find((f: any) => f.path === path);
-        before = wfile?.originalContent ?? "";
+        if (wfile?.originalContent !== undefined) {
+          before = wfile.originalContent;
+        } else if (wfile?.savedContent !== undefined) {
+          before = wfile.savedContent;
+        } else {
+          // No before state available — show empty to indicate new file
+          before = ""
+        }
       }
-      const change: FileChange = { path, before, after };
+      const change: FileChange = { path, before, after, additions: undefined, deletions: undefined };
       setLoadedFiles(prev => ({ ...prev, [path]: change }));
       if (autoSelect) setSelectedFile(change);
     } finally {

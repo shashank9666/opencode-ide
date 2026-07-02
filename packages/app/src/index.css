@@ -3,42 +3,85 @@
 
 @layer base {
   html, body {
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Inter", sans-serif;
-    font-size: 13px; /* standard VS Code size */
-    line-height: 1.4;
+    font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
     overflow: hidden;
     height: 100%;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-variation-settings: "slnt" 0;
   }
 
-  #app {
+  #app, #root {
     height: 100%;
     overflow: hidden;
   }
 
+  /* Premium thin scrollbar */
   ::-webkit-scrollbar {
-    width: 14px;
-    height: 14px;
+    width: 8px;
+    height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background-color: rgba(121, 121, 121, 0.4);
-    border: 4px solid transparent;
+    background: var(--v2-grey-600, rgba(121, 121, 121, 0.3));
+    border: 2px solid transparent;
     background-clip: padding-box;
     border-radius: 9999px;
+    min-height: 32px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(100, 100, 100, 0.7);
+    background: var(--v2-grey-500, rgba(100, 100, 100, 0.5));
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
-  
+
   ::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  /* Text selection */
+  ::selection {
+    background: var(--v2-accent-alpha, rgba(59, 130, 246, 0.3));
+  }
+
+  /* Focus ring style */
+  *:focus-visible {
+    outline: 2px solid var(--v2-accent-base, #3b82f6);
+    outline-offset: -1px;
+    border-radius: 2px;
+  }
+
+  /* Smooth button/text transitions globally */
+  button, a, input, select, textarea {
+    transition: color 80ms ease-out, background-color 80ms ease-out, border-color 80ms ease-out, opacity 80ms ease-out;
+  }
+
+  /* Prevent text selection on UI panels */
+  [data-component="activity-bar"],
+  [data-component="side-bar"],
+  [data-component="panel"] {
+    user-select: none;
+  }
+
+  /* Keyboard shortcut styling */
+  kbd {
+    font-family: "JetBrainsMono Nerd Font Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--v2-border-muted, rgba(128, 128, 128, 0.2));
+    background: var(--v2-surface-base, rgba(128, 128, 128, 0.08));
+    color: var(--v2-text-muted, rgba(204, 204, 204, 0.7));
   }
 }
 

@@ -29,13 +29,13 @@ function DiffViewer(props: { file: DiffFile; onClose: () => void }) {
   })
 
   return (
-    <div class="size-full flex flex-col bg-surface-base">
-      <div class="flex items-center justify-between px-3 py-1.5 border-b border-border-base shrink-0">
+    <div class="size-full flex flex-col" style="background: var(--background-bg-base);">
+      <div class="flex items-center justify-between px-3 py-1.5 shrink-0" style="border-bottom: 1px solid var(--border-muted);">
         <div class="flex items-center gap-2 min-w-0">
           <IconButton icon="arrow-left" variant="ghost" size="small" class="size-5" onClick={props.onClose} />
-          <span class="text-12-medium text-text-strong truncate">{props.file.file}</span>
-          <span class="text-11-regular text-text-success-base">+{props.file.additions}</span>
-          <span class="text-11-regular text-text-danger-base">-{props.file.deletions}</span>
+          <span class="text-12-medium truncate" style="color: var(--text-base);">{props.file.file}</span>
+          <span class="text-11-regular" style="color: var(--color-success, #22c55e);">+{props.file.additions}</span>
+          <span class="text-11-regular" style="color: var(--color-danger, #ef4444);">-{props.file.deletions}</span>
         </div>
       </div>
       <div class="flex-1 overflow-auto font-mono text-12-regular p-2">
@@ -45,17 +45,12 @@ function DiffViewer(props: { file: DiffFile; onClose: () => void }) {
             return (
               <div
                 class="px-2 py-px whitespace-pre-wrap break-all leading-5"
-                classList={{
-                  "bg-[var(--color-diff-add-bg,#e6ffec)]": type === "add",
-                  "bg-[var(--color-diff-del-bg,#ffebe9)]": type === "del",
-                  "bg-[var(--color-diff-hunk-bg,#ddf4ff)]": type === "hunk",
-                  "text-text-strong": type === "context",
-                  "text-[#116329]": type === "add",
-                  "text-[#cf222e]": type === "del",
-                  "text-[#0550ae]": type === "hunk",
+                style={{
+                  background: type === "add" ? "var(--color-diff-add-bg, #e6ffec)" : type === "del" ? "var(--color-diff-del-bg, #ffebe9)" : type === "hunk" ? "var(--color-diff-hunk-bg, #ddf4ff)" : "transparent",
+                  color: type === "context" ? "var(--text-base)" : type === "add" ? "#116329" : type === "del" ? "#cf222e" : "#0550ae",
                 }}
               >
-                <span class="inline-block w-6 text-right text-text-weaker select-none mr-2 text-11-regular">
+                <span class="inline-block w-6 text-right select-none mr-2 text-11-regular" style="color: var(--text-weaker);">
                   {type === "add" ? "+" : type === "del" ? "-" : ""}
                 </span>
                 {line}
@@ -64,7 +59,7 @@ function DiffViewer(props: { file: DiffFile; onClose: () => void }) {
           }}
         </For>
         <Show when={lines().length === 0}>
-          <div class="flex flex-col items-center justify-center py-8 text-text-weaker gap-2">
+          <div class="flex flex-col items-center justify-center py-8 gap-2" style="color: var(--text-weaker);">
             <Icon name="code" size="large" />
             <span class="text-12-regular">No diff available</span>
           </div>
@@ -150,10 +145,10 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
 
   const statusIcon = (status: string | undefined) => {
     switch (status) {
-      case "modified": return { icon: "edit-small-2" as const, color: "text-text-warning-base" }
-      case "added": return { icon: "plus-small" as const, color: "text-icon-diff-add-base" }
-      case "deleted": return { icon: "close-small" as const, color: "text-icon-diff-delete-base" }
-      default: return { icon: "edit-small-2" as const, color: "text-text-weak" }
+      case "modified": return { icon: "edit-small-2" as const, color: "var(--color-warning, #eab308)" }
+      case "added": return { icon: "plus-small" as const, color: "var(--color-success, #22c55e)" }
+      case "deleted": return { icon: "close-small" as const, color: "var(--color-danger, #ef4444)" }
+      default: return { icon: "edit-small-2" as const, color: "var(--icon-weaker)" }
     }
   }
 
@@ -209,16 +204,16 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
   }
 
   return (
-    <div class="size-full flex flex-col">
+    <div class="size-full flex flex-col" style="background: var(--background-bg-base);">
       {/* Header */}
-      <div class="flex items-center justify-between px-3 py-2 border-b border-border-base shrink-0">
+      <div class="flex items-center justify-between px-3 py-[7px] shrink-0" style="border-bottom: 1px solid var(--border-muted);">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-12-medium text-text-weak uppercase tracking-wider">SOURCE CONTROL</span>
+          <span class="text-11-medium uppercase tracking-wider" style="color: var(--text-weaker);">Source Control</span>
           <Show when={!loading()}>
-            <span class="text-12-regular text-accent-base truncate max-w-24">{branch()}</span>
+            <span class="text-12-regular truncate max-w-24" style="color: var(--accent-base);">{branch()}</span>
           </Show>
           <Show when={loading()}>
-            <span class="text-12-regular text-text-weaker">Loading...</span>
+            <span class="text-12-regular" style="color: var(--text-weaker);">Loading...</span>
           </Show>
         </div>
         <div class="flex items-center gap-1">
@@ -246,22 +241,24 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
       </div>
 
       {/* Changes summary */}
-      <div class="px-3 py-1.5 text-12-medium text-text-weak border-b border-border-base flex items-center gap-2 shrink-0">
-        <Icon name="branch" size="small" class="text-icon-weak" />
-        <span>{totalChanges() > 0 ? `${totalChanges()} change${totalChanges() !== 1 ? "s" : ""}` : "No changes"}</span>
+      <div class="flex items-center gap-2 px-3 py-1.5 shrink-0" style="border-bottom: 1px solid var(--border-muted);">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="shrink-0" style="color: var(--icon-weaker);"><path d="M4 2V14M4 2L2 4M4 2L6 4M12 8V14M12 8L10 10M12 8L14 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="text-12-medium" style="color: var(--text-muted);">{totalChanges() > 0 ? `${totalChanges()} change${totalChanges() !== 1 ? "s" : ""}` : "No changes"}</span>
         <Show when={totalAdditions() > 0}>
-          <span class="text-text-success-base">+{totalAdditions()}</span>
+          <span class="text-12-medium ml-auto" style="color: var(--color-success, #22c55e);">+{totalAdditions()}</span>
         </Show>
         <Show when={totalDeletions() > 0}>
-          <span class="text-text-danger-base">-{totalDeletions()}</span>
+          <span class="text-12-medium" style="color: var(--color-danger, #ef4444);">-{totalDeletions()}</span>
         </Show>
       </div>
 
       {/* Commit area */}
-      <div class="p-2 border-b border-border-base shrink-0">
+      <div class="p-2 shrink-0" style="border-bottom: 1px solid var(--border-muted);">
         <div class="relative">
           <textarea
-            class="w-full px-2 py-1.5 text-13-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong resize-none"
+            class="w-full px-2 py-1.5 text-13-regular rounded-md outline-none resize-none transition-colors duration-75"
+            style={{ background: "var(--surface-base)", color: "var(--text-base)", border: "1px solid var(--border-muted)" }}
+            classList={{ "focus:border-accent-base": true }}
             placeholder="Message (Ctrl+Enter to commit)"
             rows={3}
             value={commitMessage()}
@@ -274,10 +271,11 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
               {(tmpl) => (
                 <button
                   type="button"
-                  class="px-1.5 py-0.5 text-11-medium bg-surface-raised-base border border-border-base rounded text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors"
+                  class="px-1.5 py-0.5 text-11-medium rounded transition-colors duration-75"
+                  style={{ background: "var(--surface-base)", color: "var(--text-weaker)", border: "1px solid var(--border-muted)" }}
+                  classList={{ "hover:text-text-base hover:bg-overlay-hover": true }}
                   onClick={() => {
                     setCommitMessage((prev) => {
-                      // If already has a conventional commit prefix, replace it
                       const replaced = prev.replace(/^(feat|fix|docs|style|refactor|test|chore|ci|perf|build)(\(.+\))?:\s*/, "")
                       return tmpl.prefix + replaced
                     })
@@ -292,7 +290,9 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
         <div class="flex justify-end mt-1.5">
           <button
             type="button"
-            class="px-3 py-1 text-13-medium bg-accent-base text-white rounded-md hover:bg-accent-base-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-1 text-13-medium rounded-md transition-all duration-75 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: "var(--accent-base)", color: "white" }}
+            classList={{ "hover:opacity-90": !(!commitMessage().trim() || committing()) }}
             disabled={!commitMessage().trim() || committing()}
             onClick={handleCommit}
           >
@@ -305,11 +305,11 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
       <Show
         when={totalChanges() > 0}
         fallback={
-          <div class="flex-1 flex flex-col items-center justify-center py-6 text-13-regular text-text-weaker gap-2">
-            <Icon name="circle-check" size="large" class="text-icon-weaker opacity-40" />
+          <div class="flex-1 flex flex-col items-center justify-center py-6 text-13-regular gap-2" style="color: var(--text-weaker);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="opacity-40" style="color: var(--icon-weaker);"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M6 10H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             <span>No changes in working tree</span>
             <Show when={branch() !== "detached"}>
-              <span class="text-11-regular text-text-weaker">Branch: {branch()}</span>
+              <span class="text-11-regular" style="color: var(--text-weaker);">Branch: {branch()}</span>
             </Show>
           </div>
         }
@@ -320,16 +320,15 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
               const info = statusIcon(file.status)
               return (
                 <div
-                  class="flex items-center gap-2 px-3 py-1 hover:bg-surface-raised-base-hover transition-colors cursor-pointer group"
-                  onClick={() => {
-                    // Open diff view for the file
-                    setDiffFile(file)
-                  }}
+                  class="flex items-center gap-2 px-3 py-1 cursor-pointer group transition-colors duration-75"
+                  style="color: var(--text-base);"
+                  classList={{ "hover:bg-overlay-hover": true }}
+                  onClick={() => setDiffFile(file)}
                 >
-                  <Icon name={info.icon} size="small" class={info.color + " shrink-0"} />
-                  <span class="flex-1 text-13-regular text-text-strong truncate">{file.file}</span>
-                  <span class="text-11-regular text-text-success-base shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">+{file.additions}</span>
-                  <span class="text-11-regular text-text-danger-base shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">-{file.deletions}</span>
+                  <Icon name={info.icon} size="small" class="shrink-0" style={{ color: info.color }} />
+                  <span class="flex-1 text-13-regular truncate" style="color: var(--text-base);">{file.file}</span>
+                  <span class="text-11-regular shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style="color: var(--color-success, #22c55e);">+{file.additions}</span>
+                  <span class="text-11-regular shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style="color: var(--color-danger, #ef4444);">-{file.deletions}</span>
                   <IconButton
                     icon="reset"
                     variant="ghost"
@@ -351,10 +350,12 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
       {/* More actions popup */}
       <Show when={showMoreActions()}>
         <div class="fixed inset-0 z-50" onClick={() => setShowMoreActions(false)} />
-        <div class="absolute bottom-0 left-0 right-0 z-50 bg-surface-raised-base border border-border-base rounded-t-xl shadow-xl p-2">
+        <div class="absolute bottom-0 left-0 right-0 z-50 rounded-t-xl shadow-xl p-2" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => { handlePull(); setShowMoreActions(false) }}
           >
             <Icon name="download" size="small" />
@@ -362,7 +363,9 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
           </button>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => { handlePush(); setShowMoreActions(false) }}
           >
             <Icon name="share" size="small" />
@@ -370,16 +373,20 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
           </button>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => { handleFetch(); setShowMoreActions(false) }}
           >
             <Icon name="reset" size="small" />
             Fetch
           </button>
-          <div class="h-px bg-border-base my-1" />
+          <div class="h-px my-1" style="background: var(--border-muted);" />
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => {
               showToast({ title: "Git History", description: "Run: git log --oneline -20 in terminal" })
               setShowMoreActions(false)
@@ -390,7 +397,9 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
           </button>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => {
               showToast({ title: "Git Branches", description: "Run: git branch in terminal" })
               setShowMoreActions(false)
@@ -401,7 +410,9 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
           </button>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--text-base);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => {
               showToast({ title: "Stash", description: "Run: git stash in terminal" })
               setShowMoreActions(false)
@@ -412,14 +423,16 @@ export default function SourceControlPanel(props: SourceControlPanelProps) {
           </button>
           <button
             type="button"
-            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular text-text-strong hover:bg-surface-raised-base-hover rounded-lg transition-colors"
+            class="w-full flex items-center gap-2 px-3 py-2 text-13-regular rounded-lg transition-colors duration-75"
+            style="color: var(--color-danger, #ef4444);"
+            classList={{ "hover:bg-overlay-hover": true }}
             onClick={() => {
               showToast({ title: "Discard All", description: "Run: git checkout -- . in terminal" })
               setShowMoreActions(false)
             }}
           >
-            <Icon name="circle-ban-sign" size="small" class="text-text-danger-base" />
-            <span class="text-text-danger-base">Discard All Changes</span>
+            <Icon name="circle-ban-sign" size="small" />
+            <span>Discard All Changes</span>
           </button>
         </div>
       </Show>

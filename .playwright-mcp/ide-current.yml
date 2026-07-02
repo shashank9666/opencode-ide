@@ -1,0 +1,23 @@
+- generic [ref=e141] [box=129,122,511,431]:
+  - img [ref=e142] [box=290,122,190,34]
+  - generic [ref=e160] [box=248,182,273,49]:
+    - heading "Something went wrong" [level=1] [ref=e161] [box=300,182,170,23]
+    - paragraph [ref=e162] [box=248,211,273,19]: An error occurred while loading the application.
+  - group [ref=e163] [box=129,256,511,56]:
+    - generic [ref=e164] [box=128,255,1,1]: Error Details
+    - generic [ref=e165] [box=129,256,511,56]:
+      - textbox "Error Details" [ref=e166] [box=130,257,482,54]: "TypeError: Failed to fetch dynamically imported module: http://localhost:4444/src/pages/ide.tsx"
+      - button "Copy to clipboard" [active] [ref=e168] [box=612,261,24,24]:
+        - img [ref=e170] [box=616,265,16,16]
+  - generic [ref=e172] [box=281,338,208,74]:
+    - button "Restart" [ref=e173] [box=288,338,69,32]
+    - button "AI Suggest Fix" [ref=e174] [box=367,338,114,32]
+    - button "Report Error" [ref=e175] [box=334,380,102,32]
+  - generic [ref=e177] [box=139,448,490,19]: AI Suggested Fix
+  - generic [ref=e178] [box=337,507,95,45]:
+    - generic [ref=e179] [box=337,507,95,20]:
+      - text: error
+      - button "GitHub" [ref=e180] [box=368,507,64,20]:
+        - generic [ref=e181] [box=368,507,41,19]: GitHub
+        - img [ref=e183] [box=412,507,20,20]
+    - paragraph [ref=e185] [box=343,533,82,19]: "Version: 1.17.7"

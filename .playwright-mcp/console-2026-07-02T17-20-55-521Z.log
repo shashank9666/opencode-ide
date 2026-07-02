@@ -1,0 +1,27 @@
+[   49762ms] [INFO] Autofocus processing was blocked because a document already has a focused element. @ http://localhost:4444/:0
+[   69860ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:4444/src/components/SplitPane.tsx:0
+[   69883ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:4444/src/components/MultiFileDiffOverlay.tsx:0
+[   69883ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:4444/src/components/terminal.tsx:0
+[   69884ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:4444/@vite/client:864
+[   69889ms] Failed to fetch dynamically imported module: http://localhost:4444/src/pages/ide.tsx
+[   69902ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:4444/src/components/EditorArea.tsx:0
+[   72186ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/components/terminal/terminal-command-history.tsx:0
+[   72187ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/utils/file-history.ts:0
+[   72187ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/@fs/D:/opencode-web/packages/core/src/util/array.ts:0
+[   72213ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/@fs/D:/opencode-web/packages/ui/src/components/image-preview.tsx:0
+[   72233ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/components/previews.tsx:0
+[   72233ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/HeaderBar.tsx:0
+[   74540ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/ExplorerPanel.tsx:0
+[   74540ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/ModernStatusBar.tsx:0
+[   74540ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/ActivityBar.tsx:0
+[   74553ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/BottomPanel.tsx:0
+[   74570ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/CommandPaletteV2.tsx:0
+[   74585ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/SearchPanel.tsx:0
+[   76880ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/SourceControlPanel.tsx:0
+[   76880ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/AIWorkspacePanel.tsx:0
+[   76880ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/DockablePanel.tsx:0
+[   76880ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/RemoteConnectionModal.tsx:0
+[   76894ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/pages/ide/DefaultShellModal.tsx:0
+[   76911ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/components/about-dialog.tsx:0
+[   79195ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/components/editor-workspace.tsx:0
+[   79196ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:4444/src/components/problem-tracker.ts:0

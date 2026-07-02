@@ -169,14 +169,23 @@ export default function FullIde() {
   const dialog = useDialog()
 
   createEffect(() => {
+    let ignoreNextAiCreate: ReturnType<typeof setTimeout> | undefined
     const handleAiFileCreated = (e: any) => {
       const path = e.detail?.path
-      if (path) {
+      if (!path) return
+      if (ignoreNextAiCreate) clearTimeout(ignoreNextAiCreate)
+      // Avoid re-focusing if the pending edit effect already opened this file
+      const active = workspace.getActiveGroup()?.activeFile
+      if (active === path) return
+      ignoreNextAiCreate = setTimeout(() => {
         editor.openFile(path, "")
-      }
+      }, 100)
     }
     window.addEventListener("ai-file-created", handleAiFileCreated)
-    onCleanup(() => window.removeEventListener("ai-file-created", handleAiFileCreated))
+    onCleanup(() => {
+      window.removeEventListener("ai-file-created", handleAiFileCreated)
+      if (ignoreNextAiCreate) clearTimeout(ignoreNextAiCreate)
+    })
   })
   const remote = useRemote()
 
@@ -502,7 +511,7 @@ export default function FullIde() {
       req?.permission === "write_to_file" ||
       req?.permission === "write" ||
       req?.permission === "write_file" ||
-      req?.permission === "read_file"
+      req?.permission === "filesystem.write.project"
     ) {
       return req
     }
@@ -530,21 +539,27 @@ export default function FullIde() {
     }
   })
 
+  // Debounce focus to avoid double-focus and lag from rapid multi-edit
+  let focusTimer: ReturnType<typeof setTimeout> | undefined
+
   // Whenever a pending edit starts, auto-focus the file and load its content
   createEffect(() => {
     const args = pendingEditToolArgs()
     if (!args?.path) return
-    void (async () => {
-      try {
-        await file.load(args.path)
-      } catch (e) {
-        // Ignore load error (e.g. for new files that don't exist yet)
-      }
-      const state = file.get(args.path)
-      const original = (state?.content?.type === "text") ? state.content.content : ""
-      workspace.openFile(args.path, original)
-      workspace.setOriginalContent(args.path, original)
-    })()
+    if (focusTimer) clearTimeout(focusTimer)
+    focusTimer = setTimeout(() => {
+      void (async () => {
+        try {
+          await file.load(args.path)
+        } catch (e) {
+          // Ignore load error (e.g. for new files that don't exist yet)
+        }
+        const state = file.get(args.path)
+        const original = (state?.content?.type === "text") ? state.content.content : ""
+        workspace.openFile(args.path, original)
+        workspace.setOriginalContent(args.path, original)
+      })()
+    }, 50)
   })
 
   // ── Resize ──
@@ -1390,7 +1405,7 @@ export default function FullIde() {
   }
 
   return (
-    <div class="size-full flex flex-col overflow-hidden bg-background-base" onContextMenu={handleContextMenu}>
+    <div class="size-full flex flex-col overflow-hidden" style={{ background: "var(--background-bg-base)" }} onContextMenu={handleContextMenu}>
       {/* ── Premium Header Bar ── */}
       <HeaderBar
         workspaceName={getFilename(dir()) || "Untitled"}
@@ -1425,7 +1440,7 @@ export default function FullIde() {
 
         {/* ── Left Sidebar ── */}
         <Show when={leftPanel()}>
-          <div class="shrink-0 flex flex-col border-r border-border-base bg-surface-base relative" style={{ width: `${sidebarWidth()}px` }}>
+          <div class="shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth()}px`, background: "var(--background-bg-base)", "border-right": "1px solid var(--border-muted)" }}>
             <Show when={leftPanel()?.id === "explorer"}>
               <ExplorerPanel
                 dirName={getFilename(dir()) || "opencode-web"}
@@ -1516,7 +1531,7 @@ export default function FullIde() {
               <DatabasePanel />
             </Show>
 
-            <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleSidebarResizeStart} />
+            <div class="absolute right-0 top-0 bottom-0 w-[3px] cursor-col-resize hover:bg-accent-base/40 transition-colors duration-100 z-10 -mr-px" onMouseDown={handleSidebarResizeStart} />
           </div>
         </Show>
 
@@ -1616,7 +1631,7 @@ export default function FullIde() {
 
           {/* Bottom Panel */}
           <Show when={bottomPanel()}>
-            <div class="h-1 bg-border-base hover:bg-accent-base/50 cursor-row-resize shrink-0 transition-colors" onMouseDown={handleBottomResizeStart} />
+            <div class="h-[3px] cursor-row-resize shrink-0 transition-colors duration-100 hover:bg-accent-base/40" style={{ background: "var(--border-muted)" }} onMouseDown={handleBottomResizeStart} />
             <BottomPanel
               activeTab={activeBottomTab()}
               height={bottomPanelHeight()}
@@ -1695,20 +1710,27 @@ export default function FullIde() {
                               )}
                             </For>
                           <Show when={terminal.all().length === 0}>
-                            <div class="size-full flex items-center justify-center text-text-weak text-13-regular">
+                            <div class="size-full flex items-center justify-center text-13-regular" style="color: var(--text-muted);">
                               <Show when={terminalLoading() !== null} fallback={
-                                <div class="flex flex-col items-center gap-3">
-                                  <Icon name="terminal" size="large" class="text-icon-weaker opacity-40" />
-                                  <button class="flex items-center gap-2 px-4 py-2 rounded-md border border-border-base hover:bg-surface-raised-base-hover transition-colors text-13-regular" onClick={() => terminal.new()}>
-                                    <Icon name="plus" size="small" /> New Terminal
+                                <div class="flex flex-col items-center gap-4">
+                                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="color: var(--icon-weaker); opacity: 0.3;">
+                                    <path d="M4 8L12 16L4 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18 24H28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                  </svg>
+                                  <button class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-75" style={{ background: "var(--surface-base)", color: "var(--text-muted)", border: "1px solid var(--border-muted)" }} classList={{ "hover:bg-overlay-hover hover:text-text-base": true }} onClick={() => terminal.new()}>
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5V12.5M1.5 7H12.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                                    New Terminal
                                   </button>
                                 </div>
                               }>
                                 <div class="flex flex-col items-center gap-3">
-                                  <Icon name="terminal" size="large" class="text-icon-weaker opacity-40 animate-pulse" />
+                                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="color: var(--icon-weaker); opacity: 0.3;" class="animate-pulse">
+                                    <path d="M4 8L12 16L4 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18 24H28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                  </svg>
                                   <div class="flex items-center gap-2">
-                                    <div class="size-2 rounded-full bg-accent-base animate-pulse" />
-                                    <span class="text-13-regular">Starting {terminalLoading()}...</span>
+                                    <div class="size-2 rounded-full animate-pulse" style="background: var(--accent-base);" />
+                                    <span class="text-13-regular" style="color: var(--text-muted);">Starting {terminalLoading()}...</span>
                                   </div>
                                 </div>
                               </Show>
@@ -1774,8 +1796,8 @@ export default function FullIde() {
                           </div>
                         </Show>
                       </Show>
-                      <div class="shrink-0 border-l border-border-base bg-surface-base flex flex-col overflow-y-auto py-1 relative" style={{ width: `${terminalListWidth()}px` }}>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10 -ml-0.5" onMouseDown={handleTerminalListResizeStart} />
+                      <div class="shrink-0 flex flex-col overflow-y-auto py-1 relative" style={{ width: `${terminalListWidth()}px`, background: "var(--background-bg-deep)", "border-left": "1px solid var(--border-muted)" }}>
+                        <div class="absolute left-0 top-0 bottom-0 w-[3px] cursor-col-resize hover:bg-accent-base/40 transition-colors z-10 -ml-px" onMouseDown={handleTerminalListResizeStart} />
                         <For each={terminal.all()}>
                           {(pty, index) => {
                             const shellInfo = () => getShellInfo(pty.title)
@@ -1786,24 +1808,25 @@ export default function FullIde() {
 
                             return (
                               <div
-                                class="group flex items-center px-2 py-0.5 cursor-pointer transition-colors"
-                                classList={{
-                                  "bg-surface-raised-base text-text-strong": terminal.active() === pty.id,
-                                  "text-text-weak hover:bg-surface-raised-base-hover hover:text-text-strong": terminal.active() !== pty.id,
+                                class="group flex items-center px-2 py-[3px] cursor-pointer transition-all duration-75 rounded-sm mx-1"
+                                style={{
+                                  background: terminal.active() === pty.id ? "var(--overlay-hover)" : "transparent",
+                                  color: terminal.active() === pty.id ? "var(--text-base)" : "var(--text-muted)",
                                 }}
+                                classList={{ "hover:bg-overlay-hover hover:text-text-base": terminal.active() !== pty.id }}
                                 onClick={() => {
                                   terminal.open(pty.id)
                                   if (terminalSplit()) setTerminalSplitId(pty.id === terminalSplitId() ? terminal.all().find((t) => t.id !== pty.id)?.id ?? pty.id : pty.id)
                                 }}
                               >
                                 <Show when={isSplit}>
-                                  <div class="w-3 flex justify-center text-text-weaker shrink-0 font-mono text-14-regular mr-1 -mt-1">
+                                  <div class="w-3 flex justify-center shrink-0 font-mono text-14-regular mr-1 -mt-0.5" style="color: var(--text-weaker);">
                                     {isFirst ? "┌" : (isLast ? "└" : "├")}
                                   </div>
                                 </Show>
-                                <span class="text-12-regular mr-1.5 shrink-0 opacity-80" style={{ "font-family": "monospace" }}>{shellInfo().icon}</span>
+                                <span class="text-12-regular mr-1.5 shrink-0 opacity-70 font-mono">{shellInfo().icon}</span>
                                 <div class="flex-1 min-w-0">
-                                  <div class="text-13-regular truncate">{shellInfo().label}</div>
+                                  <div class="text-12-regular truncate">{shellInfo().label}</div>
                                 </div>
                               </div>
                             )
@@ -1864,8 +1887,8 @@ export default function FullIde() {
         </div>
 
         <Show when={rightPanel()}>
-          <div class="shrink-0 flex flex-col border-l border-border-base bg-surface-base relative" style={{ width: `${rightPanelWidth()}px` }}>
-            <div class="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent-base/30 transition-colors z-10" onMouseDown={handleRightResizeStart} />
+          <div class="shrink-0 flex flex-col relative" style={{ width: `${rightPanelWidth()}px`, background: "var(--background-bg-base)", "border-left": "1px solid var(--border-muted)" }}>
+            <div class="absolute left-0 top-0 bottom-0 w-[3px] cursor-col-resize hover:bg-accent-base/40 transition-colors duration-100 z-10 -ml-px" onMouseDown={handleRightResizeStart} />
 
             <Show when={rightPanel()?.id === "ai-chat"}>
               <AIWorkspacePanel
@@ -1881,8 +1904,13 @@ export default function FullIde() {
               />
             </Show>
             <Show when={rightPanel()?.id !== "ai-chat"}>
-              <div class="flex-1 overflow-y-auto min-h-0 p-3 text-text-weak text-13-regular text-center mt-10">
-                Select a panel to dock here.
+              <div class="flex-1 flex flex-col items-center justify-center min-h-0 px-6 gap-3">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: var(--icon-weaker); opacity: 0.3;">
+                  <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  <path d="M3 9H21" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M9 3V21" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <span class="text-13-regular" style="color: var(--text-weaker);">Select a panel to dock here</span>
               </div>
             </Show>
           </div>
@@ -1900,7 +1928,7 @@ export default function FullIde() {
 
       {/* ── Context Menu ── */}
       <Show when={contextMenu()}>
-        <div class="fixed z-50 bg-surface-raised-base border border-border-base rounded-xl shadow-xl py-1 min-w-52 max-h-[calc(100vh-24px)] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px`, "max-width": "calc(100vw - 24px)" }} onClick={(e) => e.stopPropagation()}>
+        <div class="fixed z-50 py-1 min-w-52 max-h-[calc(100vh-24px)] overflow-y-auto animate-in fade-in zoom-in-95 duration-100" style={{ left: `${contextMenu()!.x}px`, top: `${contextMenu()!.y}px`, "max-width": "calc(100vw - 24px)", background: "var(--surface-raised-base)", border: "1px solid var(--border-base)", "border-radius": "12px", "box-shadow": "0 8px 32px rgba(0,0,0,0.3)" }} onClick={(e) => e.stopPropagation()}>
           <Show when={!contextMenu()!.isDir}>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; handleFileClick({ path: ctx.path, type: "file" }); closeContextMenu() }}>Open</button>
             <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); void (async () => { await file.load(ctx.path); const state = file.get(ctx.path); if (state?.content?.type === "text") { let targetGroupId = workspace.activeGroupId(); const groups = workspace.getGroups(); if (groups.length === 1) { workspace.splitGroup(targetGroupId, "horizontal"); targetGroupId = workspace.getGroups()[1].id; } else { targetGroupId = groups.find(g => g.id !== targetGroupId)?.id ?? targetGroupId; } workspace.openFile(ctx.path, state.content.content, targetGroupId); } })() }}><Icon name="layout-right-partial" class="size-4" /> Open to the Side</button>

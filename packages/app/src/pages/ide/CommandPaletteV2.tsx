@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Match, Show, Switch, onCleanup } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 
 type CommandCategory = "files" | "editor" | "view" | "ai" | "git" | "terminal" | "settings" | "workspace" | "recent"
@@ -37,7 +37,6 @@ const CATEGORY_ICONS: Record<CommandCategory, string> = {
   recent: "clock",
 }
 
-// Recent commands persistence
 const RECENT_KEY = "opencode-palette-recent"
 function loadRecent(): string[] {
   try {
@@ -77,7 +76,6 @@ export default function CommandPaletteV2(props: {
     } catch {}
   })
 
-  // Track recently used commands
   const trackRecent = (id: string) => {
     setRecentIds(prev => {
       const next = [id, ...prev.filter(x => x !== id)].slice(0, 20)
@@ -100,7 +98,6 @@ export default function CommandPaletteV2(props: {
     if (mode() === "files") return []
     const q = query().toLowerCase().trim()
 
-    // Detect line number mode: ":42", "#42", or just "42"
     const lineMatch = query().trim().match(/^[:#]?(\d+)$/)
     if (lineMatch && props.onGoToLine) {
       const lineNum = parseInt(lineMatch[1], 10)
@@ -115,7 +112,6 @@ export default function CommandPaletteV2(props: {
       return [goLine]
     }
 
-    // Filter out "goToLine" when not in line mode
     const baseCmds = props.commands.filter(cmd => cmd.id !== "goToLine")
 
     const cmds = !q ? baseCmds : baseCmds.filter((cmd) => {
@@ -125,7 +121,6 @@ export default function CommandPaletteV2(props: {
       return title.includes(q) || desc.includes(q) || cat.includes(q)
     })
 
-    // When no query, show recent commands first
     if (!q) {
       const recentSet = new Set(recentIds())
       const recentCmds = baseCmds.filter(cmd => recentSet.has(cmd.id)).slice(0, 5)
@@ -148,7 +143,6 @@ export default function CommandPaletteV2(props: {
 
     for (const cmd of filtered()) {
       if (lineMatch) {
-        // Go-to-line mode: flat list, no grouping
         const existing = normalGroups.get(cmd.category) ?? []
         existing.push(cmd)
         normalGroups.set(cmd.category, existing)
@@ -212,10 +206,8 @@ export default function CommandPaletteV2(props: {
     setSelectedIndex(0)
     props.onSearch?.(value)
 
-    // Detect line number mode: ":42" or "42"
     const lineMatch = value.trim().match(/^[:#]?(\d+)$/)
     if (lineMatch && props.onGoToLine) {
-      // Stay in commands mode, show a "Go to Line" item
       setMode("commands")
       setFileResults([])
       return
@@ -238,7 +230,6 @@ export default function CommandPaletteV2(props: {
           setFileResults(results)
         }
       } catch {
-        // ignore
       } finally {
         setSearching(false)
       }
@@ -272,21 +263,35 @@ export default function CommandPaletteV2(props: {
 
   return (
     <Show when={props.open}>
+      {/* Backdrop */}
       <div
-        class="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh] bg-black/40"
+        class="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh]"
+        style={{ background: "rgba(0,0,0,0.5)" }}
         onClick={props.onClose}
       >
+        {/* Palette */}
         <div
-          class="w-[640px] max-w-[90vw] bg-surface-raised-base border border-border-base rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 ease-out"
+          class="w-[660px] max-w-[90vw] overflow-hidden animate-in fade-in duration-150 ease-out"
+          style={{
+            background: "var(--surface-raised-base)",
+            "border": "1px solid var(--border-base)",
+            "border-radius": "16px",
+            "box-shadow": "0 16px 48px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)",
+            "backdrop-filter": "blur(2px)",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Search header */}
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-border-base">
-            <Icon name="magnifying-glass-menu" size="normal" class="text-icon-weak shrink-0" />
+          <div class="flex items-center gap-3 px-4 py-3" style={{ "border-bottom": "1px solid var(--border-muted)" }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color: var(--icon-weaker); shrink: 0;">
+              <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M11.5 11.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
             <input
               ref={inputRef}
               type="text"
-              class="flex-1 bg-transparent text-14-regular text-text-strong outline-none placeholder:text-text-weaker"
+              class="flex-1 bg-transparent text-14-regular outline-none"
+              style="color: var(--text-base);"
               placeholder={mode() === "files" ? "Search files by name..." : "Search commands, files, symbols..."}
               value={query()}
               onInput={(e) => handleQueryInput(e.currentTarget.value)}
@@ -295,34 +300,40 @@ export default function CommandPaletteV2(props: {
             <Show when={query()}>
               <button
                 type="button"
-                class="size-6 flex items-center justify-center rounded-md hover:bg-surface-raised-base-hover transition-colors"
+                class="size-6 flex items-center justify-center rounded-md transition-colors duration-75"
+                style="color: var(--icon-weaker);"
+                classList={{ "hover:bg-overlay-hover": true }}
                 onClick={() => setQuery("")}
               >
-                <Icon name="close" size="small" class="text-icon-weak" />
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
               </button>
             </Show>
           </div>
 
           {/* Mode switcher */}
-          <div class="flex items-center gap-1 px-3 py-1.5 border-b border-border-base bg-surface-base/50">
+          <div class="flex items-center gap-1 px-3 py-1.5" style={{ "border-bottom": "1px solid var(--border-muted)", background: "var(--background-bg-deep)" }}>
             <button
               type="button"
-              class="px-2.5 py-1 text-12-regular rounded-md transition-colors"
+              class="px-2.5 py-1 text-12-regular rounded-md transition-colors duration-75"
               classList={{
-                "bg-background-base text-text-strong": mode() === "commands",
+                "text-text-strong": mode() === "commands",
                 "text-text-weaker hover:text-text-weak": mode() !== "commands",
               }}
+              style={mode() === "commands" ? { background: "var(--background-bg-base)" } : {}}
               onClick={() => { setMode("commands"); setQuery(""); setFileResults([]) }}
             >
               Commands
             </button>
             <button
               type="button"
-              class="px-2.5 py-1 text-12-regular rounded-md transition-colors"
+              class="px-2.5 py-1 text-12-regular rounded-md transition-colors duration-75"
               classList={{
-                "bg-background-base text-text-strong": mode() === "files",
+                "text-text-strong": mode() === "files",
                 "text-text-weaker hover:text-text-weak": mode() !== "files",
               }}
+              style={mode() === "files" ? { background: "var(--background-bg-base)" } : {}}
               onClick={() => { setMode("files"); setQuery(""); setFileResults([]) }}
             >
               Files
@@ -332,17 +343,22 @@ export default function CommandPaletteV2(props: {
           {/* Results */}
           <div
             ref={listRef}
-            class="max-h-[420px] overflow-y-auto py-2"
+            class="max-h-[420px] overflow-y-auto py-1"
+            style="scroll-padding: 8px;"
             onKeyDown={handleKeyDown}
           >
             <Show
               when={mode() === "files" ? fileResults().length > 0 : filtered().length > 0}
               fallback={
                 <div class="flex flex-col items-center gap-2 px-6 py-10 text-center">
-                  <Icon name="magnifying-glass-menu" size="large" class="text-icon-weaker opacity-30" />
-                  <div class="text-13-regular text-text-weaker">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="color: var(--icon-weaker); opacity: 0.3;">
+                    <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M15 15L21 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <div style="color: var(--text-weaker); font-size: 13px;">
                     {mode() === "files"
-                      ? (query() ? (searching() ? "Searching..." : "No matching files") : "Type a file name to search")
+                      ? (query() ? (searching() ? "Searching..." : "No matching files")
+                          : "Type a file name to search")
                       : (query() ? "No matching commands" : "Type a command name")}
                   </div>
                 </div>
@@ -356,21 +372,24 @@ export default function CommandPaletteV2(props: {
                       return (
                         <div
                           data-command-item
-                          class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg cursor-pointer transition-colors"
+                          class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-75"
                           classList={{
-                            "bg-accent-base/10 text-text-strong": isSelected(),
-                            "text-text-base hover:bg-surface-raised-base-hover": !isSelected(),
+                            "text-text-strong": isSelected(),
+                            "text-text-base": !isSelected(),
                           }}
+                          style={isSelected() ? { background: "var(--accent-base)", color: "white" } : {}}
                           onClick={() => {
                             setSelectedIndex(i())
                             props.onClose()
                             props.onFileSelect?.(file)
                           }}
                         >
-                          <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="shrink-0" style="color: var(--icon-weaker);">
+                            <path d="M2 4C2 2.89543 2.89543 2 4 2H7L9 4H12C13.1046 4 14 4.89543 14 6V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/>
+                          </svg>
                           <div class="flex-1 min-w-0">
                             <div class="text-13-regular truncate">{file.split("/").pop()}</div>
-                            <div class="text-11-regular text-text-weaker truncate">{file}</div>
+                            <div class="text-11-regular truncate" style="color: var(--text-weaker);">{file}</div>
                           </div>
                         </div>
                       )
@@ -380,9 +399,20 @@ export default function CommandPaletteV2(props: {
                 <Match when={mode() === "commands"}>
                   <For each={grouped()}>
                     {([label, category, cmds]) => (
-                      <div class="pb-1">
-                        <div class="flex items-center gap-1.5 px-4 py-1.5 text-11-medium text-text-weaker uppercase tracking-wider">
-                          <Icon name={CATEGORY_ICONS[category] as any} size="small" class="text-icon-weaker" />
+                      <div class="pb-0.5">
+                        <div class="flex items-center gap-1.5 px-4 py-1 text-11-medium uppercase tracking-wider" style="color: var(--text-weaker); padding-top: 8px;">
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="color: var(--icon-weaker);">
+                            <Switch>
+                              <Match when={category === "files"}><path d="M2 4C2 2.89543 2.89543 2 4 2H7L9 4H12C13.1046 4 14 4.89543 14 6V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/></Match>
+                              <Match when={category === "editor"}><path d="M4 4H12V12H4V4Z" stroke="currentColor" stroke-width="1.3"/><path d="M8 4V12" stroke="currentColor" stroke-width="1.3"/></Match>
+                              <Match when={category === "ai"}><path d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M8 6L10 8L8 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></Match>
+                              <Match when={category === "git"}><path d="M2 4C2 2.89543 2.89543 2 4 2H12C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/><path d="M2 8H14" stroke="currentColor" stroke-width="1.3"/></Match>
+                              <Match when={category === "terminal"}><path d="M2 4L6 8L2 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12H14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></Match>
+                              <Match when={category === "settings"}><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5V3.5M8 12.5V14.5M14.5 8H12.5M3.5 8H1.5M12.5 3.5L11 5M5 11L3.5 12.5M12.5 12.5L11 11M5 5L3.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></Match>
+                              <Match when={category === "view"}><path d="M3 3H13V13H3V3Z" stroke="currentColor" stroke-width="1.3"/><path d="M3 7H13" stroke="currentColor" stroke-width="1.3"/><path d="M7 3V13" stroke="currentColor" stroke-width="1.3"/></Match>
+                              <Match when={true}><path d="M2 4C2 2.89543 2.89543 2 4 2H7L9 4H12C13.1046 4 14 4.89543 14 6V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/></Match>
+                            </Switch>
+                          </svg>
                           {label}
                         </div>
                         <For each={cmds}>
@@ -402,11 +432,12 @@ export default function CommandPaletteV2(props: {
                             return (
                               <div
                                 data-command-item
-                                class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg cursor-pointer transition-colors group"
+                                class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-75 group"
                                 classList={{
-                                  "bg-accent-base/10 text-text-strong": isSelected(),
-                                  "text-text-base hover:bg-surface-raised-base-hover": !isSelected(),
+                                  "text-text-strong": isSelected(),
+                                  "text-text-base": !isSelected(),
                                 }}
+                                style={isSelected() ? { background: "var(--accent-base)", color: "white" } : {}}
                                 onClick={() => {
                                   const idx = globalIndex()
                                   if (idx === selectedIndex()) executeSelected()
@@ -415,28 +446,33 @@ export default function CommandPaletteV2(props: {
                                 onDblClick={executeSelected}
                               >
                                 <Show when={cmd.icon}>
-                                  <Icon name={cmd.icon as any} size="small" class="text-icon-weak shrink-0" />
+                                  <div class="size-4 flex items-center justify-center shrink-0" style="color: var(--icon-weaker);">
+                                    <Icon name={cmd.icon as any} size="small" />
+                                  </div>
                                 </Show>
                                 <div class="flex-1 min-w-0">
                                   <div class="text-13-regular truncate">{cmd.title}</div>
-                                  <Show when={cmd.description}>
-                                    <div class="text-11-regular text-text-weaker truncate">{cmd.description}</div>
+                                  <Show when={cmd.description && !isSelected()}>
+                                    <div class="text-11-regular truncate" style="color: var(--text-weaker);">{cmd.description}</div>
                                   </Show>
                                 </div>
-                                <Show when={cmd.keybind}>
-                                  <div class="flex items-center gap-1 shrink-0">
-                                    <span class="px-1.5 py-0.5 text-11-medium text-text-weaker bg-surface-base border border-border-base rounded-md font-mono">{cmd.keybind}</span>
-                                  </div>
-                                </Show>
-                                <button
-                                  type="button"
-                                  class="shrink-0 size-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-surface-base"
-                                  classList={{ "opacity-100": isPinned() }}
-                                  onClick={(e) => { e.stopPropagation(); togglePin(cmd.id) }}
-                                  title={isPinned() ? "Unpin" : "Pin"}
-                                >
-                                  <Icon name={isPinned() ? "pin-filled" : "pin"} size="small" class={isPinned() ? "text-accent-base" : "text-icon-weaker"} />
-                                </button>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                  <Show when={cmd.keybind}>
+                                    <span class="px-1.5 py-0.5 text-11-medium rounded-md font-mono" style={{ background: isSelected() ? "rgba(255,255,255,0.15)" : "var(--surface-base)", border: isSelected() ? "1px solid transparent" : "1px solid var(--border-muted)", color: isSelected() ? "rgba(255,255,255,0.8)" : "var(--text-weaker)" }}>{cmd.keybind}</span>
+                                  </Show>
+                                  <button
+                                    type="button"
+                                    class="shrink-0 size-5 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-all duration-75"
+                                    classList={{ "opacity-100!": isPinned() }}
+                                    style="color: var(--icon-weaker);"
+                                    onClick={(e) => { e.stopPropagation(); togglePin(cmd.id) }}
+                                    title={isPinned() ? "Unpin" : "Pin"}
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path d="M6 1.5L7.5 4.5L10.5 5L8 7.5L8.5 11L6 9.5L3.5 11L4 7.5L1.5 5L4.5 4.5L6 1.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                                    </svg>
+                                  </button>
+                                </div>
                               </div>
                             )
                           }}
@@ -450,13 +486,13 @@ export default function CommandPaletteV2(props: {
           </div>
 
           {/* Footer hints */}
-          <div class="flex items-center gap-3 px-4 py-2 border-t border-border-base bg-surface-base/50 text-11-regular text-text-weaker">
-            <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">↑↓</kbd> Navigate</span>
-            <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">↵</kbd> Select</span>
+          <div class="flex items-center gap-3 px-4 py-2 text-11-regular" style={{ "border-top": "1px solid var(--border-muted)", background: "var(--background-bg-deep)", color: "var(--text-weaker)" }}>
+            <span><kbd class="px-1 py-0.5 rounded text-11-medium" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>↑↓</kbd> Navigate</span>
+            <span><kbd class="px-1 py-0.5 rounded text-11-medium" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>↵</kbd> Select</span>
             <Show when={props.onGoToLine}>
-              <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">:42</kbd> Go to Line</span>
+              <span><kbd class="px-1 py-0.5 rounded text-11-medium" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>:42</kbd> Go to Line</span>
             </Show>
-            <span><kbd class="px-1 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">Esc</kbd> Close</span>
+            <span class="ml-auto"><kbd class="px-1 py-0.5 rounded text-11-medium" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>Esc</kbd> Close</span>
           </div>
         </div>
       </div>

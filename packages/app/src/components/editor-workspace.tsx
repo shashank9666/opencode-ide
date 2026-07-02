@@ -160,7 +160,7 @@ export function createEditorWorkspace() {
             ...node,
             group: {
               ...node.group,
-              files: node.group.files.map(f => f.path === path && (f.originalContent === undefined || originalContent === undefined) ? { ...f, originalContent } : f)
+              files: node.group.files.map(f => f.path === path ? { ...f, originalContent } : f)
             }
           };
         }

@@ -16,7 +16,6 @@ export interface ExplorerPanelProps {
   openFiles?: string[]
 }
 
-// Recently opened files persistence
 const RECENT_FILES_KEY = "opencode-explorer-recent"
 function loadRecentFiles(): string[] {
   try {
@@ -35,7 +34,6 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
   const [showRecent, setShowRecent] = createSignal(true)
   const [sortMode, setSortMode] = createSignal<"name" | "type" | "modified">("name")
 
-  // Track recently opened files
   createEffect(() => {
     const active = props.activeFile
     if (!active) return
@@ -68,48 +66,57 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
   }
 
   return (
-    <>
-      <div class="flex items-center justify-between px-4 py-2 border-b border-border-base shrink-0 group/header">
-        <span class="text-11-regular text-text-weak uppercase tracking-wider">Explorer</span>
-        <div class="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
-          <IconButton icon="plus" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={() => props.onCreateFile()} aria-label="New File" />
-          <IconButton icon="folder" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={() => props.onCreateFolder()} aria-label="New Folder" />
+    <div class="size-full flex flex-col" style={{ background: "var(--background-bg-base)" }}>
+      {/* Header */}
+      <div class="flex items-center justify-between px-3 py-[7px] shrink-0 group/header" style={{ "border-bottom": "1px solid var(--border-muted)" }}>
+        <span class="text-11-medium uppercase tracking-wider" style={{ color: "var(--text-weaker)" }}>Explorer</span>
+        <div class="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity duration-100">
+          <IconButton icon="plus" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={() => props.onCreateFile()} aria-label="New File" />
+          <IconButton icon="folder" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={() => props.onCreateFolder()} aria-label="New Folder" />
         </div>
       </div>
+
       <div class="flex-1 flex flex-col overflow-hidden min-h-0">
         {/* Recently Opened Files */}
         <Show when={recentFiles().length > 0}>
-          <div class="border-b border-border-base/50">
+          <div>
             <button
               type="button"
-              class="w-full flex items-center gap-1.5 px-2 py-1 text-11-medium text-text-weaker uppercase tracking-wider hover:bg-surface-raised-base-hover cursor-pointer transition-colors"
+              class="w-full flex items-center gap-1 px-2 py-[5px] text-11-medium uppercase tracking-wider transition-colors duration-75"
+              style={{ color: "var(--text-weaker)" }}
+              classList={{ "hover:bg-overlay-hover": true }}
               onClick={() => setShowRecent(!showRecent())}
             >
-              <Icon name={showRecent() ? "chevron-down" : "chevron-right"} size="small" />
-              <span>Recently Opened</span>
-              <span class="ml-auto text-10-regular text-text-weaker/60">{recentFiles().length}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="shrink-0" style="color: var(--icon-weaker);">
+                <path d={showRecent() ? "M2 3.5L5 6.5L8 3.5" : "M3.5 2L6.5 5L3.5 8"} stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Recent</span>
+              <span class="ml-auto text-10-regular" style="color: var(--text-weaker); opacity: 0.6;">{recentFiles().length}</span>
             </button>
             <Show when={showRecent()}>
               <div class="max-h-48 overflow-y-auto">
                 {recentFiles().map((filePath) => (
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 px-3 py-1 text-12-regular text-text-weak hover:bg-surface-raised-base-hover hover:text-text-strong cursor-pointer transition-colors group"
+                    class="w-full flex items-center gap-2 px-3 py-[3px] text-12-regular transition-colors duration-75 group"
+                    style={{ color: "var(--text-muted)" }}
+                    classList={{ "hover:bg-overlay-hover hover:text-text-base": true }}
                     onClick={() => {
                       const node = { path: filePath, type: "file" }
                       props.onFileClick(node)
                     }}
                   >
-                    <Icon name={getFileIcon(filePath) as any} size="small" class="text-icon-weaker shrink-0" />
+                    <Icon name={getFileIcon(filePath) as any} size="small" class="shrink-0" style="color: var(--icon-weaker);" />
                     <span class="truncate flex-1 text-left">{getFilename(filePath)}</span>
-                    <span class="text-10-regular text-text-weaker/60 truncate max-w-24 shrink-0 text-right">
+                    <span class="text-10-regular truncate max-w-20 shrink-0 text-right" style="color: var(--text-weaker); opacity: 0.5;">
                       {filePath.split("/").slice(-2, -1).join("")}
                     </span>
                     <IconButton
                       icon="close"
                       variant="ghost"
                       size="small"
-                      class="size-5 shrink-0 opacity-0 group-hover:opacity-100 text-text-weaker hover:text-text-strong"
+                      class="size-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-75"
+                      style="color: var(--icon-weaker);"
                       aria-label={`Remove ${getFilename(filePath)} from recent files`}
                       onClick={(event) => {
                         event.preventDefault()
@@ -124,46 +131,42 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
           </div>
         </Show>
 
-        {/* Sort controls */}
-        <div class="flex items-center gap-1 px-2 py-1 border-b border-border-base/30 shrink-0">
-          <span class="text-10-regular text-text-weaker/60 mr-1">Sort:</span>
-          <button
-            type="button"
-            class="text-10-medium px-1.5 py-0.5 rounded transition-colors"
-            classList={{
-              "bg-accent-base/10 text-accent-base": sortMode() === "name",
-              "text-text-weaker hover:text-text-weak": sortMode() !== "name",
-            }}
-            onClick={() => setSortMode("name")}
-          >
-            Name
-          </button>
-          <button
-            type="button"
-            class="text-10-medium px-1.5 py-0.5 rounded transition-colors"
-            classList={{
-              "bg-accent-base/10 text-accent-base": sortMode() === "type",
-              "text-text-weaker hover:text-text-weak": sortMode() !== "type",
-            }}
-            onClick={() => setSortMode("type")}
-          >
-            Type
-          </button>
+        {/* Workspace Root Section */}
+        <div class="sticky top-0 z-10 flex items-center justify-between px-1 py-[3px] group/root" style={{ background: "var(--background-bg-base)", "border-bottom": "1px solid var(--border-muted)" }}>
+          <div class="flex items-center gap-1 min-w-0 px-2" onClick={() => file.tree.refresh("")}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color: var(--icon-weaker);">
+              <path d="M2 4C2 2.89543 2.89543 2 4 2H7L9 4H12C13.1046 4 14 4.89543 14 6V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/>
+            </svg>
+            <span class="text-11-medium truncate" style="color: var(--text-base);">{props.dirName}</span>
+          </div>
+          <div class="flex items-center gap-0.5 opacity-0 group-hover/root:opacity-100 transition-opacity duration-100">
+            <IconButton icon="plus" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={(e) => { e.stopPropagation(); props.onCreateFile() }} aria-label="New File" />
+            <IconButton icon="folder" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={(e) => { e.stopPropagation(); props.onCreateFolder() }} aria-label="New Folder" />
+            <IconButton icon="reset" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={(e) => { e.stopPropagation(); file.tree.refreshAll() }} aria-label="Refresh Explorer" />
+            <IconButton icon="collapse" variant="ghost" size="small" class="size-5 text-icon-weaker hover:text-icon-muted" onClick={(e) => { e.stopPropagation(); file.tree.collapseAll() }} aria-label="Collapse All" />
+          </div>
         </div>
 
+        {/* Sort controls */}
+        <div class="flex items-center gap-1 px-2 py-[3px] shrink-0" style={{ "border-bottom": "1px solid var(--border-muted)", opacity: 0.6 }}>
+          <span class="text-10-regular" style={{ color: "var(--text-weaker)" }}>Sort:</span>
+          {(["name", "type", "modified"] as const).map((mode) => (
+            <button
+              type="button"
+              class="text-10-medium px-1.5 py-[1px] rounded transition-colors duration-75"
+              classList={{
+                "text-accent-base": sortMode() === mode,
+              }}
+              style={sortMode() === mode ? { background: "var(--accent-base)", color: "white" } : { color: "var(--text-weaker)" }}
+              onClick={() => setSortMode(mode)}
+            >
+              {mode === "name" ? "Name" : mode === "type" ? "Type" : "Modified"}
+            </button>
+          ))}
+        </div>
+
+        {/* File tree */}
         <div class="flex-1 overflow-y-auto min-h-0 relative">
-          {/* Workspace Root Section */}
-          <div class="flex items-center justify-between px-1 py-1 hover:bg-surface-raised-base-hover cursor-pointer sticky top-0 bg-surface-base z-10 border-b border-border-base/50 group/root">
-            <div class="flex items-center gap-1 min-w-0 px-2" onClick={() => file.tree.refresh("")}>
-              <span class="text-11-bold text-text-strong uppercase truncate">{props.dirName}</span>
-            </div>
-            <div class="flex items-center opacity-0 group-hover/root:opacity-100 transition-opacity">
-              <IconButton icon="plus" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); props.onCreateFile() }} aria-label="New File" />
-              <IconButton icon="folder" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); props.onCreateFolder() }} aria-label="New Folder" />
-              <IconButton icon="reset" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); file.tree.refreshAll() }} aria-label="Refresh Explorer" />
-              <IconButton icon="collapse" variant="ghost" size="small" class="size-6 text-text-weaker hover:text-text-strong" onClick={(e) => { e.stopPropagation(); file.tree.collapseAll() }} aria-label="Collapse All" />
-            </div>
-          </div>
           <FileTree
             path=""
             sortMode={sortMode()}
@@ -175,6 +178,6 @@ export default function ExplorerPanel(props: ExplorerPanelProps) {
           />
         </div>
       </div>
-    </>
+    </div>
   )
 }

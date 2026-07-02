@@ -47,7 +47,7 @@ import { useSettings } from "@/context/settings"
 import { ServerRowMenu } from "@/components/server/server-row-menu"
 import { ServerHealthIndicator } from "@/components/server/server-row"
 import { type ServerHealth } from "@/utils/server-health"
-import { DialogOnboardingWizard, shouldShowOnboarding } from "@/components/dialog-onboarding-wizard"
+
 
 const HOME_SESSION_LIMIT = 64
 const HOME_ROW_LAYOUT =
@@ -140,12 +140,6 @@ function HomeDesign() {
     search: "",
     selection: { server: server.key } as HomeProjectSelection,
     searchFocused: false,
-  })
-
-  onMount(() => {
-    if (shouldShowOnboarding()) {
-      dialog.show(() => <DialogOnboardingWizard />)
-    }
   })
 
   const focusedServer = createMemo(

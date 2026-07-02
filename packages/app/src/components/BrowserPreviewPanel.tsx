@@ -1,4 +1,5 @@
 import { createSignal, createMemo, createEffect, Show, onCleanup } from "solid-js"
+import { Icon } from "@opencode-ai/ui/icon"
 import { BrowserToolbar } from "./browser/BrowserToolbar"
 import { BrowserTabBar, type BrowserTab } from "./browser/BrowserTabBar"
 import { BrowserEmptyState } from "./browser/BrowserEmptyState"
@@ -187,6 +188,40 @@ export function BrowserPreviewPanel() {
     // Basic log keeping if needed
   }
 
+  // ── Transition animation state ──
+  const [transitioning, setTransitioning] = createSignal(false)
+
+  createEffect(() => {
+    const current = iframeSrc()
+    if (!current) return
+    setTransitioning(true)
+    const timer = setTimeout(() => setTransitioning(false), 400)
+    return () => clearTimeout(timer)
+  })
+
+  // ── Action indicator state (for Playwright MCP actions) ──
+  const [actionIndicator, setActionIndicator] = createSignal<{ type: string; label: string } | null>(null)
+  let actionTimer: ReturnType<typeof setTimeout> | undefined
+
+  const showAction = (type: string, label: string) => {
+    if (actionTimer) clearTimeout(actionTimer)
+    setActionIndicator({ type, label })
+    actionTimer = setTimeout(() => setActionIndicator(null), 2000)
+  }
+
+  // Listen for Playwright action events
+  createEffect(() => {
+    const handlePlaywrightAction = (e: CustomEvent) => {
+      const action = e.detail
+      if (action?.type === "click") showAction("click", "Click")
+      else if (action?.type === "type") showAction("type", `Typing${action.text ? `: ${action.text.slice(0, 30)}${action.text.length > 30 ? "…" : ""}` : "…"}`)
+      else if (action?.type === "navigate") showAction("navigate", `Navigating to ${action.url || ""}`)
+      else if (action?.type === "screenshot") showAction("screenshot", "Capturing screenshot...")
+    }
+    window.addEventListener("playwright-action", handlePlaywrightAction as EventListener)
+    onCleanup(() => window.removeEventListener("playwright-action", handlePlaywrightAction as EventListener))
+  })
+
   // ── Tab Management ──
   const handleNewTab = (startUrl: string = "") => {
     const newId = `tab-${Date.now()}`
@@ -310,14 +345,39 @@ export function BrowserPreviewPanel() {
                   <BrowserSkeleton />
                 </Show>
                 
-                <iframe
-                  src={iframeSrc()}
-                  class="w-full h-full border-none bg-transparent"
-                  title="Browser Preview"
-                  onLoad={handleIframeLoad}
-                  onError={handleIframeError}
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-                />
+                {/* Page transition animation */}
+                <div class={`absolute inset-0 transition-opacity duration-300 ${transitioning() ? "opacity-0" : "opacity-100"}`}>
+                  <iframe
+                    src={iframeSrc()}
+                    class="w-full h-full border-none bg-transparent"
+                    title="Browser Preview"
+                    onLoad={handleIframeLoad}
+                    onError={handleIframeError}
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                  />
+                </div>
+                
+                {/* Action indicator overlay */}
+                <Show when={actionIndicator()}>
+                  {(indicator) => (
+                    <div class="absolute top-4 left-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-surface-raised-base border border-border-base rounded-lg shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <Show when={indicator().type === "click"}>
+                        <div class="size-3 rounded-full bg-success-base animate-ping" />
+                      </Show>
+                      <Show when={indicator().type === "type"}>
+                        <div class="flex gap-0.5">
+                          <div class="size-1.5 bg-accent-base rounded-full animate-bounce [animation-delay:0ms]" />
+                          <div class="size-1.5 bg-accent-base rounded-full animate-bounce [animation-delay:150ms]" />
+                          <div class="size-1.5 bg-accent-base rounded-full animate-bounce [animation-delay:300ms]" />
+                        </div>
+                      </Show>
+                      <Show when={indicator().type === "navigate"}>
+                        <Icon name="reset" size="small" class="text-icon-weak animate-spin" />
+                      </Show>
+                      <span class="text-12-regular text-text-strong">{indicator().label}</span>
+                    </div>
+                  )}
+                </Show>
               </div>
             </div>
 

@@ -22,12 +22,10 @@ function HighlightedLine(props: { text: string; submatches: SubMatch[] }) {
   const matches = props.submatches ?? []
 
   if (matches.length === 0) {
-    return <span class="text-text-strong">{line.trim()}</span>
+    return <span style="color: var(--text-base);">{line.trim()}</span>
   }
 
-  // Build segments
   const segments: { text: string; highlight: boolean }[] = []
-  // Compute trim offset
   const trimmed = line.trimStart()
   const trimOffset = line.length - trimmed.length
 
@@ -46,11 +44,11 @@ function HighlightedLine(props: { text: string; submatches: SubMatch[] }) {
   }
 
   return (
-    <span class="text-text-strong font-mono truncate">
+    <span class="font-mono truncate" style="color: var(--text-base);">
       <For each={segments}>
         {(seg) =>
           seg.highlight ? (
-            <mark class="bg-[#f9c74f]/30 text-[#f9c74f] rounded-[2px] px-[1px]">{seg.text}</mark>
+            <mark class="rounded-[2px] px-[1px]" style="background: rgba(249, 199, 79, 0.3); color: rgb(249, 199, 79);">{seg.text}</mark>
           ) : (
             <span>{seg.text}</span>
           )
@@ -155,13 +153,9 @@ export default function SearchPanel(props: {
     setSelectedResultIndex(-1)
   }
 
-  // Keyboard navigation in results — only when not typing in input
   const handleKeyDown = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement
     const isInput = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA"
-
-    // In the search input, Enter performs search (handled by input's own onKeyDown).
-    // Arrow keys in input should work normally (cursor movement).
     if (isInput) return
 
     if (e.key === "ArrowDown") {
@@ -193,13 +187,11 @@ export default function SearchPanel(props: {
     }
   }
 
-  // Total number of results for keyboard navigation bounds
   const totalResultCount = () => {
     if (searchMode() === "symbols") return symbolResults().length
     return results().length
   }
 
-  // Symbol kind icon mapping
   const symbolKindIcon = (kind: string) => {
     switch (kind.toLowerCase()) {
       case "function":
@@ -226,112 +218,72 @@ export default function SearchPanel(props: {
   const getFilename = (path: string) => path.split("/").pop() ?? path
 
   return (
-    <div class="size-full flex flex-col" onKeyDown={handleKeyDown}>
+    <div class="size-full flex flex-col" style={{ background: "var(--background-bg-base)" }} onKeyDown={handleKeyDown}>
       {/* Header */}
-      <div class="flex items-center justify-between px-3 py-2 shrink-0">
-        <span class="text-12-medium text-text-weak uppercase tracking-wider">SEARCH</span>
+      <div class="flex items-center justify-between px-3 py-[7px] shrink-0" style={{ "border-bottom": "1px solid var(--border-muted)" }}>
+        <span class="text-11-medium uppercase tracking-wider" style="color: var(--text-weaker);">Search</span>
         <div class="flex items-center gap-1">
           <Show when={results().length > 0 || symbolResults().length > 0}>
             <Tooltip value="Refresh" placement="bottom">
-              <IconButton
-                icon="reset"
-                variant="ghost"
-                size="small"
-                class="size-6 rounded-md"
-                onClick={refreshSearch}
-                aria-label="Refresh search results"
-              />
+              <IconButton icon="reset" variant="ghost" size="small" class="size-5" onClick={refreshSearch} aria-label="Refresh" />
             </Tooltip>
             <Show when={searchMode() === "files"}>
               <Tooltip value={collapsedAll() ? "Expand All" : "Collapse All"} placement="bottom">
-                <IconButton
-                  icon="collapse"
-                  variant="ghost"
-                  size="small"
-                  class="size-6 rounded-md"
-                  classList={{ "text-accent-base": collapsedAll() }}
-                  onClick={toggleCollapseAll}
-                  aria-label="Collapse All"
-                />
+                <IconButton icon="collapse" variant="ghost" size="small" class="size-5" classList={{ "text-accent-base": collapsedAll() }} onClick={toggleCollapseAll} aria-label="Collapse All" />
               </Tooltip>
               <Tooltip value={viewAsTree() ? "View as List" : "View as Tree"} placement="bottom">
-                <IconButton
-                  icon={viewAsTree() ? "bullet-list" : "file-tree"}
-                  variant="ghost"
-                  size="small"
-                  class="size-6 rounded-md"
-                  onClick={() => setViewAsTree(!viewAsTree())}
-                  aria-label="Toggle view mode"
-                />
+                <IconButton icon={viewAsTree() ? "bullet-list" : "file-tree"} variant="ghost" size="small" class="size-5" onClick={() => setViewAsTree(!viewAsTree())} aria-label="Toggle view mode" />
               </Tooltip>
             </Show>
           </Show>
           <Tooltip value="Toggle Replace" placement="bottom">
-            <IconButton
-              icon="edit-small-2"
-              variant="ghost"
-              size="small"
-              class="size-6 rounded-md"
-              classList={{ "text-accent-base": showReplace() }}
-              onClick={() => setShowReplace(!showReplace())}
-              aria-label="Toggle Replace"
-            />
+            <IconButton icon="edit-small-2" variant="ghost" size="small" class="size-5" classList={{ "text-accent-base": showReplace() }} onClick={() => setShowReplace(!showReplace())} aria-label="Toggle Replace" />
           </Tooltip>
         </div>
       </div>
 
       {/* Search mode tabs */}
-      <div class="flex items-center border-b border-border-base px-2 shrink-0">
+      <div class="flex items-center shrink-0" style={{ "border-bottom": "1px solid var(--border-muted)" }}>
         <button
           type="button"
-          class="px-3 py-1.5 text-11-medium transition-colors relative"
-          classList={{
-            "text-text-strong": searchMode() === "files",
-            "text-text-weaker hover:text-text-weak": searchMode() !== "files",
-          }}
+          class="px-3 py-[5px] text-11-medium relative transition-colors duration-75"
+          style={{ color: searchMode() === "files" ? "var(--text-base)" : "var(--text-weaker)" }}
+          classList={{ "hover:text-text-base": searchMode() !== "files" }}
           onClick={() => { setSearchMode("files"); setSymbolResults([]) }}
         >
-          <span class="flex items-center gap-1.5">
-            <Icon name="magnifying-glass" size="small" />
-            Files
-          </span>
-          {searchMode() === "files" && <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-base" />}
+          <span class="flex items-center gap-1.5">Files</span>
+          {searchMode() === "files" && <div class="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style="background: var(--accent-base);" />}
         </button>
         <button
           type="button"
-          class="px-3 py-1.5 text-11-medium transition-colors relative"
-          classList={{
-            "text-text-strong": searchMode() === "symbols",
-            "text-text-weaker hover:text-text-weak": searchMode() !== "symbols",
-          }}
+          class="px-3 py-[5px] text-11-medium relative transition-colors duration-75"
+          style={{ color: searchMode() === "symbols" ? "var(--text-base)" : "var(--text-weaker)" }}
+          classList={{ "hover:text-text-base": searchMode() !== "symbols" }}
           onClick={() => { setSearchMode("symbols"); setResults([]) }}
         >
-          <span class="flex items-center gap-1.5">
-            <Icon name="code" size="small" />
-            Symbols
-          </span>
-          {searchMode() === "symbols" && <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-base" />}
+          <span class="flex items-center gap-1.5">Symbols</span>
+          {searchMode() === "symbols" && <div class="absolute bottom-0 left-0 right-0 h-[2px] rounded-full" style="background: var(--accent-base);" />}
         </button>
       </div>
 
       {/* Search input */}
-      <div class="p-2 border-b border-border-base shrink-0">
+      <div class="p-2 shrink-0" style={{ "border-bottom": "1px solid var(--border-muted)" }}>
         <div class="flex gap-1 mb-1">
           <div class="flex-1 relative">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none">
-              <Icon name="magnifying-glass" size="small" class="text-icon-weaker" />
+            <div class="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none" style="color: var(--icon-weaker);">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             </div>
             <input
               ref={searchInputRef}
               type="text"
-              class="w-full pl-7 pr-2 py-1.5 text-13-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong"
-              placeholder={searchMode() === "symbols" ? "Search symbols (function, class, variable...)" : "Search files..."}
+              class="w-full pl-7 pr-2 py-1.5 text-13-regular rounded-md outline-none"
+              style={{ background: "var(--surface-base)", color: "var(--text-base)", border: "1px solid var(--border-muted)" }}
+              placeholder={searchMode() === "symbols" ? "Search symbols..." : "Search files..."}
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   if (e.altKey) {
-                    // Alt+Enter to navigate to selected result
                     const idx = selectedResultIndex()
                     if (idx >= 0) {
                       if (searchMode() === "symbols") {
@@ -360,67 +312,72 @@ export default function SearchPanel(props: {
             <Show when={searchQuery()}>
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 flex items-center pr-2 text-text-weaker hover:text-text-strong transition-colors"
+                class="absolute inset-y-0 right-0 flex items-center pr-2 transition-colors duration-75"
+                style="color: var(--icon-weaker);"
+                classList={{ "hover:text-text-base": true }}
                 onClick={() => { setSearchQuery(""); setResults([]) }}
                 aria-label="Clear search"
               >
-                <Icon name="close" size="small" />
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
               </button>
             </Show>
           </div>
-          <IconButton
-            icon="magnifying-glass"
-            variant={searchQuery() && results().length > 0 ? "secondary" : "ghost"}
-            size="small"
-            class="size-7 rounded-md shrink-0"
+          <button
+            type="button"
+            class="size-7 flex items-center justify-center rounded-md transition-all duration-75"
+            style={{ background: searchQuery() && results().length > 0 ? "var(--accent-base)" : "var(--surface-base)", color: searchQuery() && results().length > 0 ? "white" : "var(--icon-weaker)", border: searchQuery() && results().length > 0 ? "none" : "1px solid var(--border-muted)" }}
             onClick={performSearch}
             aria-label="Search"
-          />
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </button>
         </div>
 
-        {/* Replace row */}
         <Show when={showReplace()}>
           <div class="flex gap-1 mb-1">
             <input
               type="text"
-              class="flex-1 px-2 py-1.5 text-13-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong"
+              class="flex-1 px-2 py-1.5 text-13-regular rounded-md outline-none"
+              style={{ background: "var(--surface-base)", color: "var(--text-base)", border: "1px solid var(--border-muted)" }}
               placeholder="Replace with..."
               value={replaceText()}
               onInput={(e) => setReplaceText(e.currentTarget.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") performSearch() }}
             />
             <button
               type="button"
-              class="px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors shrink-0"
+              class="px-2 py-1 text-12-regular rounded-md transition-colors duration-75"
+              style={{ background: "var(--surface-base)", color: "var(--text-muted)", border: "1px solid var(--border-muted)" }}
+              classList={{ "hover:bg-overlay-hover hover:text-text-base": true }}
               onClick={() => props.onReplace?.(searchQuery(), replaceText())}
-              title="Replace"
             >
               Replace
             </button>
             <button
               type="button"
-              class="px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover transition-colors shrink-0"
+              class="px-2 py-1 text-12-regular rounded-md transition-colors duration-75"
+              style={{ background: "var(--surface-base)", color: "var(--text-muted)", border: "1px solid var(--border-muted)" }}
+              classList={{ "hover:bg-overlay-hover hover:text-text-base": true }}
               onClick={() => props.onReplaceAll?.(searchQuery(), replaceText())}
-              title="Replace All"
             >
               All
             </button>
           </div>
         </Show>
 
-        {/* Filter options */}
         <Show when={showFilters()}>
           <div class="mt-1 flex flex-col gap-1">
             <input
               type="text"
-              class="w-full px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong"
+              class="w-full px-2 py-1 text-12-regular rounded-md outline-none"
+              style={{ background: "var(--surface-base)", color: "var(--text-base)", border: "1px solid var(--border-muted)" }}
               placeholder="Files to include (e.g. *.ts, src/**)"
               value={includePattern()}
               onInput={(e) => setIncludePattern(e.currentTarget.value)}
             />
             <input
               type="text"
-              class="w-full px-2 py-1 text-12-regular bg-surface-base border border-border-base rounded-md outline-none focus:border-accent-base text-text-strong"
+              class="w-full px-2 py-1 text-12-regular rounded-md outline-none"
+              style={{ background: "var(--surface-base)", color: "var(--text-base)", border: "1px solid var(--border-muted)" }}
               placeholder="Files to exclude (e.g. node_modules, dist)"
               value={excludePattern()}
               onInput={(e) => setExcludePattern(e.currentTarget.value)}
@@ -428,14 +385,14 @@ export default function SearchPanel(props: {
           </div>
         </Show>
 
-        {/* Options row */}
         <div class="flex items-center gap-2 mt-1">
           <button
             type="button"
-            class="text-11-medium px-1.5 py-0.5 rounded transition-colors"
-            classList={{
-              "bg-accent-base/10 text-accent-base": caseSensitive(),
-              "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !caseSensitive(),
+            class="text-11-medium px-1.5 py-[2px] rounded transition-colors duration-75"
+            style={{
+              background: caseSensitive() ? "var(--accent-base)" : "var(--surface-base)",
+              color: caseSensitive() ? "white" : "var(--text-weaker)",
+              border: "1px solid var(--border-muted)",
             }}
             onClick={() => setCaseSensitive(!caseSensitive())}
             title="Case Sensitive"
@@ -444,10 +401,11 @@ export default function SearchPanel(props: {
           </button>
           <button
             type="button"
-            class="text-11-medium px-1.5 py-0.5 rounded transition-colors"
-            classList={{
-              "bg-accent-base/10 text-accent-base": matchWholeWord(),
-              "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !matchWholeWord(),
+            class="text-11-medium px-1.5 py-[2px] rounded transition-colors duration-75"
+            style={{
+              background: matchWholeWord() ? "var(--accent-base)" : "var(--surface-base)",
+              color: matchWholeWord() ? "white" : "var(--text-weaker)",
+              border: "1px solid var(--border-muted)",
             }}
             onClick={() => setMatchWholeWord(!matchWholeWord())}
             title="Match Whole Word"
@@ -456,10 +414,11 @@ export default function SearchPanel(props: {
           </button>
           <button
             type="button"
-            class="text-11-medium px-1.5 py-0.5 rounded transition-colors"
-            classList={{
-              "bg-accent-base/10 text-accent-base": useRegex(),
-              "text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover": !useRegex(),
+            class="text-11-medium px-1.5 py-[2px] rounded transition-colors duration-75"
+            style={{
+              background: useRegex() ? "var(--accent-base)" : "var(--surface-base)",
+              color: useRegex() ? "white" : "var(--text-weaker)",
+              border: "1px solid var(--border-muted)",
             }}
             onClick={() => setUseRegex(!useRegex())}
             title="Use Regular Expression"
@@ -468,8 +427,8 @@ export default function SearchPanel(props: {
           </button>
           <button
             type="button"
-            class="text-11-medium px-1.5 py-0.5 rounded text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
-            classList={{ "text-accent-base": showFilters() }}
+            class="text-11-medium px-1.5 py-[2px] rounded transition-colors duration-75"
+            style={{ background: "var(--surface-base)", color: showFilters() ? "var(--accent-base)" : "var(--text-weaker)", border: "1px solid var(--border-muted)" }}
             onClick={() => setShowFilters(!showFilters())}
             title="Toggle Filters"
           >
@@ -477,19 +436,17 @@ export default function SearchPanel(props: {
           </button>
           <div class="flex-1" />
           <Show when={searchMode() === "files" && results().length > 0}>
-            <span class="text-11-regular text-text-weaker">
-              {totalMatches()} in {totalFiles()} file{totalFiles() !== 1 ? "s" : ""}
-            </span>
+            <span class="text-11-regular" style="color: var(--text-weaker);">{totalMatches()} in {totalFiles()} file{totalFiles() !== 1 ? "s" : ""}</span>
           </Show>
           <Show when={searchMode() === "symbols" && symbolResults().length > 0}>
-            <span class="text-11-regular text-text-weaker">
-              {symbolResults().length} symbol{symbolResults().length !== 1 ? "s" : ""}
-            </span>
+            <span class="text-11-regular" style="color: var(--text-weaker);">{symbolResults().length} symbol{symbolResults().length !== 1 ? "s" : ""}</span>
           </Show>
           <Show when={(searchMode() === "files" && results().length > 0) || (searchMode() === "symbols" && symbolResults().length > 0)}>
             <button
               type="button"
-              class="text-11-medium px-1.5 py-0.5 rounded text-text-weaker hover:text-text-weak hover:bg-surface-raised-base-hover transition-colors"
+              class="text-11-medium px-1.5 py-[2px] rounded transition-colors duration-75"
+              style={{ color: "var(--text-weaker)" }}
+              classList={{ "hover:bg-overlay-hover hover:text-text-base": true }}
               onClick={clearResults}
             >
               Clear
@@ -501,57 +458,54 @@ export default function SearchPanel(props: {
       {/* Results */}
       <div class="flex-1 overflow-y-auto min-h-0">
         <Show when={searching()}>
-          <div class="flex items-center justify-center py-4 text-13-regular text-text-weak gap-2">
+          <div class="flex items-center justify-center py-4 text-13-regular gap-2" style="color: var(--text-muted);">
             <span class="animate-pulse">Searching...</span>
           </div>
         </Show>
 
-        {/* Symbol results */}
         <Show when={!searching() && searchMode() === "symbols" && symbolResults().length > 0}>
           <For each={symbolResults()}>
             {(sym, i) => (
               <button
                 type="button"
-                class="w-full flex items-center gap-2 px-3 py-1.5 text-12-regular hover:bg-surface-raised-base-hover cursor-pointer text-left transition-colors group"
-                classList={{
-                  "bg-accent-base/10": i() === selectedResultIndex(),
-                }}
+                class="w-full flex items-center gap-2 px-3 py-1.5 text-12-regular cursor-pointer text-left transition-colors duration-75 group"
+                style={{ background: i() === selectedResultIndex() ? "var(--accent-base)" : "transparent", color: i() === selectedResultIndex() ? "white" : "var(--text-muted)" }}
+                classList={{ "hover:bg-overlay-hover": i() !== selectedResultIndex() }}
                 onClick={() => props.onResultClick({ path: sym.path, line: sym.line })}
               >
-                <Icon name={symbolKindIcon(sym.kind) as any} size="small" class="text-icon-weaker shrink-0" />
+                <Icon name={symbolKindIcon(sym.kind) as any} size="small" class="shrink-0" style="color: var(--icon-weaker);" />
                 <div class="flex-1 min-w-0">
-                  <span class="text-text-strong">{sym.name}</span>
-                  <span class="text-text-weaker ml-1.5 text-11-regular">{sym.kind}</span>
+                  <span style={{ color: i() === selectedResultIndex() ? "white" : "var(--text-base)" }}>{sym.name}</span>
+                  <span class="ml-1.5 text-11-regular" style="color: var(--text-weaker);">{sym.kind}</span>
                 </div>
-                <span class="text-text-weaker text-11-regular truncate shrink-0 max-w-40">{getFilename(sym.path)}:{sym.line}</span>
+                <span class="text-11-regular truncate shrink-0 max-w-40" style="color: var(--text-weaker);">{getFilename(sym.path)}:{sym.line}</span>
               </button>
             )}
           </For>
         </Show>
 
-        {/* File search results */}
         <Show when={!searching() && searchMode() === "files" && results().length > 0}>
           <For each={groupedResults()}>
             {([path, fileResults]) => (
-              <div class="border-b border-border-base/30 last:border-0">
-                {/* File header row */}
+              <div>
                 <button
                   type="button"
-                  class="w-full flex items-center gap-1.5 px-2 py-1 text-12-medium text-text-strong hover:bg-surface-raised-base-hover cursor-pointer transition-colors group"
+                  class="w-full flex items-center gap-1.5 px-2 py-[3px] text-12-medium transition-colors duration-75 cursor-pointer group"
+                  style={{ color: "var(--text-base)" }}
+                  classList={{ "hover:bg-overlay-hover": true }}
                   onClick={() => toggleFileCollapse(path)}
                 >
-                  <Icon
-                    name={isFileCollapsed(path) ? "chevron-right" : "chevron-down"}
-                    size="small"
-                    class="text-icon-weaker shrink-0 transition-transform"
-                  />
-                  <Icon name="open-file" size="small" class="text-icon-weak shrink-0" />
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="shrink-0" style="color: var(--icon-weaker);">
+                    <path d={isFileCollapsed(path) ? "M3.5 2L6.5 5L3.5 8" : "M2 3.5L5 6.5L8 3.5"} stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="shrink-0" style="color: var(--icon-weaker);">
+                    <path d="M2 4C2 2.89543 2.89543 2 4 2H7L9 4H12C13.1046 4 14 4.89543 14 6V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/>
+                  </svg>
                   <span class="truncate flex-1 text-left" title={path}>{getFilename(path)}</span>
-                  <span class="shrink-0 text-11-medium px-1.5 py-0.5 rounded-full bg-accent-base/15 text-accent-base tabular-nums">
+                  <span class="shrink-0 text-11-medium px-1.5 py-[1px] tabular-nums" style={{ background: "var(--accent-base)", color: "white", "border-radius": "999px" }}>
                     {fileResults.length}
                   </span>
                 </button>
-                {/* Match rows */}
                 <Show when={!isFileCollapsed(path)}>
                   <For each={fileResults}>
                     {(result) => {
@@ -559,14 +513,12 @@ export default function SearchPanel(props: {
                       return (
                         <button
                           type="button"
-                          class="w-full flex items-start gap-2 px-4 py-0.5 text-12-regular hover:bg-surface-raised-base-hover cursor-pointer text-left transition-colors group"
-                          onClick={() => props.onResultClick({
-                            path: result.path.text,
-                            line: result.line_number,
-                            column: col + 1,
-                          })}
+                          class="w-full flex items-start gap-2 px-4 py-[2px] text-12-regular cursor-pointer text-left transition-colors duration-75 group"
+                          style="color: var(--text-muted);"
+                          classList={{ "hover:bg-overlay-hover": true }}
+                          onClick={() => props.onResultClick({ path: result.path.text, line: result.line_number, column: col + 1 })}
                         >
-                          <span class="text-text-weaker shrink-0 w-8 text-right tabular-nums text-11-regular mt-0.5">{result.line_number}</span>
+                          <span class="shrink-0 w-8 text-right tabular-nums text-11-regular mt-0.5" style="color: var(--text-weaker);">{result.line_number}</span>
                           <div class="flex-1 min-w-0 overflow-hidden">
                             <HighlightedLine text={result.lines.text} submatches={result.submatches} />
                           </div>
@@ -581,21 +533,24 @@ export default function SearchPanel(props: {
         </Show>
 
         <Show when={!searching() && searchQuery() && (searchMode() === "files" ? results().length === 0 : symbolResults().length === 0)}>
-          <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2">
-            <Icon name="circle-x" size="large" class="text-icon-weaker opacity-40" />
+          <div class="flex flex-col items-center justify-center py-8 text-13-regular gap-2" style="color: var(--text-weaker);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: var(--icon-weaker); opacity: 0.4;">
+              <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M15 15L21 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
             <span>No results found</span>
             <span class="text-12-regular">for "{searchQuery()}"</span>
           </div>
         </Show>
         <Show when={!searching() && !searchQuery()}>
-          <div class="flex flex-col items-center justify-center py-8 text-13-regular text-text-weaker gap-2 px-4 text-center">
-            <Icon name={searchMode() === "symbols" ? "code" : "magnifying-glass"} size="large" class="text-icon-weaker opacity-40" />
+          <div class="flex flex-col items-center justify-center py-8 text-13-regular gap-2 px-4 text-center" style="color: var(--text-weaker);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color: var(--icon-weaker); opacity: 0.4;">
+              <circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M15 15L21 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
             <span>{searchMode() === "symbols" ? "Search for symbols" : "Search across your project files"}</span>
             <span class="text-12-regular">
-              {searchMode() === "symbols"
-                ? "Search for functions, classes, variables..."
-                : "Type a search term and press Enter"
-              }
+              {searchMode() === "symbols" ? "Search for functions, classes, variables..." : "Type a search term and press Enter"}
             </span>
           </div>
         </Show>

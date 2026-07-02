@@ -1,0 +1,38 @@
+- generic [box=0,0,767,674]:
+  - generic [box=0,0,767,674]:
+    - generic [box=1,1,765,672]:
+      - banner [box=1,1,765,29]:
+        - generic [box=1,1,765,29]:
+          - generic [box=14,9,34,19]: DEV
+          - link [box=53,5,29,28]:
+            - /url: /
+          - link [box=92,5,28,28]:
+            - /url: /
+      - main [box=1,30,765,642]:
+        - generic [box=8,37,752,629]:
+          - generic [box=8,37,752,629]
+  - generic [box=0,674,767,0]:
+    - region "Notifications (alt+T)" [box=415,626,320,0]:
+      - list [box=415,626,320,0]
+  - dialog "Open project" [ref=e49] [box=64,81,640,422]:
+    - generic [ref=e51] [box=64,81,640,61]:
+      - heading "Open project" [level=2] [ref=e52] [box=84,97,95,29]
+      - button "Close" [ref=e53] [box=660,99,24,24]:
+        - img [ref=e55] [box=664,103,16,16]
+    - generic [ref=e58] [box=64,142,640,361]:
+      - generic [ref=e60] [box=73,142,621,36]:
+        - generic [ref=e61] [box=81,150,573,20]:
+          - img [ref=e63] [box=81,150,20,20]
+          - group [ref=e65] [box=109,149,545,21]
+        - button "Clear filter" [ref=e68] [box=666,150,20,20]:
+          - img [ref=e70] [box=668,152,16,16]
+      - generic [ref=e73] [box=73,194,621,309]:
+        - generic [ref=e74] [box=73,194,621,37]: Open project
+        - generic [ref=e75] [box=73,231,621,260]:
+          - button "~/Desktop/ real_estate /" [ref=e76] [box=73,231,621,37]
+          - button "~/Desktop/ Secuber /" [ref=e85] [box=73,268,621,37]
+          - button "~/Desktop/ Portfolio /" [ref=e94] [box=73,305,621,37]
+          - button "~/Desktop/ 5X Project /" [ref=e103] [box=73,342,621,37]
+          - button "~/Desktop/ my_portfolio /" [ref=e112] [box=73,379,621,37]
+          - button "~/Desktop/ Mirai Landing Website /" [ref=e121] [box=73,417,621,37]
+          - button "~/Desktop/ Gyaanplant_maddeveloper /" [ref=e130] [box=73,454,621,37]

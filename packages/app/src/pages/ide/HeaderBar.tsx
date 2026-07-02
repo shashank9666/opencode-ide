@@ -117,14 +117,15 @@ export default function HeaderBar(props: {
         onMouseLeave={handleMouseLeave}
       >
         <Show when={item.separator}>
-          <div class="h-px my-1 bg-border-base" />
+          <div class="h-px my-1" style={{ background: "var(--border-muted)" }} />
         </Show>
         <Show when={!item.separator && !hasSubmenu}>
           <button
             type="button"
-            class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular text-text-weak hover:bg-accent-base hover:text-white transition-colors cursor-default"
+            class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular transition-colors duration-75"
+            style={{ color: "var(--text-muted)" }}
+            classList={{ "opacity-50 cursor-not-allowed": item.disabled, "hover:bg-accent-base hover:text-white": !item.disabled }}
             disabled={item.disabled}
-            classList={{ "opacity-50 cursor-not-allowed": item.disabled }}
             onClick={() => {
               if (item.action) {
                 item.action()
@@ -143,22 +144,19 @@ export default function HeaderBar(props: {
         </Show>
         <Show when={!item.separator && hasSubmenu}>
           <div
-            class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular text-text-weak hover:bg-accent-base hover:text-white transition-colors cursor-default"
-            classList={{ "opacity-50 cursor-not-allowed": item.disabled }}
+            class="w-full flex items-center justify-between px-6 py-1.5 text-13-regular transition-colors duration-75"
+            style={{ color: "var(--text-muted)" }}
+            classList={{ "opacity-50 cursor-not-allowed": item.disabled, "hover:bg-accent-base hover:text-white": !item.disabled }}
           >
             <span>{item.label}</span>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="shrink-0 ml-4">
-              <path d="M4 2L8 6L4 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="shrink-0 ml-4" style="color: var(--icon-weaker);">
+              <path d="M4 2L8 6L4 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </div>
           <Show when={submenuActive() === path && item.submenu}>
             <div
-              class="fixed min-w-56 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-[60] overflow-y-auto overflow-x-hidden"
-              style={{
-                left: `${submenuPos().left}px`,
-                top: `${submenuPos().top}px`,
-                "max-height": `400px`,
-              }}
+              class="fixed min-w-56 py-1 z-[60] overflow-y-auto overflow-x-hidden"
+              style={{ background: "var(--surface-raised-base)", border: "1px solid var(--border-base)", "border-radius": "10px", "box-shadow": "0 8px 32px rgba(0,0,0,0.3)", left: `${submenuPos().left}px`, top: `${submenuPos().top}px`, "max-height": `400px` }}
               onMouseEnter={() => {
                 if (menuCloseTimeout !== undefined) {
                   window.clearTimeout(menuCloseTimeout)
@@ -184,19 +182,21 @@ export default function HeaderBar(props: {
 
   return (
     <div
-      class="title-bar shrink-0 flex items-center justify-between px-2 border-b border-border-base bg-[#181818] select-none [app-region:drag] z-30 text-text-weaker relative"
-      data-testid="title-bar"
-      style={{ height: "35px" }}
+      class="title-bar shrink-0 flex items-center justify-between px-2 select-none [app-region:drag] z-30 relative"
+      style={{
+        height: "36px",
+        background: "var(--background-bg-deep)",
+        color: "var(--text-weaker)",
+        "border-bottom": "1px solid var(--border-muted)",
+      }}
       onMouseLeave={handleMouseLeave}
     >
       {/* ── Left: Logo & Menus ── */}
       <div class="flex items-center h-full [app-region:no-drag]">
-        {/* Logo */}
-        <div class="flex items-center justify-center px-3 h-full cursor-pointer hover:bg-surface-raised-base-hover transition-colors">
+        <div class="flex items-center justify-center px-3 h-full transition-colors duration-75" classList={{ "hover:bg-overlay-hover": true }}>
           <Mark class="w-[18px] h-[18px]" />
         </div>
 
-        {/* Menus */}
         <div class="menubar flex items-center h-full" data-testid="menubar" ref={menuBarRef}>
           <For each={menus()}>{(menu, index) => (
             <div class="relative h-full" onMouseEnter={() => {
@@ -213,8 +213,9 @@ export default function HeaderBar(props: {
               <button
                 type="button"
                 data-menu-trigger
-                class="px-2.5 h-full text-13-regular hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors cursor-default"
-                classList={{ "bg-surface-raised-base text-text-strong": activeMenu() === menu.label }}
+                class="px-2.5 h-full text-13-regular transition-colors duration-75 cursor-default rounded-sm"
+                style={{ color: activeMenu() === menu.label ? "var(--text-base)" : "var(--text-weaker)" }}
+                classList={{ "hover:bg-overlay-hover hover:text-text-base": activeMenu() !== menu.label }}
                 onClick={() => handleMenuClick(menu.label, index())}
                 onMouseEnter={() => {
                   if (activeMenu() && activeMenu() !== menu.label) {
@@ -228,12 +229,8 @@ export default function HeaderBar(props: {
               </button>
               <Show when={activeMenu() === menu.label && menu.submenu}>
                 <div
-                  class="fixed min-w-56 bg-surface-raised-base border border-border-base rounded-md shadow-xl py-1 z-50 overflow-y-auto overflow-x-hidden"
-                  style={{
-                    left: `${menuPosition().left}px`,
-                    top: `${menuPosition().top}px`,
-                    "max-height": `${menuPosition().maxHeight}px`,
-                  }}
+                  class="fixed min-w-56 py-1 z-50 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-75"
+                  style={{ background: "var(--surface-raised-base)", border: "1px solid var(--border-base)", "border-radius": "10px", "box-shadow": "0 8px 32px rgba(0,0,0,0.3)", left: `${menuPosition().left}px`, top: `${menuPosition().top}px`, "max-height": `${menuPosition().maxHeight}px` }}
                   onMouseEnter={() => {
                     if (menuCloseTimeout !== undefined) {
                       window.clearTimeout(menuCloseTimeout)
@@ -251,18 +248,19 @@ export default function HeaderBar(props: {
         </div>
       </div>
 
-      {/* ── Center: Search Bar (VS Code style) ── */}
-      <div class="command-center absolute left-1/2 -translate-x-1/2 top-0 bottom-0 flex items-center justify-center" data-testid="command-center">
+      {/* ── Center: Workspace / File Info ── */}
+      <div class="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 flex items-center justify-center" data-testid="command-center">
         <Show when={searchOpen()}>
-          <div class="flex items-center gap-1 bg-surface-base border border-border-base rounded-md px-2 py-0.5 w-[400px] max-w-[50vw] pointer-events-auto">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="text-icon-weaker shrink-0">
-              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" />
-              <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <div class="flex items-center gap-1 rounded-md px-2 py-0.5 w-[400px] max-w-[50vw] pointer-events-auto" style={{ background: "var(--surface-base)", border: "1px solid var(--border-muted)" }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="shrink-0" style="color: var(--icon-weaker);">
+              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3" />
+              <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
             </svg>
             <input
               ref={searchInputRef}
               type="text"
-              class="flex-1 bg-transparent text-12-regular text-text-strong outline-none placeholder:text-text-weaker"
+              class="flex-1 bg-transparent text-12-regular outline-none"
+              style="color: var(--text-base);"
               placeholder="Search files by name..."
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
@@ -271,18 +269,20 @@ export default function HeaderBar(props: {
             />
             <button
               type="button"
-              class="text-icon-weaker hover:text-text-strong p-0.5"
+              class="transition-colors duration-75 p-0.5"
+              style="color: var(--icon-weaker);"
+              classList={{ "hover:text-text-base": true }}
               onClick={() => { setSearchOpen(false); setSearchQuery("") }}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
             </button>
           </div>
         </Show>
         <Show when={!searchOpen()}>
-          <span class="text-12-regular text-text-weaker truncate px-4 pointer-events-none">
-            {props.workspaceName ?? "Untitled"} {`/`}
+          <span class="text-12-regular truncate px-4 pointer-events-none" style="color: var(--text-weaker);">
+            {props.workspaceName ?? "Untitled"}
             <Show when={props.activeFile}>
-              {props.activeFile}
+              <span style="opacity: 0.5;"> /</span> {props.activeFile}
             </Show>
           </span>
         </Show>
@@ -296,10 +296,9 @@ export default function HeaderBar(props: {
               icon="magnifying-glass"
               variant="ghost"
               size="small"
-              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
-              onClick={() => {
-                props.onSearch()
-              }}
+              class="size-6 rounded transition-all duration-75"
+              style="color: var(--icon-weaker);"
+              onClick={() => { props.onSearch() }}
             />
           </Tooltip>
         </div>
@@ -312,7 +311,8 @@ export default function HeaderBar(props: {
               icon="sliders"
               variant="ghost"
               size="small"
-              class="size-6 text-icon-weak hover:text-text-strong rounded-[4px]"
+              class="size-6 rounded transition-all duration-75"
+              style="color: var(--icon-weaker);"
               onClick={() => {
                 void import("@/components/dialog-settings").then((x) => {
                   dialog.show(() => <x.DialogSettings />)
@@ -322,7 +322,6 @@ export default function HeaderBar(props: {
           </Tooltip>
         </div>
 
-        {/* Window controls spacer */}
         <div class="window-controls" data-testid="window-controls" style="display: none;" />
       </div>
     </div>

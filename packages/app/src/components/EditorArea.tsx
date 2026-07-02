@@ -299,22 +299,41 @@ if (dt) {
       }}
     >
       <Show when={group().files.length > 0}>
-        <div class="flex items-center border-b border-border-base bg-surface-base overflow-x-auto shrink-0 select-none" style={{ "min-height": "36px" }}>
+        <div class="flex items-center border-b overflow-x-auto shrink-0 select-none gap-0" style={{ "min-height": "35px", "background": "var(--background-bg-deep)", "border-color": "var(--border-muted)" }}>
           <For each={group().files}>
-            {(openFile: OpenFile) => (
+            {(openFile: OpenFile) => {
+              const isPreview = () => openFile.path.startsWith("preview://")
+              const isActive = () => openFile.path === activeFile()
+              const ext = () => {
+                const p = isPreview() ? openFile.path.slice(10) : openFile.path
+                return p.slice(p.lastIndexOf(".")).toLowerCase()
+              }
+              const langIcon = () => {
+                const m: Record<string, string> = {
+                  ".ts": "code", ".tsx": "code", ".js": "code", ".jsx": "code",
+                  ".json": "bullet-list", ".md": "comment", ".css": "code",
+                  ".html": "globe", ".py": "code", ".rs": "code", ".go": "code",
+                  ".yaml": "bullet-list", ".yml": "bullet-list", ".toml": "bullet-list",
+                }
+                return m[ext()] ?? "open-file"
+              }
+              return (
               <ContextMenu>
                 <ContextMenu.Trigger
                   as="button"
                   draggable="true"
-                  class={`flex items-center gap-1.5 px-3 py-1.5 text-13-regular border-r border-border-base whitespace-nowrap shrink-0 transition-colors ${openFile.path === activeFile()
-                    ? (isActiveGroup() ? "bg-background-base text-text-strong border-b-2 border-b-accent-base" : "bg-background-base text-text-strong opacity-80")
-                    : "text-text-weak hover:bg-surface-raised-base-hover"
-                    }`}
+                  class="flex items-center gap-1.5 px-3 text-13-regular whitespace-nowrap shrink-0 transition-all duration-100 relative group"
+                  style={{
+                    height: "35px",
+                    "border-right": isActive() ? "none" : "1px solid var(--border-muted)",
+                    color: isActive() ? "var(--text-base)" : "var(--text-muted)",
+                    background: isActive() ? "var(--background-bg-base)" : "transparent",
+                    "font-style": isPreview() ? "italic" : "normal",
+                  }}
                   onDragStart={() => { const g = group(); if (g.id) draggedTab = { path: openFile.path, sourceGroupId: g.id }; }}
                   onDragEnd={() => { draggedTab = null }}
                   onClick={(e: MouseEvent) => {
                     e.stopPropagation();
-                    // Auto-save the current file when switching tabs
                       const currentActiveFile = activeFile();
                       if (settings.general.autoSave() && currentActiveFile && currentActiveFile !== openFile.path) {
                         const g = group();
@@ -329,16 +348,37 @@ if (dt) {
                       }
                   }}
                 >
-                  <Icon name={openFile.path.startsWith("preview://") ? "eye" : "open-file"} size="small" class="text-icon-weak shrink-0" />
-                  <span class="truncate max-w-32" title={openFile.path.startsWith("preview://") ? `Preview ${getFilename(openFile.path.slice(10))}` : openFile.path}>
-                    {openFile.path.startsWith("preview://") ? `Preview ${getFilename(openFile.path.slice(10))}` : getFilename(openFile.path)}
+                  {/* Active tab bottom connector line */}
+                  <Show when={isActive() && isActiveGroup()}>
+                    <div class="absolute bottom-0 left-0 right-0 h-[1.5px] rounded-full" style={{ background: "var(--accent-base)" }} />
+                  </Show>
+
+                  {/* Language-based icon */}
+                  <div class="size-4 flex items-center justify-center shrink-0">
+                    <Icon
+                      name={langIcon()}
+                      size="small"
+                      class={isActive() ? "text-icon-base" : "text-icon-weaker group-hover:text-icon-muted transition-colors duration-100"}
+                    />
+                  </div>
+
+                  {/* Filename */}
+                  <span
+                    class="truncate max-w-32 text-12-medium"
+                    title={isPreview() ? `Preview ${getFilename(openFile.path.slice(10))}` : openFile.path}
+                  >
+                    {isPreview() ? `Preview ${getFilename(openFile.path.slice(10))}` : getFilename(openFile.path)}
                   </span>
-                  <Show when={openFile.dirty}><span class="text-12-medium text-text-warning-base">●</span></Show>
-                  <IconButton
-                    icon="close"
-                    variant="ghost"
-                    size="small"
-                    class="size-4 rounded ml-0.5 opacity-60 hover:opacity-100"
+
+                  {/* Dirty indicator - subtle dot */}
+                  <Show when={openFile.dirty}>
+                    <div class="size-1.5 rounded-full shrink-0" style={{ background: "var(--text-warning-base)" }} />
+                  </Show>
+
+                  {/* Close button */}
+                  <button
+                    type="button"
+                    class="size-4 flex items-center justify-center rounded ml-0.5 opacity-0 group-hover:opacity-80 hover:opacity-100 hover:bg-overlay-hover transition-all duration-100 shrink-0"
                     onClick={(e: MouseEvent) => {
                       e.stopPropagation();
                       if (settings.general.autoSave() && openFile.dirty) {
@@ -346,7 +386,11 @@ if (dt) {
                       }
                       props.workspace.closeFile(openFile.path, group().id);
                     }}
-                  />
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    </svg>
+                  </button>
                 </ContextMenu.Trigger>
                 <ContextMenu.Portal>
                   <ContextMenu.Content class="min-w-[220px]">
@@ -441,23 +485,60 @@ if (dt) {
                   </ContextMenu.Content>
                 </ContextMenu.Portal>
               </ContextMenu>
-            )}
+            })}
           </For>
-          <div class="flex-1 flex justify-end gap-1 px-1">
-            <IconButton icon="layout-right" variant="ghost" size="small" class="size-6 rounded" title="Split Right" onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.splitGroup(g.id, "horizontal"); }} />
-            <IconButton icon="layout-bottom" variant="ghost" size="small" class="size-6 rounded" title="Split Down" onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.splitGroup(g.id, "vertical"); }} />
+          <div class="flex-1 flex justify-end gap-0.5 px-1.5" style={{ background: "var(--background-bg-base)" }}>
+            <button
+              type="button"
+              class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
+              title="Review AI Changes"
+              onClick={(e) => { e.stopPropagation(); props.workspace.openFile("review://changes", "", group().id); }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M2 4C2 2.89543 2.89543 2 4 2H10C11.1046 2 12 2.89543 12 4V12C12 13.1046 11.1046 14 10 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M14 4V12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                <path d="M5.5 6.5L7.5 8.5L5.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
+              title="Split Right"
+              onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.splitGroup(g.id, "horizontal"); }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 2.5H13C13.8284 2.5 14.5 3.17157 14.5 4V12C14.5 12.8284 13.8284 13.5 13 13.5H3C2.17157 13.5 1.5 12.8284 1.5 12V4C1.5 3.17157 2.17157 2.5 3 2.5Z" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M9 2.5V13.5" stroke="currentColor" stroke-width="1.3"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
+              title="Split Down"
+              onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.splitGroup(g.id, "vertical"); }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 2.5H13C13.8284 2.5 14.5 3.17157 14.5 4V12C14.5 12.8284 13.8284 13.5 13 13.5H3C2.17157 13.5 1.5 12.8284 1.5 12V4C1.5 3.17157 2.17157 2.5 3 2.5Z" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M1.5 8.5H14.5" stroke="currentColor" stroke-width="1.3"/>
+              </svg>
+            </button>
           </div>
         </div>
       </Show>
 
       {/* Breadcrumbs */}
       <Show when={activeFile()}>
-        <div class="flex items-center gap-1 px-3 py-0.5 text-12-regular text-text-weak bg-surface-base border-b border-border-base shrink-0 overflow-x-auto">
+        <div class="flex items-center gap-1 px-3 py-[3px] text-12-regular text-text-muted shrink-0 overflow-x-auto" style={{ background: "var(--background-bg-deep)", "border-bottom": "1px solid var(--border-muted)" }}>
           {activeFile()?.split("/").map((crumb, i, arr) => (
             <>
-              <Show when={i > 0}><span class="text-text-weaker">/</span></Show>
+              <Show when={i > 0}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="text-icon-weaker shrink-0">
+                  <path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </Show>
               <span
-                class="hover:text-text-strong cursor-pointer truncate"
+                class="hover:text-text-strong cursor-pointer truncate transition-colors duration-75 px-0.5 -mx-0.5 rounded"
+                classList={{ "text-11-medium text-text-weaker": i < arr.length - 1, "text-11-medium text-text-base": i === arr.length - 1 }}
                 onClick={() => {
                   const dir = arr.slice(0, i + 1).join("/")
                   if (i < arr.length - 1) {
@@ -469,7 +550,15 @@ if (dt) {
           ))}
           <div class="flex-1" />
           <Show when={hasDiff()}>
-            <button class="text-12-regular px-2 py-0.5 rounded transition-colors" classList={{ "bg-accent-base text-white": effectiveDiffMode(), "text-text-weak hover:text-text-strong hover:bg-surface-raised-base-hover": !effectiveDiffMode() }} onClick={props.onToggleDiff}>{effectiveDiffMode() ? "Exit Diff" : "Show Diff"}</button>
+            <button
+              class="text-11-medium px-2 py-[2px] rounded-md transition-all duration-100"
+              classList={{
+                "text-white": effectiveDiffMode(),
+                "text-text-muted hover:text-text-base hover:bg-overlay-hover": !effectiveDiffMode(),
+              }}
+              style={effectiveDiffMode() ? { background: "var(--accent-base)" } : {}}
+              onClick={props.onToggleDiff}
+            >{effectiveDiffMode() ? "Exit Diff" : "Show Diff"}</button>
           </Show>
         </div>
       </Show>
@@ -485,28 +574,40 @@ if (dt) {
       </Show>
       <Show when={!isBrowserPreview() && !activeFile()?.startsWith("preview://") && activeFile() !== "review://changes"}>
         <Show when={activeFileState()} fallback={
-          <div class="flex-1 flex flex-col items-center justify-center text-text-weak gap-3 select-none relative group">
+          <div class="flex-1 flex flex-col items-center justify-center gap-3 select-none relative group" style={{ color: "var(--text-muted)" }}>
             <Show when={props.workspace.getGroups().length > 1}>
               <button 
-                class="absolute top-4 right-4 p-2 text-text-weaker hover:text-text-base hover:bg-surface-raised-base rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                onClick={() => props.workspace.closeGroup(props.activeGroupId)}
+                class="absolute top-4 right-4 p-2 rounded-lg transition-all duration-100 opacity-0 group-hover:opacity-100 hover:bg-overlay-hover"
+                onClick={() => { const g = group(); if (g.id) props.workspace.closeGroup(g.id) }}
                 title="Close Split Pane"
+                style={{ color: "var(--text-weaker)" }}
               >
-                <Icon name="close" class="size-5" />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
               </button>
             </Show>
-            <Icon name="open-file" size="large" class="text-icon-weaker opacity-30" style={{ "font-size": "48px" }} />
-            <div class="text-14-regular">Open a file from the Explorer</div>
-            <div class="text-12-regular text-text-weaker">or press <kbd class="px-1.5 py-0.5 bg-surface-base border border-border-base rounded text-11-medium">Ctrl+P</kbd> to search</div>
+
+            {/* Decorative icon */}
+            <div class="size-16 rounded-2xl flex items-center justify-center" style={{ background: "var(--overlay-hover)" }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="color: var(--icon-weaker); opacity: 0.4;">
+                <path d="M4 4H20V20H4V4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M9 4V20" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M4 9H9" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M4 15H9" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <div class="text-14-regular" style={{ color: "var(--text-base)" }}>Open a file from the Explorer</div>
+            <div class="text-12-regular">or press <kbd class="px-1.5 py-0.5 rounded text-11-medium" style="background: var(--surface-base); border: 1px solid var(--border-muted); color: var(--text-muted)">Ctrl+P</kbd> to search</div>
             
             <Show when={props.workspace.getGroups().length > 1}>
-              <Button 
-                variant="secondary" 
-                class="mt-4"
-                onClick={() => props.workspace.closeGroup(props.activeGroupId)}
+              <button
+                class="mt-3 px-4 py-1.5 rounded-lg text-12-medium transition-all duration-100 hover:opacity-90"
+                style="background: var(--overlay-contrast-hover); color: var(--text-contrast)"
+                onClick={() => { const g = group(); if (g.id) props.workspace.closeGroup(g.id) }}
               >
                 Close Split Pane
-              </Button>
+              </button>
             </Show>
           </div>
         }>

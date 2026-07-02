@@ -1,0 +1,37 @@
+- generic [active] [ref=e1] [box=0,0,1536,674]:
+  - generic [ref=e3] [box=1,1,1534,672]:
+    - banner [ref=e4] [box=1,1,1534,29]:
+      - generic [ref=e5] [box=1,1,1534,29]:
+        - generic [ref=e6] [box=14,9,34,19]: DEV
+        - link [ref=e7] [box=53,5,29,28]:
+          - /url: /
+          - img [ref=e8] [box=60,11,16,16]
+        - link "New session" [ref=e10] [box=92,5,28,28]:
+          - /url: /
+          - img [ref=e11] [box=98,11,16,16]
+    - main [ref=e13] [box=1,30,1534,642]:
+      - generic [ref=e15] [box=228,37,1080,629]:
+        - complementary "Projects" [ref=e16] [box=248,82,280,532]:
+          - generic [ref=e17] [box=248,134,280,23]:
+            - generic [ref=e18] [box=252,136,50,19]: Projects
+            - button "Add project" [ref=e19] [box=500,132,28,28]:
+              - img [ref=e20] [box=506,138,16,16]
+          - generic [ref=e22] [box=248,196,280,75]:
+            - button "Settings" [ref=e23] [box=248,196,280,23]:
+              - img [ref=e24] [box=252,200,14,14]
+              - generic [ref=e26] [box=273,198,250,19]: Settings
+            - button "Documentation" [ref=e27] [box=248,222,280,23]:
+              - img [ref=e28] [box=252,226,14,14]
+              - generic [ref=e30] [box=273,224,250,19]: Documentation
+            - button "Help" [ref=e31] [box=248,248,280,23]:
+              - img [ref=e32] [box=252,252,14,14]
+              - generic [ref=e34] [box=273,250,250,19]: Help
+        - region "Recent sessions" [ref=e35] [box=554,37,720,577]:
+          - generic [ref=e38] [box=567,76,696,29]:
+            - img [ref=e39] [box=576,82,16,16]
+            - textbox "Search sessions" [ref=e41] [box=599,81,657,19]
+          - region "scrollable content" [ref=e43] [box=554,115,720,499]:
+            - generic [ref=e47] [box=567,126,115,19]: No sessions found
+  - generic [box=0,674,1536,0]:
+    - region "Notifications (alt+T)" [box=1184,626,320,0]:
+      - list [box=1184,626,320,0]

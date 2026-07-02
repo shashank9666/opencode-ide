@@ -109,13 +109,13 @@ export function DockablePanelHeader(props: {
 }) {
   return (
     <div
-      class="flex items-center justify-between px-3 py-1.5 border-b border-border-base bg-surface-base shrink-0 select-none"
-      style={{ "min-height": "34px" }}
+      class="flex items-center justify-between px-3 py-[5px] shrink-0 select-none"
+      style={{ "min-height": "30px", background: "var(--background-bg-deep)", "border-bottom": "1px solid var(--border-muted)" }}
       onMouseDown={props.onDragStart}
     >
       <div class="flex items-center gap-1.5 min-w-0">
-        <Icon name={props.icon as any} size="small" class="text-icon-weak shrink-0" />
-        <span class="text-11-medium text-text-weaker uppercase tracking-wider truncate">{props.label}</span>
+        <Icon name={props.icon as any} size="small" class="shrink-0" style="color: var(--icon-weaker);" />
+        <span class="text-11-medium uppercase tracking-wider truncate" style="color: var(--text-weaker);">{props.label}</span>
       </div>
       <div class="flex items-center gap-0.5">
         {props.actions}
@@ -123,10 +123,12 @@ export function DockablePanelHeader(props: {
           <Tooltip value="Float Panel" placement="bottom">
             <button
               type="button"
-              class="size-5 flex items-center justify-center rounded hover:bg-surface-raised-base-hover transition-colors"
+              class="size-5 flex items-center justify-center rounded transition-colors duration-75"
+              style="color: var(--icon-weaker);"
+              classList={{ "hover:bg-overlay-hover": true }}
               onClick={props.onFloat}
             >
-              <Icon name="expand" size="small" class="size-3 text-icon-weaker" />
+              <Icon name="expand" size="small" class="size-3" />
             </button>
           </Tooltip>
         </Show>
@@ -134,10 +136,12 @@ export function DockablePanelHeader(props: {
           <Tooltip value="Close Panel" placement="bottom">
             <button
               type="button"
-              class="size-5 flex items-center justify-center rounded hover:bg-surface-raised-base-hover transition-colors"
+              class="size-5 flex items-center justify-center rounded transition-colors duration-75"
+              style="color: var(--icon-weaker);"
+              classList={{ "hover:bg-overlay-hover": true }}
               onClick={props.onClose}
             >
-              <Icon name="close" size="small" class="size-3 text-icon-weaker" />
+              <Icon name="close" size="small" class="size-3" />
             </button>
           </Tooltip>
         </Show>
