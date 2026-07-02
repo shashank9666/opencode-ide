@@ -2402,7 +2402,7 @@ export default function Layout(props: ParentProps) {
         </div>
       }
     >
-      <div id="root-layout" class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text" style={appStyle()}>
+      <div id="root-layout" class="relative bg-v2-background-bg-deep flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text" style={appStyle()}>
         {wallpaperDiv()}
         {autoselecting() ?? ""}
         <Titlebar update={titlebarUpdate} />

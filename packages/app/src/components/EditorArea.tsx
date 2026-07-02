@@ -250,7 +250,7 @@ export function EditorAreaGroup(props: {
 
   return (
     <div
-      class="flex-1 flex flex-col min-w-0 min-h-0 bg-background-base overflow-hidden relative"
+      class="flex-1 flex flex-col min-w-0 min-h-0 bg-transparent overflow-hidden relative"
       onClick={() => { const g = group(); if (g.id) props.workspace.setActiveGroupId(g.id); }}
       onDragOver={(e) => { e.preventDefault() }}
       onDrop={async (e) => {
@@ -485,14 +485,18 @@ if (dt) {
                   </ContextMenu.Content>
                 </ContextMenu.Portal>
               </ContextMenu>
-            })}
+            )}}
           </For>
           <div class="flex-1 flex justify-end gap-0.5 px-1.5" style={{ background: "var(--background-bg-base)" }}>
             <button
               type="button"
               class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
               title="Review AI Changes"
-              onClick={(e) => { e.stopPropagation(); props.workspace.openFile("review://changes", "", group().id); }}
+              onClick={(e) => {
+                e.stopPropagation()
+                const g = group()
+                if (g) props.workspace.openFile("review://changes", "", g.id)
+              }}
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M2 4C2 2.89543 2.89543 2 4 2H10C11.1046 2 12 2.89543 12 4V12C12 13.1046 11.1046 14 10 14H4C2.89543 14 2 13.1046 2 12V4Z" stroke="currentColor" stroke-width="1.3"/>
@@ -799,4 +803,3 @@ export function EditorArea(props: any) {
     </Show>
   );
 }
-

@@ -60,23 +60,23 @@ const IdePage = lazy(() => import("@/pages/ide"))
 
 function IdeLoadingSkeleton() {
   return (
-    <div class="size-full flex flex-col bg-background-base">
-      <div class="h-9 shrink-0 border-b border-border-base bg-surface-base flex items-center px-4 gap-2" />
+    <div class="size-full flex flex-col bg-background-base app-enter">
+      <div class="h-9 shrink-0 border-b border-border-base bg-surface-base flex items-center px-4 gap-2 panel-enter" />
       <div class="flex-1 flex overflow-hidden">
-        <div class="w-12 shrink-0 border-r border-border-base bg-surface-base flex flex-col items-center py-2 gap-3 pt-4" />
-        <div class="w-64 shrink-0 border-r border-border-base bg-surface-base flex flex-col">
+        <div class="w-12 shrink-0 border-r border-border-base bg-surface-base flex flex-col items-center py-2 gap-3 pt-4 panel-enter" />
+        <div class="w-64 shrink-0 border-r border-border-base bg-surface-base flex flex-col panel-enter">
           <div class="flex items-center justify-between px-4 py-2 border-b border-border-base">
             <div class="h-3 w-20 rounded bg-surface-raised-base opacity-40 animate-pulse" />
           </div>
-          <div class="flex-1 p-3 space-y-2">
+          <div class="flex-1 p-3 space-y-2 stagger-in">
             <div class="h-3 w-32 rounded bg-surface-raised-base opacity-30 animate-pulse" />
             <div class="h-3 w-28 rounded bg-surface-raised-base opacity-30 animate-pulse" />
             <div class="h-3 w-36 rounded bg-surface-raised-base opacity-30 animate-pulse" />
             <div class="h-3 w-24 rounded bg-surface-raised-base opacity-30 animate-pulse" />
           </div>
         </div>
-        <div class="flex-1 flex flex-col items-center justify-center gap-4">
-          <Splash class="w-12 h-15" />
+        <div class="flex-1 flex flex-col items-center justify-center gap-4 panel-enter">
+          <Splash class="w-12 h-15 animate-pulse drop-shadow-[0_0_20px_rgba(255,255,255,0.08)]" />
           <div class="flex items-center gap-2">
             <div class="size-2 rounded-full bg-accent-base animate-pulse" />
             <span class="text-13-regular text-text-weak">Loading IDE...</span>
