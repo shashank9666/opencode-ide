@@ -27,7 +27,7 @@ OpenCode IDE is a code editing experience where an AI coding agent operates alon
 
 3. **Start the frontend dev server** (runs on port `4444`):
    ```bash
-   bun run dev:IDE
+   bun run dev:web
    ```
 
 4. **Access the application**: Open `http://localhost:4444` in your browser.
