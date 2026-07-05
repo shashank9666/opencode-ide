@@ -637,7 +637,7 @@ export const SettingsGeneralV2: Component = () => {
           description=""
         >
           <div class="flex flex-wrap gap-3 mt-3">
-            <For each={Object.entries(import.meta.glob('/public/wallpapers/*.{png,jpg,jpeg,webp,gif}', { eager: true, as: 'url' })).map(([path, url]) => {
+            <For each={Object.entries(import.meta.glob('/public/wallpapers/*.{png,jpg,jpeg,webp,gif}', { eager: true, query: '?url', import: 'default' })).map(([path, url]) => {
               const filename = path.split('/').pop() || '';
               const id = filename.split('.')[0] || '';
               const name = id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
