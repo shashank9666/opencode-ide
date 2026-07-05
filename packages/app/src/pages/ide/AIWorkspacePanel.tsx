@@ -163,8 +163,10 @@ export default function AIWorkspacePanel(props: {
                             <InlineInput
                               value={renameDraft()}
                               class="text-12-regular w-full rounded-[4px] px-1 -ml-1"
-                              style="--inline-input-shadow: var(--shadow-xs-border-select)"
-                              style={{ color: "var(--text-base)" }}
+                              style={{ 
+                                "--inline-input-shadow": "var(--shadow-xs-border-select)",
+                                color: "var(--text-base)" 
+                              }}
                               onInput={(e) => setRenameDraft(e.currentTarget.value)}
                               onKeyDown={(e) => {
                                 e.stopPropagation()
