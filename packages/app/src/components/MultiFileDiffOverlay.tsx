@@ -12,6 +12,12 @@ export function MultiFileDiffOverlay(props: { workspace: any, onAccept?: (path: 
     );
   });
 
+  const handleClose = () => {
+    for (const file of diffFiles()) {
+      props.workspace.setOriginalContent(file.path, undefined);
+    }
+  };
+
   return (
     <Show when={diffFiles().length > 0}>
       <div class="absolute top-4 right-4 z-50 flex flex-col gap-2 bg-surface-raised-base border border-border-base rounded-xl shadow-xl p-3 w-80 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -19,6 +25,7 @@ export function MultiFileDiffOverlay(props: { workspace: any, onAccept?: (path: 
           <span class="text-12-medium text-text-strong">
             {diffFiles().length} pending edit{diffFiles().length === 1 ? "" : "s"}
           </span>
+          <IconButton icon="close" size="small" variant="ghost" class="size-6 -mr-1 text-text-weak hover:text-text-strong" onClick={handleClose} aria-label="Close pending changes" />
         </div>
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-1 text-text-weak flex-1">
