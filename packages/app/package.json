@@ -77,6 +77,7 @@
     "solid-js": "catalog:",
     "solid-list": "catalog:",
     "solid-markdown": "2.1.1",
+    "source-map": "0.7.6",
     "tailwindcss": "catalog:",
     "virtua": "catalog:"
   }

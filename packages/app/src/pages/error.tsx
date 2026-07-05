@@ -270,7 +270,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
         sessionID: created.id,
         agent: "build",
         model: { providerID: "", modelID: "" },
-        parts: [{ type: "text", content: `Analyze this error and suggest a practical fix:\n\n${summary.slice(0, 4000)}` }],
+        parts: [{ type: "text", text: `Analyze this error and suggest a practical fix:\n\n${summary.slice(0, 4000)}` }],
       })
       setAiSuggestion("Request sent. If supported, the assistant reply should appear in this session.")
     } catch (err) {
@@ -324,6 +324,9 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
           hideLabel
         />
         <div class="flex flex-row items-center justify-center gap-3 flex-wrap max-w-64">
+          <Button size="large" onClick={() => { window.location.href = "/" }}>
+            Go Home
+          </Button>
           <Button size="large" onClick={platform.restart}>
             {language.t("error.page.action.restart")}
           </Button>
@@ -379,7 +382,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
           <Show when={store.actionError}>
             {(message) => <p class="text-xs text-text-danger-base text-center max-w-2xl">{message()}</p>}
           </Show>
-          <Show when={aiSuggestion}>
+          <Show when={aiSuggestion()}>
             {(suggestion) => (
               <div class="w-full max-w-3xl rounded-lg border border-border-base bg-surface-raised-base p-3 text-left">
                 <div class="text-xs font-semibold uppercase tracking-wider text-text-weak mb-1">AI Suggested Fix</div>

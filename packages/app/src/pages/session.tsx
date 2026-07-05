@@ -322,14 +322,6 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
     const id = activeSessionId()
     return id ? sync().session.get(id) : undefined
   })
-  const sessionNotFound = createMemo(() => {
-    const id = activeSessionId()
-    if (!id) return false
-    const state = sessionSync.state
-    // Don't show "not found" while still loading
-    if (state === "unresolved" || state === "pending") return false
-    return !info() && !messagesReady()
-  })
   const isChildSession = createMemo(() => !!info()?.parentID)
   const diffs = createMemo(() => {
     const id = activeSessionId()
@@ -698,6 +690,15 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
       return sync().session.sync(id)
     },
   )
+
+  const sessionNotFound = createMemo(() => {
+    const id = activeSessionId()
+    if (!id) return false
+    const state = sessionSync.state
+    // Don't show "not found" while still loading
+    if (state === "unresolved" || state === "pending") return false
+    return !info() && !messagesReady()
+  })
 
   createEffect(
     on(
