@@ -52,7 +52,7 @@
   border-radius: 0;
 }
 
-[data-component="markdown-preview"] [data-component="markdown"] :not(pre) > code {
+[data-component="markdown-preview"] [data-component="markdown"] :not(pre)>code {
   font-size: 85%;
   background-color: var(--surface-raised-base);
   border: none;
@@ -91,4 +91,15 @@
 
 [data-component="markdown-preview"] [data-component="markdown"] thead {
   background: transparent;
+}
+
+[data-component="markdown-preview"] [data-component="markdown"] img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
 }
