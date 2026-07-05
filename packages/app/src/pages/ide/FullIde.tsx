@@ -1378,7 +1378,7 @@ export default function FullIde() {
         showToast({ title: "Not available", description: "Developer Tools can only be toggled programmatically in the Desktop app. Use F12 or Ctrl+Shift+I in your browser." })
       }
     },
-    welcome: () => showToast({ title: "Welcome", description: "Welcome to opencode-web!" }),
+    welcome: () => showToast({ title: "Welcome", description: "Welcome to opencode-ide!" }),
     showAllCommands: () => setCommandPaletteOpen(true),
     documentation: () => window.open("https://opencode.ai/docs", "_blank"),
     editorPlayground: () => {
@@ -1392,15 +1392,14 @@ export default function FullIde() {
     videoTutorials: () => window.open("https://youtube.com", "_blank"),
     tipsAndTricks: () => window.open("https://opencode.ai/blog", "_blank"),
     joinUsOnYoutube: () => window.open("https://youtube.com", "_blank"),
-    searchFeatureRequests: () => window.open("https://github.com/shashank9666/opencode-web/issues", "_blank"),
-    reportIssue: () => window.open("https://github.com/shashank9666/opencode-web/issues", "_blank"),
-    viewLicense: () => window.open("https://github.com/shashank9666/opencode-web/blob/main/LICENSE", "_blank"),
+    searchFeatureRequests: () => window.open("https://github.com/shashank9666/opencode-ide/issues", "_blank"),
+    reportIssue: () => window.open("https://github.com/shashank9666/opencode-ide/issues", "_blank"),
+    viewLicense: () => window.open("https://github.com/shashank9666/opencode-ide/blob/main/LICENSE", "_blank"),
     privacyStatement: () => window.open("https://opencode.ai/privacy", "_blank"),
     openProcessExplorer: () => {
       // Basic mock of process explorer opening in right panel or logging
       showToast({ variant: "default", title: "Process Explorer", description: "No background processes running." })
     },
-    checkForUpdates: () => showToast({ title: "Check for Updates", description: "You are on the latest version." }),
     about: () => dialog.show(() => <AboutDialog />),
   }
 
@@ -1443,7 +1442,7 @@ export default function FullIde() {
           <div class="shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth()}px`, background: "var(--background-bg-base)", "border-right": "1px solid var(--border-muted)" }}>
             <Show when={leftPanel()?.id === "explorer"}>
               <ExplorerPanel
-                dirName={getFilename(dir()) || "opencode-web"}
+                dirName={getFilename(dir()) || "opencode-ide"}
                 activeFile={editor.activeFile()}
                 onCreateFile={() => startCreate("file", "")}
                 onCreateFolder={() => startCreate("directory", "")}
@@ -1594,6 +1593,15 @@ export default function FullIde() {
                 return;
               }
               const args = pendingEditToolArgs()
+              // Also respond to duplicate permissions for the same file + operation
+              const allPerms = sync().data.permission[req.sessionID] ?? []
+              for (const dup of allPerms) {
+                if (dup.id === req.id) continue
+                if (dup.permission === req.permission && dup.patterns?.[0] === req.patterns?.[0]) {
+                  sdk().client.permission.respond({ sessionID: dup.sessionID, permissionID: dup.id, response: "once" })
+                    .catch(() => {})
+                }
+              }
               sdk().client.permission.respond({ sessionID: req.sessionID, permissionID: req.id, response: "once" })
                 .then(() => {
                   if (args?.path) {
@@ -1620,11 +1628,21 @@ export default function FullIde() {
                 }
                 return;
               }
+              // Also respond to duplicate permissions for the same file + operation
+              const allPerms = sync().data.permission[req.sessionID] ?? []
+              for (const dup of allPerms) {
+                if (dup.id === req.id) continue
+                if (dup.permission === req.permission && dup.patterns?.[0] === req.patterns?.[0]) {
+                  sdk().client.permission.respond({ sessionID: dup.sessionID, permissionID: dup.id, response: "reject" })
+                    .catch(() => {})
+                }
+              }
               sdk().client.permission.respond({ sessionID: req.sessionID, permissionID: req.id, response: "reject" })
                 .catch((err: unknown) => {
                   showToast({ title: "Failed to reject", description: err instanceof Error ? err.message : String(err) })
                 })
             }}
+            sessionId={activeSessionId()}
           />
 
 
@@ -1969,6 +1987,8 @@ export default function FullIde() {
             <div class="h-px bg-border-base my-1" />
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(ctx.path) }}>Copy Path<span class="text-11-regular ml-6 opacity-70">Shift+Alt+C</span></button>
             <button class="w-full flex items-center justify-between px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); copyToClipboard(getFilename(ctx.path)) }}>Copy Relative Path<span class="text-11-regular ml-6 opacity-70">Ctrl+K C</span></button>
+            <div class="h-px bg-border-base my-1" />
+            <button class="w-full flex items-center gap-2 px-3 py-1.5 text-13-regular text-text-strong hover:bg-surface-raised-base-hover transition-colors" onClick={() => { const ctx = contextMenu()!; closeContextMenu(); startRename(ctx.path); }}><Icon name="edit-small-2" class="size-4" /> Rename...</button>
             <div class="h-px bg-border-base my-1" />
           </Show>
           <Show when={!contextMenu()!.isDir}>

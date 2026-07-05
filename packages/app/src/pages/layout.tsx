@@ -1836,9 +1836,15 @@ export default function Layout(props: ParentProps) {
   )
 
   createEffect(() => {
+    const isGlass = settings.appearance.glassmorphism()
+    const opacity = settings.appearance.opacity()
+    const blur = settings.appearance.blurIntensity()
+
     document.documentElement.dataset.colorfulIcons = settings.appearance.colorfulIcons() ? "true" : "false"
-    document.documentElement.dataset.glassmorphism = settings.appearance.glassmorphism() ? "true" : "false"
+    document.documentElement.dataset.glassmorphism = isGlass ? "true" : "false"
     document.documentElement.dataset.hasWallpaper = settings.appearance.wallpaperUrl() ? "true" : "false"
+    document.documentElement.style.setProperty("--app-opacity", String(isGlass ? opacity : 1))
+    document.documentElement.style.setProperty("--app-glass-blur", isGlass ? `${blur}px` : "0px")
     document.documentElement.style.setProperty(
       "--dialog-left-margin",
       newDesign() ? "0px" : `${layout.sidebar.opened() ? layout.sidebar.width() : 48}px`,

@@ -213,7 +213,7 @@ Legacy `theme`, `keybinds`, and `tui` keys in `opencode.json` are deprecated and
 
 ### [Server](#server)
 
-You can configure server settings for the `opencode serve` and `opencode web` commands through the `server` option.
+You can configure server settings for the `opencode serve` and `opencode ide` commands through the `server` option.
 
 ```json
 {  "$schema": "https://opencode.ai/config.json",  "server": {    "port": 4096,    "hostname": "0.0.0.0",    "mdns": true,    "mdnsDomain": "myproject.local",    "cors": ["http://localhost:5173"]  }}

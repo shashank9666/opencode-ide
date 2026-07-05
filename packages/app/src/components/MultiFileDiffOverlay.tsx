@@ -7,7 +7,7 @@ export function MultiFileDiffOverlay(props: { workspace: any, onAccept?: (path: 
   const diffFiles = createMemo(() => {
     if (!props.workspace) return [];
     return props.workspace.getGroups().flatMap((g: any) => 
-      g.files.filter((f: any) => f.originalContent !== undefined && f.dirty)
+      g.files.filter((f: any) => f.originalContent !== undefined)
       .map((f: any) => ({ ...f, groupId: g.id }))
     );
   });

@@ -203,9 +203,44 @@
     }
   }
 
-  /* If glassmorphism is enabled and wallpaper is present, the root background should be transparent so we see the wallpaper clearly */
+  /* ── Glassmorphism Effects ── */
+
+  /* When glassmorphism + wallpaper is active, the root layout needs to be transparent with backdrop-filter to blur the wallpaper behind content panels */
   html[data-glassmorphism="true"][data-has-wallpaper="true"] #root-layout {
     background-color: transparent !important;
+    backdrop-filter: blur(var(--app-glass-blur));
+    -webkit-backdrop-filter: blur(var(--app-glass-blur));
+  }
+
+  /* Light theme (default :root / [data-color-scheme="light"]): make all background layers semi-transparent so the wallpaper shows through */
+  html[data-glassmorphism="true"][data-has-wallpaper="true"] {
+    --v2-background-bg-base: color-mix(in srgb, var(--v2-grey-50) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-deep: color-mix(in srgb, var(--v2-grey-100) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-01: color-mix(in srgb, var(--v2-grey-100) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-02: color-mix(in srgb, var(--v2-grey-200) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-03: color-mix(in srgb, var(--v2-grey-300) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-04: color-mix(in srgb, var(--v2-grey-400) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-inverse: color-mix(in srgb, var(--v2-grey-1100) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-contrast: color-mix(in srgb, var(--v2-grey-1000) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-button-neutral: color-mix(in srgb, var(--v2-grey-50) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-accent: color-mix(in srgb, var(--v2-blue-600) calc(var(--app-opacity) * 100%), transparent);
+    /* Also define the unprefixed alias used by some v2 components */
+    --background-bg-base: var(--v2-background-bg-base);
+  }
+
+  /* Dark theme [data-color-scheme="dark"]: same semi-transparency with dark grey values */
+  html[data-glassmorphism="true"][data-has-wallpaper="true"][data-color-scheme="dark"] {
+    --v2-background-bg-base: color-mix(in srgb, var(--v2-grey-1100) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-deep: color-mix(in srgb, var(--v2-grey-1200) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-01: color-mix(in srgb, var(--v2-grey-1000) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-02: color-mix(in srgb, var(--v2-grey-900) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-03: color-mix(in srgb, var(--v2-grey-800) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-layer-04: color-mix(in srgb, var(--v2-grey-700) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-inverse: color-mix(in srgb, var(--v2-grey-50) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-contrast: color-mix(in srgb, var(--v2-grey-700) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-button-neutral: color-mix(in srgb, var(--v2-alpha-light-6) calc(var(--app-opacity) * 100%), transparent);
+    --v2-background-bg-accent: color-mix(in srgb, var(--v2-blue-600) calc(var(--app-opacity) * 100%), transparent);
+    --background-bg-base: var(--v2-background-bg-base);
   }
 
   /* Make Monaco Editor transparent so glassmorphism shows through */

@@ -194,9 +194,22 @@ export const layer = Layer.effect(
 
     const create = Effect.fn("Pty.create")(function* (input: CreateInput) {
       const id = PtyID.ascending()
-      const command = input.command || Shell.preferred(Config.latest(yield* config.entries(), "shell"))
-      const args = Shell.login(command) ? [...(input.args ?? []), "-l"] : [...(input.args ?? [])]
+      const preferredShell = Shell.preferred(Config.latest(yield* config.entries(), "shell"))
       const cwd = input.cwd || location.directory
+
+      let command: string
+      let args: string[]
+      let displayCommand: string
+
+      if (input.command && !Shell.login(input.command)) {
+        displayCommand = input.command
+        command = preferredShell
+        args = Shell.args(preferredShell, input.command, cwd)
+      } else {
+        command = input.command || preferredShell
+        args = Shell.login(command) ? [...(input.args ?? []), "-l"] : [...(input.args ?? [])]
+        displayCommand = command
+      }
       const env = {
         ...process.env,
         ...input.env,
@@ -208,7 +221,7 @@ export const layer = Layer.effect(
         env.LC_CTYPE = "C.UTF-8"
         env.LANG = "C.UTF-8"
       }
-      yield* Effect.logInfo("creating session", { id, cmd: command, args, cwd })
+      yield* Effect.logInfo("creating session", { id, cmd: displayCommand, args, cwd })
       const { spawn } = yield* Effect.promise(() => pty())
       let proc: Proc
       try {
@@ -221,7 +234,7 @@ export const layer = Layer.effect(
       const info: Info = {
         id,
         title: input.title || `Terminal ${id.slice(-4)}`,
-        command,
+        command: displayCommand,
         args,
         cwd,
         status: "running",

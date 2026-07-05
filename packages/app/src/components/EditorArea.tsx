@@ -134,6 +134,7 @@ export function EditorAreaGroup(props: {
   onRejectDiff?: () => void;
   onCursorChange?: (line: number, column: number) => void;
   onEditorReady?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
+  sessionId?: string;
 }) {
   const emptyGroup = { id: "", activeFile: null as string | null, files: [] as OpenFile[] };
   const group = createMemo(() => {
@@ -507,6 +508,19 @@ if (dt) {
             <button
               type="button"
               class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
+              title="Close All"
+              onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.closeAll(g.id); }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M3 4H13M4 4V13C4 13.5523 4.44772 14 5 14H11C11.5523 14 12 13.5523 12 13V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                <path d="M6 4V2.5C6 2.22386 6.22386 2 6.5 2H9.5C9.77614 2 10 2.22386 10 2.5V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                <path d="M6.5 7V11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M9.5 7V11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="size-6 flex items-center justify-center rounded-md transition-all duration-100 hover:bg-overlay-hover text-icon-weaker hover:text-icon-muted"
               title="Split Right"
               onClick={(e) => { e.stopPropagation(); const g = group(); if (g) props.workspace.splitGroup(g.id, "horizontal"); }}
             >
@@ -571,7 +585,7 @@ if (dt) {
         <BrowserPreviewPanel />
       </Show>
       <Show when={activeFile() === "review://changes"}>
-        <ReviewChangesPanel workspace={props.workspace} />
+        <ReviewChangesPanel workspace={props.workspace} sessionId={props.sessionId} />
       </Show>
       <Show when={activeFile()?.startsWith("preview://") && activeFile() !== "review://changes"}>
         <MarkdownPreviewPanel content={activeFileState()?.content ?? ""} filename={getFilename(activeFile()!.slice(10))} />

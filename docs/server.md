@@ -60,7 +60,7 @@ opencode serve --cors http://localhost:5173 --cors https://app.example.com
 
 ### [Authentication](#authentication)
 
-Set `OPENCODE_SERVER_PASSWORD` to protect the server with HTTP basic auth. The username defaults to `opencode`, or set `OPENCODE_SERVER_USERNAME` to override it. This applies to both `opencode serve` and `opencode web`.
+Set `OPENCODE_SERVER_PASSWORD` to protect the server with HTTP basic auth. The username defaults to `opencode`, or set `OPENCODE_SERVER_USERNAME` to override it. This applies to both `opencode serve` and `opencode ide`.
 
 ```bash
 OPENCODE_SERVER_PASSWORD=your-password opencode serve

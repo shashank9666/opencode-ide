@@ -165,7 +165,7 @@ opencode attach [url]
 This allows using the TUI with a remote OpenCode backend. For example:
 
 ```bash
-# Start the backend server for web/mobile accessopencode web --port 4096 --hostname 0.0.0.0
+# Start the backend server for web/mobile accessopencode ide --port 4096 --hostname 0.0.0.0
 # In another terminal, attach the TUI to the running backendopencode attach http://10.20.30.40:4096
 ```
 
@@ -723,7 +723,7 @@ opencode import session.jsonopencode import https://opncd.ai/s/abc123
 Start a headless OpenCode server with a web interface.
 
 ```bash
-opencode web
+opencode ide
 ```
 
 This starts an HTTP server and opens a web browser to access OpenCode through a web interface. Set `OPENCODE_SERVER_PASSWORD` to enable HTTP basic auth (username defaults to `opencode`).

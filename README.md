@@ -1,6 +1,6 @@
-# OpenCode Web
+# OpenCode IDE
 
-OpenCode Web is a web-based code editing experience where an AI coding agent operates alongside you directly in the browser. Built with [SolidJS](https://www.solidjs.com/) and [Monaco Editor](https://microsoft.github.io/monaco-editor/), it connects to an OpenCode backend to run agent sessions efficiently.
+OpenCode IDE is a web-based code editing experience where an AI coding agent operates alongside you directly in the browser. Built with [SolidJS](https://www.solidjs.com/) and [Monaco Editor](https://microsoft.github.io/monaco-editor/), it connects to an OpenCode backend to run agent sessions efficiently.
 
 ## Features
 - **Browser-based IDE**: Full-fledged coding environment accessible via your web browser.

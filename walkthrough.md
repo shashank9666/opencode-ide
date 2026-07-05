@@ -1,8 +1,8 @@
-# OpenCode Web IDE - Walkthrough
+# OpenCode IDE - Walkthrough
 
 ## Project Overview
 
-OpenCode Web is a full-featured web IDE with AI integration. It consists of multiple packages in a monorepo:
+OpenCode IDE is a full-featured web IDE with AI integration. It consists of multiple packages in a monorepo:
 
 - `packages/app/` - Web IDE frontend (SolidJS + Monaco Editor)
 - `packages/opencode/` - Core backend (Effect-TS, session runtime, tool system)

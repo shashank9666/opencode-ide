@@ -421,7 +421,58 @@ export const Terminal = (props: TerminalProps) => {
       const onData = t.onData((data) => {
         if (ws?.readyState === WebSocket.OPEN) ws.send(data)
         if (local.onTerminalCommand) {
+          // Escape sequence state machine to prevent arrow-key and other
+          // control-sequence artifacts from polluting the command buffer.
+          // States: 0=idle, 1=ESC-seen, 2=CSI, 3=SS3, 4=OSC, 5=OSC-ST-pending
+          let escapeState = 0 as 0 | 1 | 2 | 3 | 4 | 5
           for (const char of data) {
+            if (escapeState === 1) {
+              // Byte immediately after ESC — determines the sequence type.
+              if (char === "[") {
+                escapeState = 2 // CSI: parameter + intermediate + terminal byte
+              } else if (char === "O") {
+                escapeState = 3 // SS3: exactly one terminal byte follows
+              } else if (char === "]") {
+                escapeState = 4 // OSC: free-form until BEL (0x07) or ST
+              } else {
+                escapeState = 0 // Simple 2-byte sequence; char is skipped
+              }
+              continue
+            }
+            if (escapeState === 2) {
+              // CSI: skip parameter (0x30-0x3F) and intermediate (0x20-0x2F)
+              // bytes; terminal byte (0x40-0x7E) ends the sequence.
+              const code = char.charCodeAt(0)
+              if (code >= 0x20 && code <= 0x3F) {
+                // Still inside CSI parameters/intermediates
+              } else {
+                escapeState = 0 // Any byte outside 0x20-0x3F terminates CSI
+              }
+              continue
+            }
+            if (escapeState === 3) {
+              // SS3: skip exactly one terminal byte then done
+              escapeState = 0
+              continue
+            }
+            if (escapeState === 4) {
+              // OSC: skip everything until BEL (0x07) or ST (\x1b\\)
+              if (char.charCodeAt(0) === 0x07) {
+                escapeState = 0 // BEL terminates
+              } else if (char === "\x1b") {
+                escapeState = 5 // Could be ST starting
+              }
+              continue
+            }
+            if (escapeState === 5) {
+              // After \x1b inside OSC — if it's \ it's ST, else back to OSC
+              escapeState = char === "\\" ? 0 : 4
+              continue
+            }
+            if (char === "\x1b") {
+              escapeState = 1 // ESC seen, awaiting sequence type byte
+              continue
+            }
             if (char === "\r") {
               const cmd = commandBuffer.trim()
               if (cmd) local.onTerminalCommand(cmd)

@@ -90,7 +90,7 @@ bun dev <directory>      # Start TUI in specific directory
 # Production
 opencode --help          # Show all available commands
 opencode serve           # Start headless API server
-opencode web             # Start server + open web interface
+opencode ide             # Start server + open IDE interface
 opencode <directory>     # Start TUI in specific directory
 ```
 

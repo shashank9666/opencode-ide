@@ -161,7 +161,6 @@ export interface IdeActions {
   privacyStatement?: () => void
   toggleDeveloperTools?: () => void
   openProcessExplorer?: () => void
-  checkForUpdates?: () => void
   about?: () => void
   // Settings (PSF)
   profiles?: () => void
@@ -352,10 +351,9 @@ export function buildMenus(actions: Partial<IdeActions>, workspaceName?: string)
   }
 
   const OPENCODE_WEB_MENU: MenuItem = {
-    label: workspaceName || "opencode-web",
+    label: workspaceName || "opencode-ide",
     submenu: [
-      { label: "About OpenCode Web", action: actions.about },
-      { label: "Check for Updates...", action: actions.checkForUpdates },
+      { label: "About OpenCode IDE", action: actions.about },
       { separator: true },
       { label: "Preferences", shortcut: "Ctrl+,", action: actions.preferences },
       { label: "Profiles", action: actions.profiles },
@@ -435,7 +433,7 @@ export function buildMenus(actions: Partial<IdeActions>, workspaceName?: string)
       { label: "Walkthroughs...", action: actions.openWalkthrough },
       { label: "Get Started with Accessibility", action: actions.getStartedWithAccessibility },
       { separator: true },
-      { label: "Ask at opencode-web Help", action: actions.askAtVscode },
+      { label: "Ask at opencode-ide Help", action: actions.askAtVscode },
       { label: "Keyboard Shortcuts Reference", action: actions.keyboardShortcutsReference },
       { label: "Video Tutorials", action: actions.videoTutorials },
       { label: "Tips and Tricks", action: actions.tipsAndTricks },
@@ -449,8 +447,6 @@ export function buildMenus(actions: Partial<IdeActions>, workspaceName?: string)
       { separator: true },
       { label: "Toggle Developer Tools", shortcut: "Ctrl+Shift+I", action: actions.toggleDeveloperTools },
       { label: "Open Process Explorer", action: actions.openProcessExplorer },
-      { separator: true },
-      { label: "Check for Updates", action: actions.checkForUpdates },
       { separator: true },
       { label: "About", action: actions.about },
     ],

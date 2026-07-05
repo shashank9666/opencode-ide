@@ -69,6 +69,7 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     )
 
     const inflight = new Map<string, Promise<void>>()
+    const recentErrors = new Map<string, number>()
     const [store, setStore] = createStore<{
       file: Record<string, FileState>
     }>({
@@ -148,6 +149,22 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     }
 
     const setLoadError = (file: string, message: string) => {
+      const key = `${file}:${message}`
+      const now = Date.now()
+      const lastShown = recentErrors.get(key)
+      if (lastShown && now - lastShown < 5000) {
+        // Still update store but skip toast to avoid spamming
+        setStore(
+          "file",
+          file,
+          produce((draft) => {
+            draft.loading = false
+            draft.error = message
+          }),
+        )
+        return
+      }
+      recentErrors.set(key, now)
       setStore(
         "file",
         file,

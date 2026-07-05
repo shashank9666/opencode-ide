@@ -30,7 +30,7 @@ import { previewSelectedLines } from "@opencode-ai/ui/pierre/selection-bridge"
 import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@/utils/toast"
 import { checksum } from "@opencode-ai/core/util/encode"
-import { useLocation, useSearchParams } from "@solidjs/router"
+import { useLocation, useNavigate, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { getSessionPrefetch, SESSION_PREFETCH_TTL } from "@/context/global-sync/session-prefetch"
@@ -208,6 +208,7 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
   const server = useServer()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
   const location = useLocation()
+  const navigate = useNavigate()
   const { params, sessionKey, workspaceKey, tabs, view, id: activeSessionId, dir: activeDir } = useSessionLayout(
     () => props.dir,
     () => props.sessionId
@@ -321,6 +322,14 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
     const id = activeSessionId()
     return id ? sync().session.get(id) : undefined
   })
+  const sessionNotFound = createMemo(() => {
+    const id = activeSessionId()
+    if (!id) return false
+    const state = sessionSync.state
+    // Don't show "not found" while still loading
+    if (state === "unresolved" || state === "pending") return false
+    return !info() && !messagesReady()
+  })
   const isChildSession = createMemo(() => !!info()?.parentID)
   const diffs = createMemo(() => {
     const id = activeSessionId()
@@ -427,7 +436,7 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
     mobileTab: "session" as "session" | "changes",
     changes: "git" as ChangeMode,
     newSessionWorktree: "main",
-    deferRender: false,
+    // deferRender removed
   })
 
   const [followup, setFollowup] = persisted(
@@ -445,16 +454,7 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
     }),
   )
 
-  createComputed((prev) => {
-    const key = sessionKey()
-    if (key !== prev) {
-      setStore("deferRender", true)
-      requestAnimationFrame(() => {
-        setTimeout(() => setStore("deferRender", false), 0)
-      })
-    }
-    return key
-  }, sessionKey())
+  // No-op placeholder — deferRender was removed to avoid unnecessary re-renders on session switch
 
   let reviewFrame: number | undefined
   let refreshFrame: number | undefined
@@ -1037,8 +1037,7 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
     loadingClass: string
     emptyClass: string
   }) => (
-    <Show when={!store.deferRender}>
-      <SessionReviewTab
+    <SessionReviewTab
         title={changesTitle()}
         empty={reviewEmpty(input)}
         diffs={reviewDiffs}
@@ -1060,7 +1059,6 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
         onViewFile={openReviewFile}
         classes={input.classes}
       />
-    </Show>
   )
 
   const reviewPanel = () => (
@@ -1711,7 +1709,7 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
   const composerRegion = (placement: "dock" | "inline") => (
     <SessionComposerRegion
       state={composer}
-      ready={!store.deferRender && messagesReady()}
+      ready={messagesReady()}
       centered={placement === "dock" && centered()}
       placement={placement}
       sessionId={() => activeSessionId()}
@@ -1877,6 +1875,15 @@ export default function Page(props: { sessionId?: string; dir?: string; embedded
                             />
                           </PlanningProvider>
                         </Show>
+                      </Match>
+                      <Match when={sessionNotFound()}>
+                        <div class="h-full flex flex-col items-center justify-center gap-4 p-8">
+                          <div class="text-16-medium text-text-strong">Session not found</div>
+                          <div class="text-14-regular text-text-weak max-w-80 text-center">
+                            This session could not be loaded or doesn't exist.
+                          </div>
+                          <Button onClick={() => navigate("/")}>Go Home</Button>
+                        </div>
                       </Match>
                       <Match when={true}>
                         <NewSessionView worktree={newSessionWorktree()} />

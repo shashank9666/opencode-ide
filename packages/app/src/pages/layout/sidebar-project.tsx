@@ -223,7 +223,17 @@ const ProjectPreviewPanel = (props: {
       >
         <For each={props.workspaces()}>
           {(directory) => {
-            const sessions = createMemo(() => props.workspaceSessions(directory))
+            const sessions = createMemo(
+              () => props.workspaceSessions(directory),
+              undefined,
+              {
+                equals: (prev, next) => {
+                  if (prev === next) return true
+                  if (!prev || !next || prev.length !== next.length) return false
+                  return prev.every((s, i) => s.id === next[i].id)
+                },
+              },
+            )
             return (
               <div class="flex flex-col gap-1">
                 <div class="px-2 py-0.5 flex items-center gap-1 min-w-0">
@@ -308,7 +318,17 @@ export const SortableProject = (props: {
       return Object.keys(store.session_status).some((id) => store.session_working(id))
     }),
   )
-  const projectSessions = createMemo(() => sortedRootSessions(projectStore(), props.sortNow()))
+  const projectSessions = createMemo(
+    () => sortedRootSessions(projectStore(), props.sortNow()),
+    undefined,
+    {
+      equals: (prev, next) => {
+        if (prev === next) return true
+        if (!prev || !next || prev.length !== next.length) return false
+        return prev.every((s, i) => s.id === next[i].id)
+      },
+    },
+  )
   const workspaceSessions = (directory: string) => {
     const [data] = serverSync().child(directory, { bootstrap: false })
     return sortedRootSessions(data, props.sortNow())

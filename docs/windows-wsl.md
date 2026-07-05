@@ -66,16 +66,16 @@ OPENCODE_SERVER_PASSWORD=your-password opencode serve --hostname 0.0.0.0
 
 For the best web experience on Windows:
 
-1.  **Run `opencode web` in the WSL terminal** rather than PowerShell:
+1.  **Run `opencode ide` in the WSL terminal** rather than PowerShell:
     
     ```bash
-    opencode web --hostname 0.0.0.0
+    opencode ide --hostname 0.0.0.0
     ```
     
 2.  **Access from your Windows browser** at `http://localhost:<port>` (OpenCode prints the URL)
     
 
-Running `opencode web` from WSL ensures proper file system access and terminal integration while still being accessible from your Windows browser.
+Running `opencode ide` from WSL ensures proper file system access and terminal integration while still being accessible from your Windows browser.
 
 * * *
 

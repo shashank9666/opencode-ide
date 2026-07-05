@@ -82,6 +82,23 @@ export function createSessionComposerState(options?: { closeMs?: number | (() =>
     if (store.responding === perm.id) return
 
     setStore("responding", perm.id)
+
+    // Deduplicate: respond to all pending permissions for the same file + operation
+    // so the user isn't prompted twice for what they perceive as one edit.
+    const allPermissions = sync().data.permission[perm.sessionID] ?? []
+    const sameFilePermissions = allPermissions.filter(
+      (p) =>
+        p.id !== perm.id &&
+        p.permission === perm.permission &&
+        p.patterns?.[0] === perm.patterns?.[0] &&
+        !permission.autoResponds(p, sdk().directory),
+    )
+    for (const dup of sameFilePermissions) {
+      sdk()
+        .client.permission.respond({ sessionID: dup.sessionID, permissionID: dup.id, response })
+        .catch(() => undefined)
+    }
+
     sdk()
       .client.permission.respond({ sessionID: perm.sessionID, permissionID: perm.id, response })
       .catch((err: unknown) => {

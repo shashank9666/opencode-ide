@@ -36,7 +36,7 @@ function lineDiff(before: string, after: string) {
   }
 }
 
-export function ReviewChangesPanel(props: { workspace: any }) {
+export function ReviewChangesPanel(props: { workspace: any; sessionId?: string }) {
   const sync = useSync();
   const sdk = useSDK();
   const file = useFile();
@@ -45,17 +45,43 @@ export function ReviewChangesPanel(props: { workspace: any }) {
   const [loading, setLoading] = createSignal(false);
   const [renderSideBySide, setRenderSideBySide] = createSignal(true);
 
-  // Collect all file writes from the active session's message history
+  // Collect all file writes from the session's message history
   const changedFilePaths = createMemo(() => {
+    const sid = props.sessionId;
     const parts = sync().data.part ?? {};
+    const messages = sid ? (sync().data.message[sid] ?? []) : [];
+    const sessionMsgIds = new Set(messages.map(m => m.id));
+
     const paths = new Set<string>();
-    for (const partList of Object.values(parts)) {
+
+    for (const [msgId, partList] of Object.entries(parts)) {
+      // If scoped to a session, skip parts from messages not in this session
+      if (sid && !sessionMsgIds.has(msgId)) continue;
       if (!Array.isArray(partList)) continue;
+
       for (const part of partList as any[]) {
+        // PatchPart — has a files array directly
+        if (part.type === "patch" && Array.isArray(part.files)) {
+          for (const f of part.files) {
+            if (f) paths.add(f);
+          }
+          continue;
+        }
+
+        // ToolPart — extract path from tool input
         if (part.type !== "tool") continue;
         const input = part.state?.input;
         if (!input) continue;
-        const path = input.path || input.filePath || input.target_file || input.TargetFile || "";
+
+        const path =
+          input.path ||
+          input.filePath ||
+          input.file_path ||
+          input.targetFile ||
+          input.TargetFile ||
+          input.target_file ||
+          input.file ||
+          "";
         const toolName = part.tool || "";
         if (
           path &&
@@ -63,29 +89,42 @@ export function ReviewChangesPanel(props: { workspace: any }) {
             toolName.includes("edit") ||
             toolName.includes("write") ||
             toolName.includes("replace") ||
-            toolName.includes("patch")
+            toolName.includes("patch") ||
+            toolName.includes("create") ||
+            toolName.includes("file")
           )
         ) {
           paths.add(path);
         }
       }
     }
+
+    // Also add paths from session_diff if available — these are authoritative
+    if (sid) {
+      const sessionDiffs = sync().data.session_diff[sid];
+      if (sessionDiffs) {
+        for (const d of sessionDiffs as any[]) {
+          if (d.file) paths.add(d.file);
+        }
+      }
+    }
+
     return [...paths];
   });
 
   const sessionDiffs = createMemo(() => {
-    const diffs = sync().data.session_diff ?? {};
+    const sid = props.sessionId;
+    if (!sid) return new Map<string, { additions: number, deletions: number }>();
+    const fileDiffs = sync().data.session_diff[sid];
     const map = new Map<string, { additions: number, deletions: number }>();
-    for (const fileDiffs of Object.values(diffs)) {
-      if (!Array.isArray(fileDiffs)) continue;
-      for (const d of fileDiffs as any[]) {
-        if (d.file) {
-          const existing = map.get(d.file) ?? { additions: 0, deletions: 0 };
-          map.set(d.file, {
-            additions: existing.additions + (d.additions || 0),
-            deletions: existing.deletions + (d.deletions || 0),
-          });
-        }
+    if (!Array.isArray(fileDiffs)) return map;
+    for (const d of fileDiffs as any[]) {
+      if (d.file) {
+        const existing = map.get(d.file) ?? { additions: 0, deletions: 0 };
+        map.set(d.file, {
+          additions: existing.additions + (d.additions || 0),
+          deletions: existing.deletions + (d.deletions || 0),
+        });
       }
     }
     return map;
@@ -155,6 +194,15 @@ export function ReviewChangesPanel(props: { workspace: any }) {
       setLoadingPaths(prev => { const s = new Set(prev); s.delete(path); return s; });
     }
   };
+
+  // Load session diffs for the current session
+  createEffect(() => {
+    const sid = props.sessionId;
+    if (!sid) return;
+    if (sync().data.session_diff[sid] !== undefined) return;
+    if (sync().status === "loading") return;
+    void sync().session.diff(sid);
+  });
 
   createEffect(() => {
     // Eagerly load all missing diffs in the background

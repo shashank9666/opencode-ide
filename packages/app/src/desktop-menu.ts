@@ -1,7 +1,6 @@
 export type DesktopMenuPlatform = "macos" | "windows"
 
 export type DesktopMenuAction =
-  | "app.checkForUpdates"
   | "app.relaunch"
   | "edit.undo"
   | "edit.redo"
@@ -83,7 +82,6 @@ export const DESKTOP_MENU: DesktopMenu[] = [
     platforms: ["macos"],
     items: [
       { type: "item", role: "about" },
-      { type: "item", label: "Check for Updates...", action: "app.checkForUpdates", enabled: "updater" },
       { type: "item", label: "Settings", command: "settings.open", accelerator: { macos: "Cmd+," } },
       { type: "item", label: "Reload Webview", action: "view.reload" },
       { type: "item", label: "Restart", action: "app.relaunch" },
@@ -215,16 +213,16 @@ export const DESKTOP_MENU: DesktopMenu[] = [
       { type: "item", label: "Walkthroughs...", action: "app.walkthrough" },
       { type: "item", label: "Get Started with Accessibility", action: "app.accessibility" },
       { type: "separator" },
-      { type: "item", label: "Ask at opencode-web Help", href: "https://discord.com/invite/opencode" },
+      { type: "item", label: "Ask at opencode-ide Help", href: "https://discord.com/invite/opencode" },
       { type: "item", label: "Keyboard Shortcuts Reference", action: "app.shortcuts" },
       { type: "item", label: "Video Tutorials", href: "https://youtube.com/@opencode" },
       { type: "item", label: "Tips and Tricks", href: "https://opencode.ai/tips" },
       { type: "item", label: "Join Us on YouTube", href: "https://youtube.com/@opencode" },
       { type: "separator" },
-      { type: "item", label: "Search Feature Requests", href: "https://github.com/shashank9666/opencode-web/issues" },
-      { type: "item", label: "Report Issue", href: "https://github.com/shashank9666/opencode-web/issues" },
+      { type: "item", label: "Search Feature Requests", href: "https://github.com/shashank9666/opencode-ide/issues" },
+      { type: "item", label: "Report Issue", href: "https://github.com/shashank9666/opencode-ide/issues" },
       { type: "separator" },
-      { type: "item", label: "View License", href: "https://github.com/shashank9666/opencode-web/blob/main/LICENSE" },
+      { type: "item", label: "View License", href: "https://github.com/shashank9666/opencode-ide/blob/main/LICENSE" },
       { type: "item", label: "Privacy Statement", href: "https://opencode.ai/privacy" },
       { type: "separator" },
       { type: "item", label: "Toggle Developer Tools", action: "view.toggleDevTools", accelerator: { windows: "Ctrl+Shift+I", macos: "Cmd+Option+I" } },

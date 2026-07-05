@@ -393,7 +393,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
             <button
               type="button"
               class="flex items-center text-text-interactive-base gap-1"
-              onClick={() => platform.openLink("https://github.com/shashank9666/opencode-web/issues")}
+              onClick={() => platform.openLink("https://github.com/shashank9666/opencode-ide/issues")}
             >
               <div>GitHub</div>
               <Icon name="github" class="text-text-interactive-base" />

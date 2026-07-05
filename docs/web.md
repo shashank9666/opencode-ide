@@ -4,14 +4,14 @@
 
 OpenCode can run as a web application in your browser, providing the same powerful AI coding experience without needing a terminal.
 
-![OpenCode Web - New Session](/docs/_astro/web-homepage-new-session.BB1mEdgo_Z1AT1v3.webp)
+![OpenCode IDE - New Session](/docs/_astro/web-homepage-new-session.BB1mEdgo_Z1AT1v3.webp)
 
 ## [Getting Started](#getting-started)
 
-Start the web interface by running:
+Start the IDE interface by running:
 
 ```bash
-opencode web
+opencode ide
 ```
 
 This starts a local server on `127.0.0.1` with a random available port and automatically opens OpenCode in your default browser.
@@ -22,7 +22,7 @@ If `OPENCODE_SERVER_PASSWORD` is not set, the server will be unsecured. This is 
 
 Windows Users
 
-For the best experience, run `opencode web` from [WSL](/docs/windows-wsl) rather than PowerShell. This ensures proper file system access and terminal integration.
+For the best experience, run `opencode ide` from [WSL](/docs/windows-wsl) rather than PowerShell. This ensures proper file system access and terminal integration.
 
 * * *
 
@@ -35,7 +35,7 @@ You can configure the web server using command line flags or in your [config fil
 By default, OpenCode picks an available port. You can specify a port:
 
 ```bash
-opencode web --port 4096
+opencode ide --port 4096
 ```
 
 ### [Hostname](#hostname)
@@ -43,7 +43,7 @@ opencode web --port 4096
 By default, the server binds to `127.0.0.1` (localhost only). To make OpenCode accessible on your network:
 
 ```bash
-opencode web --hostname 0.0.0.0
+opencode ide --hostname 0.0.0.0
 ```
 
 When using `0.0.0.0`, OpenCode will display both local and network addresses:
@@ -57,7 +57,7 @@ Local access:       http://localhost:4096  Network access:     http://192.168.1.
 Enable mDNS to make your server discoverable on the local network:
 
 ```bash
-opencode web --mdns
+opencode ide --mdns
 ```
 
 This automatically sets the hostname to `0.0.0.0` and advertises the server as `opencode.local`.
@@ -65,7 +65,7 @@ This automatically sets the hostname to `0.0.0.0` and advertises the server as `
 You can customize the mDNS domain name to run multiple instances on the same network:
 
 ```bash
-opencode web --mdns --mdns-domain myproject.local
+opencode ide --mdns --mdns-domain myproject.local
 ```
 
 ### [CORS](#cors)
@@ -73,7 +73,7 @@ opencode web --mdns --mdns-domain myproject.local
 To allow additional domains for CORS (useful for custom frontends):
 
 ```bash
-opencode web --cors https://example.com
+opencode ide --cors https://example.com
 ```
 
 ### [Authentication](#authentication)
@@ -81,7 +81,7 @@ opencode web --cors https://example.com
 To protect access, set a password using the `OPENCODE_SERVER_PASSWORD` environment variable:
 
 ```bash
-OPENCODE_SERVER_PASSWORD=secret opencode web
+OPENCODE_SERVER_PASSWORD=secret opencode ide
 ```
 
 The username defaults to `opencode` but can be changed with `OPENCODE_SERVER_USERNAME`.
@@ -96,13 +96,13 @@ Once started, the web interface provides access to your OpenCode sessions.
 
 View and manage your sessions from the homepage. You can see active sessions and start new ones.
 
-![OpenCode Web - Active Session](/docs/_astro/web-homepage-active-session.BbK4Ph6e_Z1O7nO1.webp)
+![OpenCode IDE - Active Session](/docs/_astro/web-homepage-active-session.BbK4Ph6e_Z1O7nO1.webp)
 
 ### [Server Status](#server-status)
 
 Click “See Servers” to view connected servers and their status.
 
-![OpenCode Web - See Servers](/docs/_astro/web-homepage-see-servers.BpCOef2l_ZB0rJd.webp)
+![OpenCode IDE - See Servers](/docs/_astro/web-homepage-see-servers.BpCOef2l_ZB0rJd.webp)
 
 * * *
 
@@ -111,7 +111,7 @@ Click “See Servers” to view connected servers and their status.
 You can attach a terminal TUI to a running web server:
 
 ```bash
-# Start the web serveropencode web --port 4096
+# Start the IDE serveropencode ide --port 4096
 # In another terminal, attach the TUIopencode attach http://localhost:4096
 ```
 
