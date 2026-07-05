@@ -2434,3 +2434,52 @@ ToolRegistry.register({
     return <BasicTool icon="brain" status={props.status} trigger={trigger()} hideDetails />
   },
 })
+
+ToolRegistry.register({
+  name: "generate_image",
+  render(props) {
+    const i18n = useI18n()
+    const dialog = useDialog()
+    const dataUrl = createMemo(() => {
+      const v = props.metadata?.dataUrl
+      return typeof v === "string" && v ? v : ""
+    })
+    const filepath = createMemo(() => {
+      const v = props.metadata?.filepath
+      return typeof v === "string" ? v : ""
+    })
+    const filename = createMemo(() => (filepath() ? getFilename(filepath()) : ""))
+    const pending = createMemo(() => props.status === "pending" || props.status === "running")
+
+    const openPreview = () => {
+      const url = dataUrl()
+      if (!url) return
+      dialog.show(() => <ImagePreview src={url} alt={filename()} />)
+    }
+
+    return (
+      <BasicTool
+        icon="photo"
+        status={props.status}
+        trigger={{
+          title: i18n.t("ui.tool.generateImage"),
+          subtitle: filename() || undefined,
+        }}
+        hideDetails={!dataUrl() && !pending()}
+      >
+        <Show when={dataUrl()}>
+          {(url) => (
+            <div class="flex justify-center px-4 py-3 bg-background-stronger">
+              <img
+                src={url()}
+                alt={filename()}
+                class="max-h-[50vh] max-w-full rounded-lg border border-border-base cursor-pointer object-contain hover:border-border-interactive-base transition-colors"
+                onClick={openPreview}
+              />
+            </div>
+          )}
+        </Show>
+      </BasicTool>
+    )
+  },
+})

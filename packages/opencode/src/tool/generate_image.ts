@@ -46,18 +46,21 @@ export const GenerateImageTool = Tool.define(
               metadata: {}
             }
           }
-          
+
           const arrayBuffer = yield* Effect.tryPromise(() => response.arrayBuffer())
           const buffer = Buffer.from(arrayBuffer)
-          
+
           const fsPromises = require("fs/promises")
           yield* Effect.tryPromise(() => fsPromises.mkdir(path.dirname(filepath), { recursive: true }))
           yield* Effect.tryPromise(() => fsPromises.writeFile(filepath, buffer))
-          
+
+          const mime = filepath.toLowerCase().endsWith(".jpg") || filepath.toLowerCase().endsWith(".jpeg") ? "image/jpeg" : "image/png"
+          const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`
+
           return {
             title: path.relative(instance.worktree, filepath),
-            metadata: { filepath },
-            output: `Successfully generated and saved image to ${filepath}`,
+            metadata: { filepath, dataUrl },
+            output: `Successfully generated and saved image to \`${filepath}\`\n\n![Generated Image](${dataUrl})`,
           }
         }).pipe(
           Effect.catch((e: any) =>
