@@ -9,7 +9,6 @@ import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
 import { Icon } from "@opencode-ai/ui/icon"
 import { errorDescriptionKey } from "./error-description"
-import { showToast } from "@/utils/toast"
 
 export type InitError = {
   name: string
@@ -379,17 +378,17 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
             </Show>
           </Show>
         </div>
-          <Show when={store.actionError}>
-            {(message) => <p class="text-xs text-text-danger-base text-center max-w-2xl">{message()}</p>}
-          </Show>
-          <Show when={aiSuggestion()}>
-            {(suggestion) => (
-              <div class="w-full max-w-3xl rounded-lg border border-border-base bg-surface-raised-base p-3 text-left">
-                <div class="text-xs font-semibold uppercase tracking-wider text-text-weak mb-1">AI Suggested Fix</div>
-                <div class="text-sm whitespace-pre-wrap text-text-strong">{suggestion()}</div>
-              </div>
-            )}
-          </Show>
+        <Show when={store.actionError}>
+          {(message) => <p class="text-xs text-text-danger-base text-center max-w-2xl">{message()}</p>}
+        </Show>
+        <Show when={aiSuggestion()}>
+          {(suggestion) => (
+            <div class="w-full max-w-3xl rounded-lg border border-border-base bg-surface-raised-base p-3 text-left">
+              <div class="text-xs font-semibold uppercase tracking-wider text-text-weak mb-1">AI Suggested Fix</div>
+              <div class="text-sm whitespace-pre-wrap text-text-strong">{suggestion()}</div>
+            </div>
+          )}
+        </Show>
         <div class="flex flex-col items-center gap-2">
           <div class="flex items-center justify-center gap-1">
             {language.t("error.page.report.prefix")}
