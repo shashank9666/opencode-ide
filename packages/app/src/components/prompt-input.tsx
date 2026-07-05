@@ -78,6 +78,7 @@ import { AddContextMenu } from "./prompt-input/add-context-menu"
 import { VoiceRecorder } from "./prompt-input/voice-recorder"
 import { AgentModeSelector, type AgentMode } from "./prompt-input/agent-mode-selector"
 import { TemplatesPopover, saveTemplate } from "./prompt-input/templates"
+import { ImageGenerationPanel } from "./prompt-input/image-generation-panel"
 
 export type PromptInputState = ReturnType<typeof usePrompt>
 
@@ -252,6 +253,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const [agentMode, setAgentMode] = createSignal<AgentMode>("ask")
   const [isDragging, setIsDragging] = createSignal(false)
   const [templatesOpen, setTemplatesOpen] = createSignal(false)
+  const [imageGenOpen, setImageGenOpen] = createSignal(false)
 
   const terminal = useTerminal()
 
@@ -1704,6 +1706,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 [props.class ?? ""]: !!props.class,
               }}
             >
+              <Show when={imageGenOpen()}>
+                <div class="px-2 pt-2">
+                  <ImageGenerationPanel
+                    onAdd={(attachment) => {
+                      const cursor = prompt.cursor()
+                      prompt.set([...prompt.current(), attachment], cursor)
+                    }}
+                    onClose={() => setImageGenOpen(false)}
+                  />
+                </div>
+              </Show>
               <div class="flex items-center w-full px-2 pt-2 pb-1 border-b border-v2-border-border-muted/30">
                 <div class="flex items-center gap-0.5">
                   <Tooltip placement="top" gutter={4} value="Background Terminals">
@@ -1763,6 +1776,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     </Popover>
                   </Tooltip>
                 </div>
+                <Tooltip placement="top" gutter={4} value="Generate Image">
+                  <IconButton
+                    icon="photo"
+                    variant="ghost"
+                    size="small"
+                    class="size-6 rounded text-v2-icon-icon-muted hover:text-v2-icon-icon-base hover:bg-v2-overlay-simple-overlay-hover"
+                    classList={{ "text-v2-icon-icon-base bg-v2-overlay-simple-overlay-hover": imageGenOpen() }}
+                    onClick={() => setImageGenOpen(!imageGenOpen())}
+                    aria-label="Generate Image"
+                  />
+                </Tooltip>
                 <div class="flex-1" />
                 <Button
                   variant="ghost"
@@ -1993,6 +2017,17 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               }
             }}
           >
+            <Show when={imageGenOpen()}>
+              <div class="px-2 pt-2">
+                <ImageGenerationPanel
+                  onAdd={(attachment) => {
+                    const cursor = prompt.cursor()
+                    prompt.set([...prompt.current(), attachment], cursor)
+                  }}
+                  onClose={() => setImageGenOpen(false)}
+                />
+              </div>
+            </Show>
             <PromptDragOverlay
               type={isDragging() ? "image" : store.draggingType}
               label={language.t(
@@ -2119,7 +2154,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               <div class="pointer-events-none absolute bottom-2 left-2">
                 <div
                   aria-hidden={store.mode !== "normal"}
-                  class="pointer-events-auto"
+                  class="pointer-events-auto flex items-center gap-1"
                   style={{
                     "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none",
                   }}
@@ -2160,6 +2195,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     disabled={store.mode !== "normal"}
                     tabIndex={store.mode === "normal" ? undefined : -1}
                   />
+                  <Tooltip placement="top" value="Generate Image">
+                    <IconButton
+                      icon="photo"
+                      variant="ghost"
+                      size="small"
+                      class="size-8 rounded"
+                      classList={{ "bg-surface-raised-base": imageGenOpen() }}
+                      style={buttons()}
+                      disabled={store.mode !== "normal"}
+                      tabIndex={store.mode === "normal" ? undefined : -1}
+                      onClick={() => setImageGenOpen(!imageGenOpen())}
+                      aria-label="Generate Image"
+                    />
+                  </Tooltip>
                 </div>
               </div>
             </div>

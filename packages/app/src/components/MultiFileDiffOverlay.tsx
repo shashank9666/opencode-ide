@@ -28,12 +28,6 @@ export function MultiFileDiffOverlay(props: { workspace: any, onAccept?: (path: 
           <IconButton icon="close" size="small" variant="ghost" class="size-6 -mr-1 text-text-weak hover:text-text-strong" onClick={handleClose} aria-label="Close pending changes" />
         </div>
         <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1 text-text-weak flex-1">
-            <IconButton icon="open-file" size="small" variant="ghost" class="size-6" />
-            <IconButton icon="branch" size="small" variant="ghost" class="size-6" />
-            <IconButton icon="browser" size="small" variant="ghost" class="size-6" />
-            <IconButton icon="edit" size="small" variant="ghost" class="size-6" />
-          </div>
           <button 
             class="flex items-center gap-1.5 px-2 py-1 text-12-medium text-text-weak hover:text-text-strong border border-border-base rounded-md hover:bg-surface-base transition-colors"
             onClick={() => { props.workspace.openFile("review://changes", "", "") }}
