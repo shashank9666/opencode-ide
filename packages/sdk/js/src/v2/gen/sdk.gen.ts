@@ -62,6 +62,8 @@ import type {
   FileListResponses,
   FilePartInput,
   FilePartSource,
+  FileRawErrors,
+  FileRawResponses,
   FileReadErrors,
   FileReadResponses,
   FileStatusErrors,
@@ -1833,6 +1835,38 @@ export class File extends HeyApiClient {
     )
     return (options?.client ?? this.client).get<FileReadResponses, FileReadErrors, ThrowOnError>({
       url: "/file/content",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Read raw file
+   *
+   * Read the raw binary content of a specified file.
+   */
+  public raw<ThrowOnError extends boolean = false>(
+    parameters: {
+      directory?: string
+      workspace?: string
+      path: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "path" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<FileRawResponses, FileRawErrors, ThrowOnError>({
+      url: "/file/raw",
       ...options,
       ...params,
     })

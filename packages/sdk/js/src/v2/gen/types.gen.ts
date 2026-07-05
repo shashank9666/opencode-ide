@@ -2286,6 +2286,12 @@ export type FileNode = {
   ignored: boolean
 }
 
+export type FileNotFoundError = {
+  _tag: "FileNotFoundError"
+  path: string
+  message: string
+}
+
 export type FileContent = {
   type: "text" | "binary"
   content: string
@@ -2306,6 +2312,12 @@ export type FileContent = {
   }
   encoding?: "base64"
   mimeType?: string
+}
+
+export type PathEscapesError = {
+  _tag: "PathEscapesError"
+  path: string
+  message: string
 }
 
 export type File = {
@@ -6041,6 +6053,10 @@ export type FileListErrors = {
    * Bad request
    */
   400: BadRequestError
+  /**
+   * FileNotFoundError
+   */
+  404: FileNotFoundError
 }
 
 export type FileListError = FileListErrors[keyof FileListErrors]
@@ -6067,9 +6083,13 @@ export type FileReadData = {
 
 export type FileReadErrors = {
   /**
-   * Bad request
+   * PathEscapesError | InvalidRequestError
    */
-  400: BadRequestError
+  400: PathEscapesError | InvalidRequestError
+  /**
+   * FileNotFoundError
+   */
+  404: FileNotFoundError
 }
 
 export type FileReadError = FileReadErrors[keyof FileReadErrors]
@@ -6082,6 +6102,39 @@ export type FileReadResponses = {
 }
 
 export type FileReadResponse = FileReadResponses[keyof FileReadResponses]
+
+export type FileRawData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    path: string
+  }
+  url: "/file/raw"
+}
+
+export type FileRawErrors = {
+  /**
+   * PathEscapesError | InvalidRequestError
+   */
+  400: PathEscapesError | InvalidRequestError
+  /**
+   * FileNotFoundError
+   */
+  404: FileNotFoundError
+}
+
+export type FileRawError = FileRawErrors[keyof FileRawErrors]
+
+export type FileRawResponses = {
+  /**
+   * Raw file content
+   */
+  200: string
+}
+
+export type FileRawResponse = FileRawResponses[keyof FileRawResponses]
 
 export type FileStatusData = {
   body?: never
@@ -6098,6 +6151,10 @@ export type FileStatusErrors = {
    * Bad request
    */
   400: BadRequestError
+  /**
+   * FileNotFoundError
+   */
+  404: FileNotFoundError
 }
 
 export type FileStatusError = FileStatusErrors[keyof FileStatusErrors]

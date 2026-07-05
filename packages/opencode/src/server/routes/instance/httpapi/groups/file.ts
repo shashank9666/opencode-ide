@@ -103,6 +103,7 @@ export const FilePaths = {
   list: "/file",
   content: "/file/content",
   status: "/file/status",
+  raw: "/file/raw",
 } as const
 
 export const FileApi = HttpApi.make("file")
@@ -159,6 +160,17 @@ export const FileApi = HttpApi.make("file")
             identifier: "file.read",
             summary: "Read file",
             description: "Read the content of a specified file.",
+          }),
+        ),
+        HttpApiEndpoint.get("raw", FilePaths.raw, {
+          query: FileQuery,
+          success: described(Schema.Uint8Array, "Raw file content"),
+          error: [FileNotFoundError, PathEscapesError],
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "file.raw",
+            summary: "Read raw file",
+            description: "Read the raw binary content of a specified file.",
           }),
         ),
         HttpApiEndpoint.get("status", FilePaths.status, {

@@ -138,6 +138,19 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       return []
     })
 
+    const raw = Effect.fn("FileHttpApi.raw")(function* (ctx: { query: { path: string } }) {
+      const directory = (yield* InstanceState.context).directory
+      const file = path.resolve(directory, ctx.query.path)
+      if (!FSUtil.contains(directory, file)) return yield* new PathEscapesError({ path: ctx.query.path, message: "Path escapes the location" })
+      if (!(yield* FSUtil.Service.use((fs) => fs.existsSafe(file)))) return yield* new FileNotFoundError({ path: ctx.query.path, message: "File not found" })
+      
+      return yield* filesystem(
+        FileSystem.Service.use((fs) => fs.read({ path: RelativePath.make(ctx.query.path) })),
+      ).pipe(
+        Effect.map((item) => item.content)
+      )
+    })
+
     return handlers
       .handle("findText", findText)
       .handle("findFile", findFile)
@@ -145,5 +158,6 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       .handle("list", list)
       .handle("content", content)
       .handle("status", status)
+      .handle("raw", raw)
   }),
 ).pipe(Layer.provide(LocationServiceMap.layer))
