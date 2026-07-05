@@ -1,9 +1,9 @@
 # OpenCode IDE
 
-OpenCode IDE is a web-based code editing experience where an AI coding agent operates alongside you directly in the browser. Built with [SolidJS](https://www.solidjs.com/) and [Monaco Editor](https://microsoft.github.io/monaco-editor/), it connects to an OpenCode backend to run agent sessions efficiently.
+OpenCode IDE is a code editing experience where an AI coding agent operates alongside you directly in the browser. Built with [SolidJS](https://www.solidjs.com/) and [Monaco Editor](https://microsoft.github.io/monaco-editor/), it connects to an OpenCode backend to run agent sessions efficiently.
 
 ## Features
-- **Browser-based IDE**: Full-fledged coding environment accessible via your web browser.
+- **Browser-based IDE**: Full-fledged coding environment accessible via your IDE browser.
 - **Desktop Application**: Fully packaged Electron application for Windows, macOS, and Linux.
 - **AI Integration**: Built-in AI coding agent that understands your codebase and helps you write, refactor, and debug code.
 - **Modern Stack**: Powered by SolidJS for high performance and reactivity.
@@ -48,9 +48,9 @@ You can build a packaged desktop application for your local system. The build pr
    ```
    > 📦 **Note:** Running the build command *without* `:pack` will generate the actual, shareable installer (`.exe`, `.dmg`, or `.AppImage`) inside the `packages/electron/release/` directory.
 
-## Building for Web Production
+## Building for IDE Production
 
-To build the standalone web application for a production environment:
+To build the standalone IDE application for a production environment:
 
 ```bash
 bun --cwd packages/app build
