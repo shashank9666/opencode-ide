@@ -43,8 +43,16 @@ export function SessionPermissionDock(props: {
     onCleanup(() => window.removeEventListener("keydown", handleKeyDown))
   })
 
+  const permissionType = () => {
+    const p = props.request.permission
+    if (["write", "replace_file_content", "write_to_file", "write_file", "filesystem.write.project"].includes(p)) {
+      return "edit"
+    }
+    return p
+  }
+
   const toolDescription = () => {
-    const key = `settings.permissions.tool.${props.request.permission}.description`
+    const key = `settings.permissions.tool.${permissionType()}.description`
     const value = language.t(key as Parameters<typeof language.t>[0])
     if (value === key) return ""
     return value

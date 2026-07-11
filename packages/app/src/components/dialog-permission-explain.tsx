@@ -171,7 +171,8 @@ const PERMISSION_INFO: Record<string, PermissionInfo> = {
 }
 
 function getPermissionInfo(permission: string): PermissionInfo | undefined {
-  return PERMISSION_INFO[permission] ?? {
+  const norm = ["write", "write_to_file", "replace_file_content", "multi_replace_file_content", "write_file", "filesystem.write.project"].includes(permission) ? "edit" : permission
+  return PERMISSION_INFO[norm] ?? {
     title: permission,
     shortDescription: "The agent is requesting permission.",
     longDescription: "The agent needs this permission to complete the requested action.",

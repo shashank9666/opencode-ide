@@ -464,14 +464,28 @@ export default function FullIde() {
     localStorage.setItem(`workspace_${currentDir}`, JSON.stringify(snapshot));
   });
 
+  createEffect(() => {
+    const currentDir = dir()
+    const session = activeSessionId()
+    if (currentDir && session) {
+      localStorage.setItem(`activeSession_${currentDir}`, session)
+    }
+  })
+
   let lastDir: string | undefined
   createEffect(() => {
     const currentDir = dir()
     const recent = recentSessions()
+    if (!currentDir) return
     if (currentDir !== lastDir && recent.length > 0) {
       lastDir = currentDir
-      const first = recent[0]
-      if (first?.id) setActiveSessionId(first.id)
+      const savedSession = localStorage.getItem(`activeSession_${currentDir}`)
+      if (savedSession && recent.some(s => s.id === savedSession)) {
+        setActiveSessionId(savedSession)
+      } else {
+        const first = recent[0]
+        if (first?.id) setActiveSessionId(first.id)
+      }
     }
   })
 
@@ -1595,9 +1609,11 @@ export default function FullIde() {
               const args = pendingEditToolArgs()
               // Also respond to duplicate permissions for the same file + operation
               const allPerms = sync().data.permission[req.sessionID] ?? []
+              const isEditOrWrite = (p: string) => ["edit", "write", "replace_file_content", "write_to_file", "write_file", "filesystem.write.project"].includes(p)
               for (const dup of allPerms) {
                 if (dup.id === req.id) continue
-                if (dup.permission === req.permission && dup.patterns?.[0] === req.patterns?.[0]) {
+                const bothEditOrWrite = isEditOrWrite(dup.permission) && isEditOrWrite(req.permission)
+                if ((dup.permission === req.permission || bothEditOrWrite) && dup.patterns?.[0] === req.patterns?.[0]) {
                   sdk().client.permission.respond({ sessionID: dup.sessionID, permissionID: dup.id, response: "once" })
                     .catch(() => {})
                 }
@@ -1630,9 +1646,11 @@ export default function FullIde() {
               }
               // Also respond to duplicate permissions for the same file + operation
               const allPerms = sync().data.permission[req.sessionID] ?? []
+              const isEditOrWrite = (p: string) => ["edit", "write", "replace_file_content", "write_to_file", "write_file", "filesystem.write.project"].includes(p)
               for (const dup of allPerms) {
                 if (dup.id === req.id) continue
-                if (dup.permission === req.permission && dup.patterns?.[0] === req.patterns?.[0]) {
+                const bothEditOrWrite = isEditOrWrite(dup.permission) && isEditOrWrite(req.permission)
+                if ((dup.permission === req.permission || bothEditOrWrite) && dup.patterns?.[0] === req.patterns?.[0]) {
                   sdk().client.permission.respond({ sessionID: dup.sessionID, permissionID: dup.id, response: "reject" })
                     .catch(() => {})
                 }
