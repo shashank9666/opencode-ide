@@ -70,12 +70,11 @@ function formatDuration(seconds: number): string {
 }
 
 async function discoverSSHHosts(client: any): Promise<string[]> {
+  const stored = loadJSON<string[]>(SSH_HOSTS_KEY)
+  if (stored && stored.length > 0) return stored
   try {
-    const directory: string | undefined = client?.directory
-    if (directory) {
-      const home = directory.replace(/\\/g, "/")
-      const configPath = `${home}/.ssh/config`
-      const response = await client.client.v2.fs.read({ path: configPath })
+    if (client) {
+      const response = await client.v2.fs.read({ path: ".ssh/config" })
       if (response.data) {
         const text = typeof response.data === "string" ? response.data : new TextDecoder().decode(response.data as ArrayBuffer)
         const hosts = parseSSHConfigHosts(text)
@@ -83,7 +82,7 @@ async function discoverSSHHosts(client: any): Promise<string[]> {
       }
     }
   } catch {}
-  return loadJSON<string[]>(SSH_HOSTS_KEY) ?? []
+  return []
 }
 
 async function discoverWSLDistros(): Promise<string[]> {
@@ -132,6 +131,8 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
 
     onCleanup(stopDurationTimer)
 
+    const serverSDK = useServerSDK()
+
     const persistRecent = (items: SavedRemoteConnection[]) => {
       saveJSON(RECENT_CONNECTIONS_KEY, items)
     }
@@ -142,14 +143,13 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
 
       saveRecent(type, target)
 
-      // Use SDK to verify connection reachability instead of fake timeout
       try {
-        const ctx = useServerSDK()
-        if (ctx) {
+        const client = serverSDK()?.client
+        if (client) {
           const cmd = type === "WSL" ? `wsl -d ${target} echo "connected"`
             : type === "SSH" ? `ssh -o ConnectTimeout=5 ${target} echo "connected"`
             : `docker exec ${target} echo "connected"`
-          await ctx.client.pty.create({ command: cmd, title: `Remote: ${type} ${target}` })
+          await client.pty.create({ command: cmd, title: `Remote: ${type} ${target}` })
         }
       } catch {
         setConnection({ type, target, status: "error", error: "Connection failed" })
@@ -193,12 +193,10 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
     }
 
     const refreshSections = async (type?: RemoteType) => {
-      const ctx = useServerSDK()
-      const client = ctx as any
       const parts: RemoteSection[] = []
 
       if (!type || type === "SSH") {
-        const hosts = await discoverSSHHosts(client)
+        const hosts = await discoverSSHHosts(serverSDK()?.client as any)
         if (hosts.length > 0) parts.push({ id: "ssh", title: "SSH Targets", type: "SSH", items: hosts })
       }
       if (!type || type === "WSL") {
