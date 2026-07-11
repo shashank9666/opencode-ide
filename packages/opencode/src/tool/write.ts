@@ -52,7 +52,7 @@ export const WriteTool = Tool.define(
 
           const diff = trimDiff(createTwoFilesPatch(filepath, filepath, contentOld, contentNew))
           yield* ctx.ask({
-            permission: "filesystem.write.project",
+            permission: "edit",
             patterns: [path.relative(instance.worktree, filepath)],
             always: ["*"],
             metadata: {
