@@ -26,6 +26,7 @@ export function createEditorWorkspace() {
   const [activeGroupId, setActiveGroupId] = createSignal<string>("group-1");
 
   let nextGroupId = 2;
+  const allocGroupId = () => `group-${nextGroupId++}`
 
   const findGroup = (node: EditorNode, id: string): EditorGroup | null => {
     if (node.type === "group") return node.group.id === id ? node.group : null;
@@ -37,8 +38,6 @@ export function createEditorWorkspace() {
   };
 
   const resolveActiveGroupId = () => {
-    const resolved = findGroup(rootNode(), activeGroupId())
-    if (resolved) return resolved.id
     return getActiveGroup()?.id ?? activeGroupId()
   }
 
@@ -153,22 +152,25 @@ export function createEditorWorkspace() {
   };
 
   const setOriginalContent = (path: string, originalContent?: string) => {
-    setRootNode(prev => {
-      const updateRec = (node: EditorNode): EditorNode => {
-        if (node.type === "group") {
-          return {
-            ...node,
-            group: {
-              ...node.group,
-              files: node.group.files.map(f => f.path === path ? { ...f, originalContent } : f)
-            }
-          };
-        }
-        return { ...node, children: node.children.map(updateRec) };
-      };
-      return updateRec(prev);
-    });
+    const groupId = getFileGroupId(path)
+    if (!groupId) return
+    setRootNode(prev => updateGroup(prev, groupId, g => ({
+      ...g,
+      files: g.files.map(f => f.path === path ? { ...f, originalContent } : f)
+    })))
   };
+
+  const getFileGroupId = (path: string): string | null => {
+    const find = (node: EditorNode): string | null => {
+      if (node.type === "group") return node.group.files.some(f => f.path === path) ? node.group.id : null
+      for (const child of node.children) {
+        const found = find(child)
+        if (found) return found
+      }
+      return null
+    }
+    return find(rootNode())
+  }
 
   const mergeAllPanels = () => {
     const collectFiles = (node: EditorNode): OpenFile[] => {
@@ -205,7 +207,7 @@ export function createEditorWorkspace() {
       if (node.type === "group" && node.group.id === groupId) {
         const activeFileState = node.group.activeFile ? node.group.files.find(f => f.path === node.group.activeFile) : null;
         const newGroupFiles = activeFileState ? [{ ...activeFileState }] : [];
-        const newGroup: EditorGroup = { id: `group-${nextGroupId++}`, files: newGroupFiles, activeFile: activeFileState ? activeFileState.path : null };
+        const newGroup: EditorGroup = { id: allocGroupId(), files: newGroupFiles, activeFile: activeFileState ? activeFileState.path : null };
         return {
           type: "split",
           direction,
@@ -315,7 +317,7 @@ export function createEditorWorkspace() {
   const loadSnapshot = (snapshot: any) => {
     if (!snapshot) return;
     const deserialize = (node: any): EditorNode => {
-      if (node.type === "group") return { type: "group", group: { id: node.id, files: node.files.map((path: string) => ({ path, content: "Loading...", savedContent: "", dirty: false })), activeFile: node.activeFile } };
+      if (node.type === "group") return { type: "group", group: { id: node.id, files: node.files.map((path: string) => ({ path, content: "", savedContent: "", dirty: false })), activeFile: node.activeFile } };
       return { type: "split", direction: node.direction, sizes: node.sizes, children: node.children.map(deserialize) };
     }
     try {

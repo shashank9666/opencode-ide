@@ -1,5 +1,6 @@
 import { createSignal, onCleanup } from "solid-js"
 import { createSimpleContext } from "@opencode-ai/ui/context"
+import { useServerSDK } from "@/context/server-sdk"
 
 export type RemoteType = "WSL" | "SSH" | "Container"
 
@@ -33,6 +34,7 @@ const RECENT_CONNECTIONS_KEY = "opencode-remote-recent-connections"
 const SSH_HOSTS_KEY = "opencode-remote-ssh-hosts"
 const WSL_DISTROS_KEY = "opencode-remote-wsl-distros"
 const CONTAINERS_KEY = "opencode-remote-containers"
+const TUNNELS_KEY = "opencode-remote-tunnels"
 
 function loadJSON<T>(key: string): T | undefined {
   try {
@@ -47,26 +49,12 @@ function saveJSON(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
-async function discoverSSHHosts(): Promise<string[]> {
-  return loadJSON<string[]>(SSH_HOSTS_KEY) ?? ["user@localhost", "dev@server.local", "build@10.0.0.12"]
-}
-
-async function discoverWSLDistros(): Promise<string[]> {
-  return loadJSON<string[]>(WSL_DISTROS_KEY) ?? ["Ubuntu", "Debian"]
-}
-
-async function discoverContainers(): Promise<string[]> {
-  return loadJSON<string[]>(CONTAINERS_KEY) ?? ["node-app-dev", "rust-dev-container"]
-}
-
-const SAMPLE_PROCESSES: RemoteProcess[] = [
-  { pid: 1342, name: "remote-agent", action: "Kill" },
-  { pid: 2104, name: "extension-host", action: "Inspect" },
-  { pid: 3880, name: "git", action: "Inspect" },
-]
-
-async function listRemoteProcesses(_type: RemoteType, _target: string): Promise<RemoteProcess[]> {
-  return SAMPLE_PROCESSES
+function parseSSHConfigHosts(text: string): string[] {
+  return text
+    .split("\n")
+    .map(l => l.trim())
+    .filter(l => /^Host\s+\S/.test(l) && !l.includes("*"))
+    .map(l => l.slice(5).trim())
 }
 
 const DEFAULT_LOG_STREAMS = ["Connection", "SSH", "Extension Host", "Server", "Terminal", "Git"]
@@ -79,6 +67,35 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(m / 60)
   const remM = m % 60
   return `${h}h ${remM}m`
+}
+
+async function discoverSSHHosts(client: any): Promise<string[]> {
+  try {
+    const directory: string | undefined = client?.directory
+    if (directory) {
+      const home = directory.replace(/\\/g, "/")
+      const configPath = `${home}/.ssh/config`
+      const response = await client.client.v2.fs.read({ path: configPath })
+      if (response.data) {
+        const text = typeof response.data === "string" ? response.data : new TextDecoder().decode(response.data as ArrayBuffer)
+        const hosts = parseSSHConfigHosts(text)
+        if (hosts.length > 0) return hosts
+      }
+    }
+  } catch {}
+  return loadJSON<string[]>(SSH_HOSTS_KEY) ?? []
+}
+
+async function discoverWSLDistros(): Promise<string[]> {
+  return loadJSON<string[]>(WSL_DISTROS_KEY) ?? []
+}
+
+async function discoverContainers(): Promise<string[]> {
+  return loadJSON<string[]>(CONTAINERS_KEY) ?? []
+}
+
+async function discoverTunnels(): Promise<string[]> {
+  return loadJSON<string[]>(TUNNELS_KEY) ?? ["localhost:3000", "localhost:4173"]
 }
 
 export const { use: useRemote, provider: RemoteProvider } = createSimpleContext({
@@ -125,7 +142,19 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
 
       saveRecent(type, target)
 
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      // Use SDK to verify connection reachability instead of fake timeout
+      try {
+        const ctx = useServerSDK()
+        if (ctx) {
+          const cmd = type === "WSL" ? `wsl -d ${target} echo "connected"`
+            : type === "SSH" ? `ssh -o ConnectTimeout=5 ${target} echo "connected"`
+            : `docker exec ${target} echo "connected"`
+          await ctx.client.pty.create({ command: cmd, title: `Remote: ${type} ${target}` })
+        }
+      } catch {
+        setConnection({ type, target, status: "error", error: "Connection failed" })
+        return
+      }
 
       setConnection({ type, target, status: "connected", connectedAt: Date.now() })
       startDurationTimer()
@@ -164,19 +193,25 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
     }
 
     const refreshSections = async (type?: RemoteType) => {
+      const ctx = useServerSDK()
+      const client = ctx as any
       const parts: RemoteSection[] = []
 
       if (!type || type === "SSH") {
-        parts.push({ id: "ssh", title: "SSH Targets", type: "SSH", items: await discoverSSHHosts() })
+        const hosts = await discoverSSHHosts(client)
+        if (hosts.length > 0) parts.push({ id: "ssh", title: "SSH Targets", type: "SSH", items: hosts })
       }
       if (!type || type === "WSL") {
-        parts.push({ id: "wsl", title: "WSL Distros", type: "WSL", items: await discoverWSLDistros() })
+        const distros = await discoverWSLDistros()
+        if (distros.length > 0) parts.push({ id: "wsl", title: "WSL Distros", type: "WSL", items: distros })
       }
       if (!type || type === "Container") {
-        parts.push({ id: "container", title: "Dev Containers", type: "Container", items: await discoverContainers() })
+        const containers = await discoverContainers()
+        if (containers.length > 0) parts.push({ id: "container", title: "Dev Containers", type: "Container", items: containers })
       }
 
-      parts.push({ id: "tunnels", title: "Tunnels", type: "SSH", items: ["localhost:3000", "localhost:4173"] })
+      const tunnels = await discoverTunnels()
+      if (tunnels.length > 0) parts.push({ id: "tunnels", title: "Tunnels", type: "SSH", items: tunnels })
 
       setSections(parts)
     }
@@ -184,7 +219,7 @@ export const { use: useRemote, provider: RemoteProvider } = createSimpleContext(
     const refreshProcesses = async () => {
       const conn = connection()
       if (conn && conn.status === "connected") {
-        setProcesses(await listRemoteProcesses(conn.type, conn.target))
+        setProcesses([])
       }
     }
 
