@@ -208,12 +208,12 @@
       "name": "@opencode-ai/electron",
       "version": "1.0.0",
       "dependencies": {
-        "electron-builder": "^26.15.3",
         "jimp": "^1.6.1",
       },
       "devDependencies": {
         "@types/node": "^26.0.1",
         "electron": "^42.5.0",
+        "electron-builder": "^26.15.3",
         "typescript": "^6.0.3",
       },
     },
