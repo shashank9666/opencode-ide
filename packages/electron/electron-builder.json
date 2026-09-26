@@ -1,6 +1,7 @@
 {
   "appId": "com.opencode.app",
   "productName": "OpenCode",
+  "executableName": "opencode",
   "directories": {
     "output": "release",
     "buildResources": "assets"
@@ -34,5 +35,11 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "category": "Development"
   }
 }
