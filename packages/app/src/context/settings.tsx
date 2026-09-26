@@ -254,6 +254,21 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     })
 
     createEffect(() => {
+      if (typeof document === "undefined") return
+      const root = document.documentElement
+      if (store.appearance?.glassmorphism) {
+        root.setAttribute("data-glassmorphism", "true")
+      } else {
+        root.removeAttribute("data-glassmorphism")
+      }
+      if (store.appearance?.wallpaperUrl) {
+        root.setAttribute("data-has-wallpaper", "true")
+      } else {
+        root.removeAttribute("data-has-wallpaper")
+      }
+    })
+
+    createEffect(() => {
       if (store.general?.followup !== "queue") return
       setStore("general", "followup", "steer")
     })

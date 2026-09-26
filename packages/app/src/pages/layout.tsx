@@ -165,7 +165,7 @@ export default function Layout(props: ParentProps) {
       <div 
         class="fixed inset-0 z-[-1] pointer-events-none" 
         style={{
-          "background-image": `url(${wp})`, 
+          "background-image": `url("${wp}")`, 
           "background-size": "cover", 
           "background-position": "center"
         }} 
