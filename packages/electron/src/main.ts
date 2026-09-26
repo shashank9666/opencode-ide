@@ -105,7 +105,6 @@ function createWindow() {
     // Wait slightly to ensure frontend dev server is up
     setTimeout(() => {
       mainWindow.loadURL("http://localhost:4444")
-      mainWindow.webContents.openDevTools()
     }, 2000)
   } else {
     mainWindow.loadFile(path.join(process.resourcesPath, "app-dist/index.html"))

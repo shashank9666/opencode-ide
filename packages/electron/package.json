@@ -6,6 +6,7 @@
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
+    "start": "electron .",
     "dev": "bun run build && electron .",
     "build": "bun build ./src/main.ts --target node --outfile ./dist/main.js --format esm --external electron && bun build ./src/preload.ts --target node --outfile ./dist/preload.cjs --format cjs --external electron",
     "pack": "bun run build && electron-builder --dir",
